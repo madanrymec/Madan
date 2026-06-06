@@ -1,0 +1,338 @@
+index2
+from flask import Blueprint, request, send_file, jsonify
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+import io
+from datetime import datetime
+
+# Assuming app or a blueprint context
+@app.route('/api/mis/download-erm-excel')
+def download_erm_excel():
+    selected_year = request.args.get('fin_year') or request.args.get('fiscal_year') or request.args.get('fis_year')
+    selected_months = request.args.getlist('months[]') or request.args.getlist('month')
+
+    if not selected_months and request.args.get('month'):
+        selected_months = [request.args.get('month')]
+
+    if not selected_year or not selected_months:
+        return "Fiscal Year and Month filters are required", 400
+
+    month_nums = []
+    for m in selected_months:
+        try:
+            month_nums.append(datetime.strptime(m.strip(), "%B").month)
+        except ValueError:
+            return f"Invalid Month name structure: {m}", 400
+
+    # 1. DEFINE MATRIX STRUCTURE MATCHING FRONTEND COLS
+    business_units = [
+        'CFD CORP', 'Bran O/S', 'Unit-1 Govanahalli', 'Unit-2 HUBLI-Special',
+        'Unit-25ACM ACM-STD Motors', 'Unit-25ACG ACG & EVM', 'Unit-7 TUMKUR',
+        'UN05 Mysore Unit', 'Unit-16 PUNE', 'DG Set HUBLI', 'Unit-12/20 Spares / Service'
+    ]
+    
+    # Define General Ledger Account groupings exactly as configured in previous steps
+    account_groups = {
+        'net_sales': [410001, 410002, 410003, 410004, 410005, 410101, 410102, 410103, 410104, 410105],
+        'scrap_sales': [411001, 411002],
+        'iut_out': [412001, 412002],
+        'other_income': [415001, 415002, 415003],
+        'rm_consumption': [420001, 420002, 420003],
+        'iut_in': [900101],
+        'employee_expenses': [
+            421000, 421001, 421002, 421003, 421004, 421005, 421006, 421007, 421008, 421009,
+            422001, 422002, 422003, 422004, 422005, 422006, 420101, 420102, 420103, 420104,
+            420105, 420106, 420107, 420108, 420109, 420110, 420111, 420112, 420113, 420114,
+            420115, 420116, 420117, 420118, 420119, 420120, 420121, 420122, 420123, 420124,
+            420125, 420126, 420127, 420128, 420201, 420202, 420203, 420204, 420205, 420206,
+            420207, 420208, 420209, 420210, 420211, 420212, 420213, 420214, 420215, 420216,
+            420217, 420218, 420219, 420220, 420221, 420222, 420223, 420224, 420225, 420226,
+            420227, 420228, 420229, 420230, 420234, 421102, 421103, 421104, 421105, 421106,
+            421107, 421108, 421109, 421110, 421111, 421112, 421113, 421201, 421202, 421204,
+            421205, 421206, 421207, 421208, 421209, 421210, 421211, 421212, 422101, 422102,
+            422103, 422104, 422105, 422106, 422107, 422108, 422201, 422202, 422203, 422204,
+            422205, 422206, 422207, 422208, 422209, 423101, 423102, 423103, 423106, 423108,
+            423109, 423110, 423111, 423112, 423113, 423114, 424901, 424902, 424903, 424904,
+            420129, 420231, 420232, 421213, 421214
+        ],
+        'revenue_expenses': [
+            430001, 420014, 420015, 430002, 430003, 430004, 430005, 431001, 431002, 431003,
+            431004, 431005, 431008, 431009, 432002, 432004, 432005, 432006, 432007, 432008,
+            432009, 432010, 432011, 432018, 433001, 434001, 435001, 436001, 437001, 437002,
+            437004, 437005, 437006, 437007, 438001, 438003, 438005, 439002, 439003, 439005,
+            439102, 440001, 440002, 440003, 441005, 441002, 441003, 441004, 441006, 441007,
+            441009, 441010, 441011, 441012, 441013, 441014, 441015, 441016, 441017, 441018,
+            441019, 441020, 441022, 441023, 442001, 442002, 442003, 443001, 443002, 444001,
+            444002, 444004, 444005, 445001, 446009, 447001, 448002, 448003, 448005, 448006,
+            448007, 450001, 456001, 454008, 446005, 446006, 446008, 446007, 720002, 720003,
+            449003, 448008, 448009, 457003, 452001, 454020, 454021, 718001, 451001, 426101,
+            426102, 426103, 426201, 426202, 426104, 426105, 426106, 426203, 426204, 427101,
+            427102, 427201, 427202, 428101, 428102, 428103, 428104, 428105, 428106, 428107,
+            428108, 430101, 430102, 430201, 430202, 430301, 430401, 430402, 430403, 430501,
+            430502, 431101, 431201, 431301, 431401, 431501, 431601, 431701, 432101, 432102,
+            432103, 432201, 432301, 432401, 432402, 432403, 432404, 432405, 432501, 432502,
+            432504, 432601, 432602, 432604, 432801, 432802, 432803, 433101, 434101, 435101,
+            435102, 435103, 435104, 436101, 437101, 437102, 437201, 437202, 437203, 437204,
+            437205, 437206, 438101, 438102, 438103, 438106, 438107, 438108, 438109, 439101,
+            439103, 440101, 440102, 440103, 440104, 441101, 441102, 441103, 441104, 441105,
+            441106, 441107, 441108, 441109, 441110, 441111, 441112, 441113, 441114, 441115,
+            441116, 441117, 441118, 441119, 441120, 441121, 441122, 441123, 442101, 442102,
+            442103, 442104, 442105, 442201, 442202, 443101, 443102, 443103, 444101, 444102,
+            444103, 444104, 444201, 444202, 444203, 444204, 444205, 444206, 444207, 444208,
+            445101, 445102, 445103, 445104, 445105, 445106, 445107, 445201, 445202, 445203,
+            445204, 445301, 445302, 446101, 446102, 446103, 447101, 447200, 448101, 449001,
+            449101, 450101, 451101, 451102, 452101, 454118, 455101, 456101, 456102, 456103,
+            456104, 456105, 456106, 459002, 459003, 460001, 461001, 430203
+        ],
+        'transport_charges': [432001, 432012, 432013, 432701, 432702, 432703, 432704, 432705, 432706, 432707, 432708, 432709],
+        'finance_charges': [454101, 454102, 454103, 454104, 454105, 454106, 454107, 454108, 454109, 454110, 454111, 454112, 454113, 454114, 454115, 454116, 454117, 454121],
+        'depreciation': [458001, 458002, 458003, 458004, 458005, 458006, 458007, 458009, 458010, 458011, 458012, 458013, 458014, 457101, 458008],
+        'ere_allocation': [424901, 424902, 424903, 424904],
+        'ore_allocation': [425901, 425902, 425903, 425904],
+        'interest_allocation': [454121],
+        'depreciation_allocation': [458012]
+    }
+
+    # Extract single linear listing of all accounts to push to database criteria placeholder
+    flattened_accounts = []
+    for group, accts in account_groups.items():
+        flattened_accounts.extend(accts)
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Build SQL dynamic profit center CASE segments
+        case_segments = []
+        all_pcs = []
+        for unit in business_units:
+            pcs = PROFIT_CENTER_MAP.get(unit, [])
+            if pcs:
+                pc_placeholders = ", ".join(["%s"] * len(pcs))
+                case_segments.append(f"WHEN Profit_Center IN ({pc_placeholders}) THEN '{unit}'")
+                all_pcs.extend(pcs)
+
+        case_statement = "CASE " + " ".join(case_segments) + " ELSE 'OTHERS' END AS business_unit"
+
+        month_placeholders = ", ".join(["%s"] * len(month_nums))
+        account_placeholders = ", ".join(["%s"] * len(flattened_accounts))
+
+        query = f"""
+            SELECT 
+                {case_statement},
+                Account_Number,
+                SUM(LC_Amount) AS total_amount
+            FROM erm_data
+            WHERE Fiscal_Year = %s 
+              AND MONTH(Posting_Date) IN ({month_placeholders})
+              AND Account_Number IN ({account_placeholders})
+            GROUP BY business_unit, Account_Number
+        """
+
+        query_params = all_pcs + [selected_year] + month_nums + flattened_accounts
+        cursor.execute(query, tuple(query_params))
+        db_rows = cursor.fetchall()
+
+        # Organize pulled rows into direct cross matrix state
+        matrix_data = {group: {u: 0.0 for u in business_units} for group in account_groups.keys()}
+        
+        for r in db_rows:
+            bu = r['business_unit']
+            acct = int(r['Account_Number'])
+            amt = float(r['total_amount'] or 0.0)
+            
+            if bu in business_units:
+                for group, accts in account_groups.items():
+                    if acct in accts:
+                        matrix_data[group][bu] += amt
+
+        # 2. GENERATE NATIVE EXCEL WORKBOOK VIA OPENPYXL
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "ERM Report"
+        ws.views.sheetView[0].showGridLines = True
+
+        # Layout Styling Palettes
+        font_family = "Segoe UI"
+        navy_header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+        subtotal_fill = PatternFill(start_color="EAEAEA", end_color="EAEAEA", fill_type="solid")
+        pbt_blue_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        accent_yellow_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+        title_font = Font(name=font_family, size=16, bold=True, color="1F4E78")
+        meta_font = Font(name=font_family, size=10, italic=True)
+        header_font = Font(name=font_family, size=10, bold=True, color="FFFFFF")
+        bold_font = Font(name=font_family, size=10, bold=True)
+        regular_font = Font(name=font_family, size=10)
+        
+        thin_border_side = Side(border_style="thin", color="D3D3D3")
+        thin_border = Border(left=thin_border_side, right=thin_border_side, top=thin_border_side, bottom=thin_border_side)
+        double_bottom_border = Border(top=thin_border_side, bottom=Side(border_style="double", color="000000"), left=thin_border_side, right=thin_border_side)
+
+        # Title block headers
+        ws['A1'] = "PROFIT BEFORE TAX FOR PERIOD"
+        ws['A1'].font = title_font
+        ws['A2'] = f"Fiscal Year: {selected_year} | Filtered Months: {', '.join(selected_months)}"
+        ws['A2'].font = meta_font
+        ws.row_dimensions[1].height = 25
+        ws.row_dimensions[2].height = 18
+
+        # Build column grid header names
+        headers = ["Particulars"] + business_units + ["TOTAL"]
+        for col_idx, h_text in enumerate(headers, start=1):
+            cell = ws.cell(row=4, column=col_idx, value=h_text)
+            cell.font = header_font
+            cell.fill = navy_header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = thin_border
+        ws.row_dimensions[4].height = 28
+
+        # Structured sequence list mapping out dynamic string formulas or data references
+        # Types: 'header', 'data', 'formula', 'ratio'
+        row_definitions = [
+            {'title': 'A. Income', 'type': 'header'},
+            {'title': 'Net Sales', 'type': 'data', 'key': 'net_sales'},
+            {'title': 'Scrap Sales', 'type': 'data', 'key': 'scrap_sales'},
+            {'title': 'IUT - Out', 'type': 'data', 'key': 'iut_out'},
+            {'title': 'Other Income', 'type': 'data', 'key': 'other_income'},
+            {'title': 'Total Income - A', 'type': 'formula', 'formula': '={col}6+{col}7+{col}8+{col}9', 'fill': subtotal_fill},
+            {'title': 'B. Expenditure', 'type': 'header'},
+            {'title': 'RM Consumption', 'type': 'data', 'key': 'rm_consumption'},
+            {'title': 'IUT- In', 'type': 'data', 'key': 'iut_in'},
+            {'title': 'Employee related expenses', 'type': 'data', 'key': 'employee_expenses'},
+            {'title': 'Revenue expenses', 'type': 'data', 'key': 'revenue_expenses'},
+            {'title': 'Transport charges', 'type': 'data', 'key': 'transport_charges'},
+            {'title': 'Interest & finance charges', 'type': 'data', 'key': 'finance_charges'},
+            {'title': 'Depreciation', 'type': 'data', 'key': 'depreciation'},
+            {'title': 'Total Expenditure - B', 'type': 'formula', 'formula': '=SUM({col}13:{col}19)', 'fill': subtotal_fill},
+            {'title': 'Gross Profit/(Loss)', 'type': 'formula', 'formula': '=({col}6+{col}7+{col}8)-({col}13+{col}14)'},
+            {'title': 'EBIDTA from operation (Bfor allocn)', 'type': 'formula', 'formula': '={col}23+{col}18+{col}19-{col}9'},
+            {'title': 'PBT before allocation [C=A-B]', 'type': 'formula', 'formula': '={col}10-{col}20', 'fill': pbt_blue_fill, 'border': double_bottom_border},
+            {'title': 'D. Corp & branch allocation', 'type': 'header'},
+            {'title': 'ERE - allocation', 'type': 'data', 'key': 'ere_allocation'},
+            {'title': 'ORE - allocation', 'type': 'data', 'key': 'ore_allocation'},
+            {'title': 'Interest - allocation', 'type': 'data', 'key': 'interest_allocation'},
+            {'title': 'Depreciation - allocation', 'type': 'data', 'key': 'depreciation_allocation'},
+            {'title': 'Total allocation - D', 'type': 'formula', 'formula': '=SUM({col}26:{col}29)', 'fill': subtotal_fill},
+            {'title': 'EBIDTA from operation (after allocn)', 'type': 'formula', 'formula': '={col}33+{col}28+{col}29+{col}18+{col}19-{col}9'},
+            {'title': 'PBT after allocation [ E=C-D ]', 'type': 'formula', 'formula': '={col}24-{col}30', 'fill': pbt_blue_fill, 'border': double_bottom_border},
+            {'title': '% to total income before allocation', 'type': 'header'},
+            {'title': 'RM Consumption %', 'type': 'ratio', 'ratio_type': 'rm_pct'},
+            {'title': 'RM Consumption including freight %', 'type': 'ratio', 'ratio_type': 'rmf_pct'},
+            {'title': 'Employee related expenses %', 'type': 'ratio', 'ratio_type': 'ere_pct'},
+            {'title': 'Revenue expenses %', 'type': 'ratio', 'ratio_type': 'rev_pct'},
+            {'title': 'Transport charges %', 'type': 'ratio', 'ratio_type': 'tc_pct'},
+            {'title': 'Interest & finance charges %', 'type': 'ratio', 'ratio_type': 'fc_pct'},
+            {'title': 'Depreciation %', 'type': 'ratio', 'ratio_type': 'dep_pct'},
+            {'title': 'PBT before allocation %', 'type': 'ratio', 'ratio_type': 'pbt_pct'}
+        ]
+
+        # Financial Number Formatting Pattern (Accounting comma separation with parenthetical credits)
+        currency_format = '#,##0.00;(#,##0.00);"-";@'
+        percent_format = '0.00"%"'
+
+        current_row = 5
+        for r_def in row_definitions:
+            # Type A: Section Main Category Headers
+            if r_def['type'] == 'header':
+                cell = ws.cell(row=current_row, column=1, value=r_def['title'])
+                cell.font = bold_font
+                ws.row_dimensions[current_row].height = 20
+                # Border outline fill across the row length
+                for c in range(1, len(business_units) + 3):
+                    ws.cell(row=current_row, column=c).border = thin_border
+                current_row += 1
+                continue
+
+            # Title Particular column allocation
+            title_cell = ws.cell(row=current_row, column=1, value=r_def['title'])
+            title_cell.font = bold_font if r_def['type'] in ['formula', 'ratio'] else regular_font
+            title_cell.border = r_def.get('border', thin_border)
+            if 'fill' in r_def:
+                title_cell.fill = r_def['fill']
+            
+            # Populate business unit columns sequentially
+            for u_idx, unit in enumerate(business_units, start=2):
+                col_letter = get_column_letter(u_idx)
+                cell = ws.cell(row=current_row, column=u_idx)
+                cell.border = r_def.get('border', thin_border)
+                if 'fill' in r_def:
+                    cell.fill = r_def['fill']
+
+                # Type B: Standard raw transactional account metrics
+                if r_def['type'] == 'data':
+                    cell.value = matrix_data[r_def['key']][unit]
+                    cell.number_format = currency_format
+                    cell.font = regular_font
+
+                # Type C: Cross horizontal summary math row strings
+                elif r_def['type'] == 'formula':
+                    cell.value = r_def['formula'].format(col=col_letter)
+                    cell.number_format = currency_format
+                    cell.font = bold_font
+
+                # Type D: Advanced operational efficiency management ratio percentages
+                elif r_def['type'] == 'ratio':
+                    cell.font = bold_font if r_def['title'] == 'PBT before allocation %' else regular_font
+                    if unit in ['CFD CORP', 'Bran O/S']:
+                        cell.value = "-"
+                        cell.alignment = Alignment(horizontal="center")
+                    else:
+                        rtype = r_def['ratio_type']
+                        if rtype == 'rm_pct':
+                            cell.value = f"=(({col_letter}13+{col_letter}14-{col_letter}8)/({col_letter}6+{col_letter}7))*100"
+                        elif rtype == 'rmf_pct':
+                            cell.value = f"=(({col_letter}13+{col_letter}14-{col_letter}8+{col_letter}17)/({col_letter}6+{col_letter}7))*100"
+                        elif rtype == 'ere_pct':
+                            cell.value = f"=({col_letter}15/{col_letter}10)*100"
+                        elif rtype == 'rev_pct':
+                            cell.value = f"=({col_letter}16/{col_letter}10)*100"
+                        elif rtype == 'tc_pct':
+                            cell.value = f"=({col_letter}17/({col_letter}6+{col_letter}8))*100"
+                        elif rtype == 'fc_pct':
+                            cell.value = f"=({col_letter}18/{col_letter}10)*100"
+                        elif rtype == 'dep_pct':
+                            cell.value = f"=({col_letter}19/{col_letter}10)*100"
+                        elif rtype == 'pbt_pct':
+                            cell.value = f"=({col_letter}24/{col_letter}10)*100"
+                            if 'fill' not in r_def:
+                                cell.fill = pbt_blue_fill
+                        
+                        # Strip standard percentage format multipliers inside OpenPyXL calculations
+                        cell.value = cell.value.replace('*100', '')
+                        cell.number_format = percent_format
+
+            # 3. BUILD MATRIX GRAND TOTAL SUMMARY COL (Last Right Column Block)
+            tot_col_idx = len(business_units) + 2
+            tot_col_letter = get_column_letter(tot_col_idx)
+            tot_cell = ws.cell(row=current_row, column=tot_col_idx)
+            tot_cell.font = bold_font
+            tot_cell.border = r_def.get('border', thin_border)
+            tot_cell.fill = accent_yellow_fill
+
+            if r_def['type'] == 'data':
+                tot_cell.value = f"=SUM(B{current_row}:{get_column_letter(tot_col_idx-1)}{current_row})"
+                tot_cell.number_format = currency_format
+            elif r_def['type'] == 'formula':
+                tot_cell.value = r_def['formula'].format(col=tot_col_letter)
+                tot_cell.number_format = currency_format
+            elif r_def['type'] == 'ratio':
+                rtype = r_def['ratio_type']
+                # Grand total calculations matching the rules we designed previously
+                if rtype == 'rm_pct':
+                    tot_cell.value = f"=SUM(D13:L13)/SUM(D6:L7)"
+                elif rtype == 'rmf_pct':
+                    tot_cell.value = f"=(SUM(D13:L13)+SUM(D17:L17))/SUM(D6:L7)"
+                elif rtype == 'ere_pct':
+                    tot_cell.value = f"={tot_col_letter}15/{tot_col_letter}10"
+                elif rtype == 'rev_pct':
+                    tot_cell.value = f"={tot_col_letter}16/{tot_col_letter}10"
+                elif rtype == 'tc_pct':
+                    tot_cell.value = f"=SUM(D17:L17)/(SUM(D6:L6)+SUM(D8:L8))"
+                elif rtype == 'fc_pct':
+                    tot_cell.value = f"={tot_col_letter}18/{tot_col_letter}10"
+                elif rtype == 'dep_pct':
+                    tot_cell.value = f"={tot_col_letter}19/{tot_col_letter}10"
+                elif rtype == 'pbt_pct':
+                    tot_cell.value = f"={tot_col_letter}24/{tot_col_letter}10"
+              
