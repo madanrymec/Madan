@@ -1,0 +1,638 @@
+{% block content %}
+<body style="margin: 0px; font-family: Arial, Helvetica, sans-serif; background-color: #f4f7f6;">
+    <header>
+        <div class="header" style="background-color: #3a5b94; width: 100%; display: flex; align-items: center; color: white; padding: 0px; box-sizing: border-box; position: relative;">
+            <p class="user-info">Welcome, {{ username }}!</p>
+            <h3 style="margin: 0; position: absolute; left: 50%; transform: translateX(-50%); font-size: 1.17em; font-weight: bold;">DIGITAL DASHBOARD</h3>
+            <div style="display: flex; align-items: center; margin-left: auto;">
+                <h2 id="comp-name">KIRLOSKAR ELECTRIC COMPANY</h2>
+                <img id="logo" src="{{ url_for('static', filename='images/KEC_LOGO.jpg') }}" alt="Company Logo">
+            </div>
+        </div>
+    </header>
+
+    <div id="loader-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center;">
+        <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3a5b94; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+    </div>
+
+    <div class="exit-bar" style="padding: 1px 10px; display: flex; justify-content: flex-end;">
+        <div class="filter-card">
+        <div class="filter-group">
+            <select id="fin_year">
+                {% for year in years %}
+                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <select id="unit_select">
+                <option value="CFD CORP">CFD CORP</option>
+                <option value="Bran O_S">Bran O_S</option>
+                <option value="Unit-1 Govanahalli" selected>Unit-1 Govanahalli</option>
+                <option value="Unit-2 HUBLI-Special">Unit-2 HUBLI-Special</option>
+                <option value="Unit-25ACM ACM-STD Motors">Unit-25ACM ACM-STD Motors</option>
+                <option value="Unit-25ACG ACG&EVM">Unit-25ACG ACG&EVM</option>
+                <option value="Unit-7 TUMKUR">Unit-7 TUMKUR</option>
+                <option value="UN05 Mysore Unit">UN05 Mysore Unit</option>
+                <option value="Unit-16 PUNE">Unit-16 PUNE</option>
+                <option value="DG Set HUBLI">DG Set HUBLI</option>
+                <option value="Unit-12-20 Spares&Service">Unit-12-20 Spares&Service</option>
+            </select>
+        </div>
+        <button class="btn-fetch" onclick="calculateOperationalTrends()">Apply</button>
+    </div>
+        <a href="#" onclick="history.back(); return false;" title="Go Back" style="margin-left: 20px;">
+            <img id="back" src="{{ url_for('static', filename='images/back_mis.svg') }}" alt="Go Back">
+        </a>
+        <a href="{{ url_for('logout') }}" title="Logout" style="margin-left: 20px;">
+            <img id="logout" src="{{ url_for('static', filename='images/logout_mis.svg') }}" alt="Logout">
+        </a>
+    </div>
+
+    <div class="main-container1">
+        <div class="sidebar">
+            <a href="javascript:void(0)" class="dropdown-btn">Billing <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{ url_for('quarterly_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('home') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('daily_dashboard') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Order Book <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{ url_for('quarterly_order_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('order_mtd') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('order_daily') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Comparison <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_data_compare') }}" class="sub-link">Orders Comparison</a>
+                <a href="{{ url_for('data_compare') }}" class="sub-link">Billing Comparison</a>
+            </div>
+            <a href="{{ url_for('pending_orders_page') }}">Pending Orders</a>
+            <a href="{{ url_for('fg_report') }}">FG Report</a>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Finance <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('collection_report') }}" class="sub-link">Collections</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">MIS <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('mis_report') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('mis_unit_report') }}" class="sub-link">MTD-Uts</a>
+            </div>
+        </div>
+
+        <div class="content" style="padding: 20px; overflow: auto;">
+            <div class="content1">
+            </div>
+
+            <div class="financial-container">
+                <div class="table-wrapper">
+                    <table class="pbt-table">
+                        <colgroup>
+                            <col style="width: 22%;">
+                            <col style="width: 6.5%;"> <col style="width: 6.5%;"> <col style="width: 6.5%;">
+                            <col style="width: 6.5%;"> <col style="width: 6.5%;"> <col style="width: 6.5%;">
+                            <col style="width: 6.5%;"> <col style="width: 6.5%;"> <col style="width: 6.5%;">
+                            <col style="width: 6.5%;"> <col style="width: 6.5%;"> <col style="width: 6.5%;">
+                            <col style="width: 10%;">
+                        </colgroup>
+                        <thead>
+                            <tr class="header-group-row">
+                                <th class="sticky-col first-header" rowspan="2" style="z-index: 5;">Particulars</th>
+                                <th colspan="3" style="background-color: #8faadc; border-right: 2px solid #555;">Q1</th>
+                                <th colspan="3" style="background-color: #b4c6e7; border-right: 2px solid #555;">Q2</th>
+                                <th colspan="3" style="background-color: #8faadc; border-right: 2px solid #555;">Q3</th>
+                                <th colspan="3" style="background-color: #b4c6e7; border-right: 2px solid #555;">Q4</th>
+                                <th class="grand-total-header" rowspan="2" style="z-index: 4;">GRAND TOTAL</th>
+                            </tr>
+                            <tr class="header-unit-row">
+                                <th style="top: 25px;">April</th><th style="top: 25px;">May</th><th style="top: 25px; border-right: 2px solid #555; ">June</th>
+                                <th style="top: 25px;">July</th><th style="top: 25px;">August</th><th style="top: 25px; border-right: 2px solid #555;">September</th>
+                                <th style="top: 25px;">October</th><th style="top: 25px;">November</th><th style="top: 25px; border-right: 2px solid #555; ">December</th>
+                                <th style="top: 25px;">January</th><th style="top: 25px;">February</th><th style="top: 25px; border-right: 2px solid #555;">March</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly_trend_tbody">
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="14"><span style="position: sticky; left: 20px;">A. Income</span></td>
+                            </tr>
+
+                            <tr id="net-sales-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('net-sales')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="net-sales-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Net Sales
+                                </td>
+                                <td id="cell-ns-april">0.0</td><td id="cell-ns-may">0.0</td><td id="cell-ns-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ns-july">0.0</td><td id="cell-ns-august">0.0</td><td id="cell-ns-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ns-october">0.0</td><td id="cell-ns-november">0.0</td><td id="cell-ns-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ns-january">0.0</td><td id="cell-ns-february">0.0</td><td id="cell-ns-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ns-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="net-sales-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="net-sales-subtable"></table></td></tr>
+
+                            <tr id="scrap-sales-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('scrap-sales')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="scrap-sales-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Scrap Sales
+                                </td>
+                                <td id="cell-ss-april">0.0</td><td id="cell-ss-may">0.0</td><td id="cell-ss-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ss-july">0.0</td><td id="cell-ss-august">0.0</td><td id="cell-ss-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ss-october">0.0</td><td id="cell-ss-november">0.0</td><td id="cell-ss-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ss-january">0.0</td><td id="cell-ss-february">0.0</td><td id="cell-ss-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ss-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="scrap-sales-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="scrap-sales-subtable"></table></td></tr>
+
+                            <tr id="other-income-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('other-income')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="other-income-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Other Income
+                                </td>
+                                <td id="cell-oi-april">0.0</td><td id="cell-oi-may">0.0</td><td id="cell-oi-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-oi-july">0.0</td><td id="cell-oi-august">0.0</td><td id="cell-oi-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-oi-october">0.0</td><td id="cell-oi-november">0.0</td><td id="cell-oi-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-oi-january">0.0</td><td id="cell-oi-february">0.0</td><td id="cell-oi-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-oi-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="other-income-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="other-income-subtable"></table></td></tr>
+
+                            <tr id="iut-out-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('iut-out')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="iut-out-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>IUT - Out
+                                </td>
+                                <td id="cell-io-april">0.0</td><td id="cell-io-may">0.0</td><td id="cell-io-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-io-july">0.0</td><td id="cell-io-august">0.0</td><td id="cell-io-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-io-october">0.0</td><td id="cell-io-november">0.0</td><td id="cell-io-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-io-january">0.0</td><td id="cell-io-february">0.0</td><td id="cell-io-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-io-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="iut-out-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="iut-out-subtable"></table></td></tr>
+
+                            <tr class="subtotal-row" style="background-color: #eaeaea; font-weight: bold;">
+                                <td class="sticky-col text-left" style="font-weight: bold;">Total Income - A</td>
+                                <td id="cell-total-april">0.0</td><td id="cell-total-may">0.0</td><td id="cell-total-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-total-july">0.0</td><td id="cell-total-august">0.0</td><td id="cell-total-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-total-october">0.0</td><td id="cell-total-november">0.0</td><td id="cell-total-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-total-january">0.0</td><td id="cell-total-february">0.0</td><td id="cell-total-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-total-grand-total" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="14"><span style="position: sticky; left: 20px;">B. Expenditure</span></td>
+                            </tr>
+
+                            <tr id="rm-consumption-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('rm-consumption')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="rm-consumption-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>RM Consumption
+                                </td>
+                                <td id="cell-rm-april">0.0</td><td id="cell-rm-may">0.0</td><td id="cell-rm-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-rm-july">0.0</td><td id="rm-cell-august">0.0</td><td id="cell-rm-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-rm-october">0.0</td><td id="cell-rm-november">0.0</td><td id="cell-rm-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-rm-january">0.0</td><td id="cell-rm-february">0.0</td><td id="cell-rm-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-rm-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="rm-consumption-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="rm-consumption-subtable"></table></td></tr>
+
+                            <tr id="employee-expenses-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('employee-expenses')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="employee-expenses-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Employee related expenses
+                                </td>
+                                <td id="cell-ee-april">0.0</td><td id="cell-ee-may">0.0</td><td id="cell-ee-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ee-july">0.0</td><td id="cell-ee-august">0.0</td><td id="cell-ee-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ee-october">0.0</td><td id="cell-ee-november">0.0</td><td id="cell-ee-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ee-january">0.0</td><td id="cell-ee-february">0.0</td><td id="cell-ee-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ee-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="employee-expenses-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="employee-expenses-subtable"></table></td></tr>
+
+                            <tr id="iut-in-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('iut-in')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="iut-in-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>IUT-In
+                                </td>
+                                <td id="cell-ii-april">0.0</td><td id="cell-ii-may">0.0</td><td id="cell-ii-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ii-july">0.0</td><td id="cell-ii-august">0.0</td><td id="cell-ii-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ii-october">0.0</td><td id="cell-ii-november">0.0</td><td id="cell-ii-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ii-january">0.0</td><td id="cell-ii-february">0.0</td><td id="cell-ii-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-ii-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="iut-in-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="iut-in-subtable"></table></td></tr>
+
+                            <tr id="transport-charges-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('transport-charges')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="transport-charges-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Transport charges
+                                </td>
+                                <td id="cell-tc-april">0.0</td><td id="cell-tc-may">0.0</td><td id="cell-tc-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-tc-july">0.0</td><td id="cell-tc-august">0.0</td><td id="cell-tc-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-tc-october">0.0</td><td id="cell-tc-november">0.0</td><td id="cell-tc-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-tc-january">0.0</td><td id="cell-tc-february">0.0</td><td id="cell-tc-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-tc-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="transport-charges-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="transport-charges-subtable"></table></td></tr>
+
+                            <tr id="finance-charges-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('finance-charges')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="finance-charges-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Interest & finance charges
+                                </td>
+                                <td id="cell-fc-april">0.0</td><td id="cell-fc-may">0.0</td><td id="cell-fc-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-fc-july">0.0</td><td id="cell-fc-august">0.0</td><td id="cell-fc-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-fc-october">0.0</td><td id="cell-fc-november">0.0</td><td id="cell-fc-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-fc-january">0.0</td><td id="cell-fc-february">0.0</td><td id="cell-fc-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-fc-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="finance-charges-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="finance-charges-subtable"></table></td></tr>
+
+                            <tr id="depreciation-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('depreciation')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="depreciation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Depreciation
+                                </td>
+                                <td id="cell-dep-april">0.0</td><td id="cell-dep-may">0.0</td><td id="cell-dep-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-dep-july">0.0</td><td id="cell-dep-august">0.0</td><td id="cell-dep-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-dep-october">0.0</td><td id="cell-dep-november">0.0</td><td id="cell-dep-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-dep-january">0.0</td><td id="cell-dep-february">0.0</td><td id="cell-dep-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-dep-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="depreciation-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="depreciation-subtable"></table></td></tr>
+
+                            <tr id="revenue-expenses-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('revenue-expenses')">
+                                <td class="sticky-col text-left indent" style="font-weight: bold; color: #3a5b94;">
+                                    <span id="revenue-expenses-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Revenue expenses
+                                </td>
+                                <td id="cell-re-april">0.0</td><td id="cell-re-may">0.0</td><td id="cell-re-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-re-july">0.0</td><td id="cell-re-august">0.0</td><td id="cell-re-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-re-october">0.0</td><td id="cell-re-november">0.0</td><td id="cell-re-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-re-january">0.0</td><td id="cell-re-february">0.0</td><td id="cell-re-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-re-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+                            <tr id="revenue-expenses-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="14" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="revenue-expenses-subtable"></table></td></tr>
+
+                            <tr class="subtotal-row" style="background-color: #eaeaea; font-weight: bold;">
+                                <td class="sticky-col text-left" style="font-weight: bold;">Total Expenditure - B</td>
+                                <td id="cell-exp-april">0.0</td><td id="cell-exp-may">0.0</td><td id="cell-exp-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-exp-july">0.0</td><td id="cell-exp-august">0.0</td><td id="cell-exp-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-exp-october">0.0</td><td id="cell-exp-november">0.0</td><td id="cell-exp-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-exp-january">0.0</td><td id="cell-exp-february">0.0</td><td id="cell-exp-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-exp-grand-total" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+
+                            <tr class="metric-row" style="background-color: #fffde6; font-weight: bold; border-top: 1px solid #c0c0c0; border-bottom: 1px solid #c0c0c0;">
+                                <td class="sticky-col text-left" style="font-weight: bold; color: #2f3542;">Gross Profit/(Loss)</td>
+                                <td id="cell-gp-april">0.0</td><td id="cell-gp-may">0.0</td><td id="cell-gp-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-gp-july">0.0</td><td id="cell-gp-august">0.0</td><td id="cell-gp-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-gp-october">0.0</td><td id="cell-gp-november">0.0</td><td id="cell-gp-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-gp-january">0.0</td><td id="cell-gp-february">0.0</td><td id="cell-gp-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-gp-grand-total" class="bold-text" style="background-color: #fff2cc;">0.0</td>
+                            </tr>
+
+                            <tr class="metric-row border-double" style="background-color: #d9e1f2; font-weight: bold;">
+                                <td class="sticky-col text-left highlight-blue" style="font-weight: bold; color: #1f4e78;">PBT before allocation [C=A-B]</td>
+                                <td id="cell-pbt-april">0.0</td><td id="cell-pbt-may">0.0</td><td id="cell-pbt-june" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-pbt-july">0.0</td><td id="cell-pbt-august">0.0</td><td id="cell-pbt-september" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-pbt-october">0.0</td><td id="cell-pbt-november">0.0</td><td id="cell-pbt-december" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-pbt-january">0.0</td><td id="cell-pbt-february">0.0</td><td id="cell-pbt-march" style="border-right: 2px solid #999;">0.0</td>
+                                <td id="cell-pbt-grand-total" class="bold-text" style="background-color: #fff2cc; color: #1f4e78;">0.0</td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Inherits styles directly from mis.html configuration blocks */
+        .pbt-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        .pbt-table thead tr th { position: sticky; background-color: #d9e1f2; color: #2f3542; font-weight: bold; border-right: 1px solid #a6b9d8; border-bottom: 1px solid #a6b9d8; padding: 6px 8px; text-align: center; }
+        .pbt-table thead tr.header-group-row th { top: 0; z-index: 4; }
+        .pbt-table thead tr.header-unit-row th { top: 27px; z-index: 4; }
+        .pbt-table .sticky-col { position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; z-index: 2; }
+        .pbt-table thead .first-header { left: 0; z-index: 5 !important; }
+        .pbt-table tbody td { padding: 6px 10px; border-right: 1px solid #e0e0e0; border-bottom: 1px solid #e0e0e0; text-align: right; }
+        .pbt-table .text-left { text-align: left; }
+        .pbt-table .indent { padding-left: 20px; }
+        .pbt-table .section-title td { background-color: #7f7f7f !important; color: #ffffff !important; font-weight: bold; }
+        .pbt-table .subtotal-row td { background-color: #eaeaea; font-weight: bold; }
+        .pbt-table .metric-row td { background-color: #f2f2f2; font-weight: bold; }
+        .pbt-table .grand-total-header, .pbt-table td:last-child { background-color: #fff2cc; font-weight: bold; }
+        #filter-wrapper { display: flex; gap: 15px; align-items: center; justify-content: flex-end; }
+        #FYdiv { background: #3e5172; color: #fff; border: 1px solid #ccc; padding: 4px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
+        #FYlabel { font-weight: bold; margin: 0; }
+         #filter-content{display: none; position: absolute;  right: 0; width: 60%; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 6px 15px rgba(0,0,0,0.15); z-index: 100; padding: 12px; max-height: 320px; overflow-y: auto;}
+        .filter-card { padding: 2px; border-radius: 8px;  display: flex; gap: 10px; align-items: center; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        select { padding: 0px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; min-width: 180px; }
+        .btn-fetch { background-color: #1f4e78; color: white; border: none; padding: 2px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;  }
+        .btn-fetch:hover { background-color: #153551; }
+        #comp-name{font-size: 12px; margin: 0 10px 0 0; font-weight: bold;}
+        #logo {height: 60px;}
+        #back,#logout,#excel {
+                 height: 3vh; vertical-align: middle;
+         }
+        .financial-container {
+            width: 100%;
+    margin: 0px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    height: fit-content;
+        }
+    </style>
+
+    <script>
+        const chronologicalMonths = ["april", "may", "june", "july", "august", "september", "october", "november", "december", "january", "february", "march"];
+
+        let unitMonthlyState = {
+    netSales: { totals: {}, breakdown: {} },
+    scrapSales: { totals: {}, breakdown: {} },
+    otherIncome: { totals: {}, breakdown: {} },
+    iutOut: { totals: {}, breakdown: {} },
+    rmConsumption: { totals: {}, breakdown: {} },
+    employeeExpenses: { totals: {}, breakdown: {} },
+    iutIn: { totals: {}, breakdown: {} },
+    transportCharges: { totals: {}, breakdown: {} },
+    financeCharges: { totals: {}, breakdown: {} },
+    depreciation: { totals: {}, breakdown: {} },
+    revenueExpenses: { totals: {}, breakdown: {} }
+};
+function showLoader() {
+    const loader = document.getElementById('loader-overlay');
+    if (loader) loader.style.display = 'flex';
+}
+function hideLoader() {
+    const loader = document.getElementById('loader-overlay');
+    if (loader) loader.style.display = 'none';
+}
+
+        const currencyFormatter = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        function formatCellValue(val) {
+            if (val === 0 || val === null || val === undefined || isNaN(val)) return '0.00';
+            if (val < 0) return `(${currencyFormatter.format(Math.abs(val))})`;
+            return currencyFormatter.format(val);
+        }
+
+        function toggleRowAccordion(rowPrefix) {
+            const container = document.getElementById(`${rowPrefix}-dropdown-container`);
+            const arrow = document.getElementById(`${rowPrefix}-arrow`);
+            if (!container || !arrow) return;
+            const isHidden = container.style.display === 'none';
+            document.querySelectorAll('.dropdown-container-row').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.row-arrow').forEach(el => el.style.transform = 'rotate(0deg)');
+            container.style.display = isHidden ? 'table-row' : 'none';
+            arrow.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+        }
+function initializeStateMetrics() {
+    const keys = Object.keys(unitMonthlyState);
+    keys.forEach(key => {
+        unitMonthlyState[key].totals = {};
+        unitMonthlyState[key].breakdown = {};
+        chronologicalMonths.forEach(m => {
+            unitMonthlyState[key].totals[m] = 0.0;
+        });
+        unitMonthlyState[key].totals['GRAND TOTAL'] = 0.0;
+    });
+}
+
+// Reusable data parser function to abstract individual asynchronous fetch handlers
+async function fetchMetricData(endpoint, stateTarget, queryParams) {
+    try {
+        const response = await fetch(`${endpoint}?${queryParams}`);
+        const data = await response.json();
+        if (data && !data.error) {
+            unitMonthlyState[stateTarget].totals = data.monthly_totals || {};
+            unitMonthlyState[stateTarget].breakdown = data.dropdown_accounts || {};
+        }
+    } catch (err) {
+        console.error(`Pipeline failure fetching metric context [${stateTarget}]:`, err);
+    }
+}
+
+// =========================================================================
+// CORE TRIGGER: CLICK HANDLER ASSIGNED TO THE APPLY/REFRESH OPERATIONS
+// =========================================================================
+async function refreshUnitMonthlyReport() {
+    const yearSelect = document.getElementById('fin_year_select');
+    const unitSelect = document.getElementById('unit_select');
+
+    if (!yearSelect || !unitSelect) return;
+
+    const selectedYear = yearSelect.value;
+    const selectedUnit = unitSelect.value;
+
+    // Build the exact query signature matching your backend variable expectations
+    const queryParams = `fin_year=${encodeURIComponent(selectedYear)}&unit=${encodeURIComponent(selectedUnit)}`;
+
+    showLoader();
+    initializeStateMetrics();
+
+    // Fire off concurrent async requests to update all rows in parallel
+    await Promise.all([
+        fetchMetricData('/api/mis/unit-monthly-sales', 'netSales', queryParams),
+        fetchMetricData('/api/mis/scrap-sales-data', 'scrapSales', queryParams),
+        fetchMetricData('/api/mis/other-income-data', 'otherIncome', queryParams),
+        fetchMetricData('/api/mis/iut-out-data', 'iutOut', queryParams), 
+        fetchMetricData('/api/mis/rm-consumption-data', 'rmConsumption', queryParams),
+        fetchMetricData('/api/mis/employee-expenses-data', 'employeeExpenses', queryParams),
+        fetchMetricData('/api/mis/iut-in-data', 'iutIn', queryParams),
+        fetchMetricData('/api/mis/transport-charges-data', 'transportCharges', queryParams),
+        fetchMetricData('/api/mis/finance-charges-data', 'financeCharges', queryParams),
+        fetchMetricData('/api/mis/depreciation-data', 'depreciation', queryParams),
+        fetchMetricData('/api/mis/revenue-expenses-data', 'revenueExpenses', queryParams)
+    ]);
+
+    // Bind metrics to master parent grid layout cells
+    updateMasterRowCells('ns', unitMonthlyState.netSales.totals);
+    updateMasterRowCells('ss', unitMonthlyState.scrapSales.totals);
+    updateMasterRowCells('oi', unitMonthlyState.otherIncome.totals);
+    updateMasterRowCells('io', unitMonthlyState.iutOut.totals);
+    updateMasterRowCells('rm', unitMonthlyState.rmConsumption.totals);
+    updateMasterRowCells('ee', unitMonthlyState.employeeExpenses.totals);
+    updateMasterRowCells('ii', unitMonthlyState.iutIn.totals);
+    updateMasterRowCells('tc', unitMonthlyState.transportCharges.totals);
+    updateMasterRowCells('fc', unitMonthlyState.financeCharges.totals);
+    updateMasterRowCells('dep', unitMonthlyState.depreciation.totals);
+    updateMasterRowCells('re', unitMonthlyState.revenueExpenses.totals);
+
+    // Build expandable internal dropdown sub-tables asynchronously
+    buildTrendSubTableRows('net-sales-subtable', unitMonthlyState.netSales.breakdown);
+    buildTrendSubTableRows('scrap-sales-subtable', unitMonthlyState.scrapSales.breakdown);
+    buildTrendSubTableRows('other-income-subtable', unitMonthlyState.otherIncome.breakdown);
+    buildTrendSubTableRows('iut-out-subtable', unitMonthlyState.iutOut.breakdown);
+    buildTrendSubTableRows('rm-consumption-subtable', unitMonthlyState.rmConsumption.breakdown);
+    buildTrendSubTableRows('employee-expenses-subtable', unitMonthlyState.employeeExpenses.breakdown);
+    buildTrendSubTableRows('iut-in-subtable', unitMonthlyState.iutIn.breakdown);
+    buildTrendSubTableRows('transport-charges-subtable', unitMonthlyState.transportCharges.breakdown);
+    buildTrendSubTableRows('finance-charges-subtable', unitMonthlyState.financeCharges.breakdown);
+    buildTrendSubTableRows('depreciation-subtable', unitMonthlyState.depreciation.breakdown);
+    buildTrendSubTableRows('revenue-expenses-subtable', unitMonthlyState.revenueExpenses.breakdown);
+
+    // Execute structural mathematical equations horizontally for totals and profits
+    calculateOperationalTrends();
+
+    hideLoader();
+}
+
+// Binds values across the horizontal months row loop safely using absolute sign values for Section A
+function updateMasterRowCells(idPrefix, totalsMap) {
+    chronologicalMonths.forEach(m => {
+        const cellId = `cell-${idPrefix}-${m.toLowerCase()}`;
+        const cellEl = document.getElementById(cellId);
+        if (cellEl) {
+            let val = parseFloat(totalsMap[m] || 0.0);
+            // Invert credit balances to clean positives if dealing with income category blocks
+            if (['ns', 'ss', 'oi', 'io'].includes(idPrefix)) {
+                val = Math.abs(val);
+            }
+            cellEl.textContent = formatCellValue(val);
+        }
+    });
+    const grandTotalEl = document.getElementById(`cell-${idPrefix}-grand-total`);
+    if (grandTotalEl) {
+        let gtVal = parseFloat(totalsMap['GRAND TOTAL'] || 0.0);
+        if (['ns', 'ss', 'oi', 'io'].includes(idPrefix)) gtVal = Math.abs(gtVal);
+        grandTotalEl.textContent = formatCellValue(gtVal);
+    }
+}
+        
+function calculateOperationalTrends() {
+    let grandTotalIncome = 0.0;
+    let grandTotalExpenditure = 0.0;
+    let grandTotalGrossProfit = 0.0;
+    let grandTotalPBT = 0.0;
+
+    chronologicalMonths.forEach(m => {
+        const mKey = m.toLowerCase();
+
+        // 1. Accumulate Section A Income Metrics
+        const ns = Math.abs(parseFloat(unitMonthlyState.netSales.totals[m] || 0.0));
+        const ss = Math.abs(parseFloat(unitMonthlyState.scrapSales.totals[m] || 0.0));
+        const oi = Math.abs(parseFloat(unitMonthlyState.otherIncome.totals[m] || 0.0));
+        const io = Math.abs(parseFloat(unitMonthlyState.iutOut.totals[m] || 0.0));
+
+        const totalMonthIncome = ns + ss + oi + io;
+        grandTotalIncome += totalMonthIncome;
+        document.getElementById(`cell-total-${mKey}`).textContent = formatCellValue(totalMonthIncome);
+
+        // 2. Accumulate Section B Expenditure Metrics
+        const rm  = parseFloat(unitMonthlyState.rmConsumption.totals[m] || 0.0);
+        const ee  = parseFloat(unitMonthlyState.employeeExpenses.totals[m] || 0.0);
+        const ii  = parseFloat(unitMonthlyState.iutIn.totals[m] || 0.0);
+        const tc  = parseFloat(unitMonthlyState.transportCharges.totals[m] || 0.0);
+        const fc  = parseFloat(unitMonthlyState.financeCharges.totals[m] || 0.0);
+        const dep = parseFloat(unitMonthlyState.depreciation.totals[m] || 0.0);
+        const re  = parseFloat(unitMonthlyState.revenueExpenses.totals[m] || 0.0);
+
+        const totalMonthExpenditure = rm + ee + ii + tc + fc + dep + re;
+        grandTotalExpenditure += totalMonthExpenditure;
+        document.getElementById(`cell-exp-${mKey}`).textContent = formatCellValue(totalMonthExpenditure);
+
+        // 3. Reconcile Section C Balances (Gross Profit and PBT Before Allocations)
+        const monthGrossProfit = (ns + ss + io) - (rm + ii);
+        grandTotalGrossProfit += monthGrossProfit;
+        document.getElementById(`cell-gp-${mKey}`).textContent = formatCellValue(monthGrossProfit);
+
+        const monthPBT = totalMonthIncome - totalMonthExpenditure;
+        grandTotalPBT += monthPBT;
+        document.getElementById(`cell-pbt-${mKey}`).textContent = formatCellValue(monthPBT);
+    });
+
+    // Populate bottom-right final Grand Total column intersections
+    document.getElementById('cell-total-grand-total').textContent = formatCellValue(grandTotalIncome);
+    document.getElementById('cell-exp-grand-total').textContent = formatCellValue(grandTotalExpenditure);
+    document.getElementById('cell-gp-grand-total').textContent = formatCellValue(grandTotalGrossProfit);
+    document.getElementById('cell-pbt-grand-total').textContent = formatCellValue(grandTotalPBT);
+}
+
+// =========================================================================
+// SUB-TABLE GENERATOR: CONSTRUCTS COMPATIBLE DRILLDOWN ACCORDION DOM ROWS
+// =========================================================================
+function buildTrendSubTableRows(subtableId, breakdownAccounts) {
+    const subtable = document.getElementById(subtableId);
+    if (!subtable) return;
+    subtable.innerHTML = '';
+
+    if (!breakdownAccounts || Object.keys(breakdownAccounts).length === 0) {
+        subtable.innerHTML = `<tr><td colspan="14" style="text-align:left; padding:8px 20px; color:#999; font-style:italic;">No breakdown items found for this target window frame.</td></tr>`;
+        return;
+    }
+
+    // Generate matching layout column spacing limits
+    const colgroup = document.createElement('colgroup');
+    colgroup.innerHTML = `<col style="width: 22%;"><col style="width: 6.5%;" span="12"><col style="width: 10%;">`;
+    subtable.appendChild(colgroup);
+
+    Object.keys(breakdownAccounts).forEach(acctNum => {
+        const tr = document.createElement('tr');
+        tr.style.background = "#fcfdf2";
+
+        const description = masterAccountDescriptions[acctNum] || "Sub-Ledger Position Entry";
+        let rowHtml = `<td class="sticky-col text-left indent" style="color:#555; font-size:12px; padding-left:25px; max-width:250px; overflow-wrap:break-word; white-space:normal;">
+                        ${acctNum} - ${description}
+                       </td>`;
+
+        const monthlyMap = breakdownAccounts[acctNum];
+
+        // Fill month column points chronologically
+        chronologicalMonths.forEach(m => {
+            let cellVal = parseFloat(monthlyMap[m] || 0.0);
+
+            // Apply absolute inversion sign process based on general ledger categorization limits
+            if (subtableId.includes('sales') || subtableId.includes('income') || subtableId.includes('out')) {
+                cellVal = Math.abs(cellVal);
+            }
+            rowHtml += `<td style="text-align: right; font-size:12px; border-bottom:1px solid #e8e8e8; border-right:1px solid #e8e8e8;">${formatCellValue(cellVal)}</td>`;
+        });
+
+        // Add Grand Total cell at the end of the row
+        let finalRowGt = parseFloat(monthlyMap['GRAND TOTAL'] || 0.0);
+        if (subtableId.includes('sales') || subtableId.includes('income') || subtableId.includes('out')) {
+            finalRowGt = Math.abs(finalRowGt);
+        }
+        rowHtml += `<td style="text-align: right; font-weight: bold; background: #fffde6; border-bottom:1px solid #e8e8e8;">${formatCellValue(finalRowGt)}</td>`;
+
+        tr.innerHTML = rowHtml;
+        subtable.appendChild(tr);
+    });
+}
+
+// Initial setup attachment hooks
+document.addEventListener('DOMContentLoaded', () => {
+    // Bind configuration listeners directly to selector changes to automate loading
+    const yearMenu = document.getElementById('fin_year_select');
+    const unitMenu = document.getElementById('unit_select');
+
+    if (yearMenu) yearMenu.addEventListener('change', refreshUnitMonthlyReport);
+    if (unitMenu) unitMenu.addEventListener('change', refreshUnitMonthlyReport);
+
+    // Initial load execution call
+    refreshUnitMonthlyReport();
+});
+
+
+            // --- Sidebar Nav Component Tracking ---
+            const dropdowns = document.getElementsByClassName("dropdown-btn");
+            for (let i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].addEventListener("click", function() {
+                    const dropdownContent = this.nextElementSibling;
+                    if (!dropdownContent) return;
+                    const isOpen = dropdownContent.style.display === "block";
+                    for (let j = 0; j < dropdowns.length; j++) {
+                        dropdowns[j].classList.remove("active");
+                        if (dropdowns[j].nextElementSibling) dropdowns[j].nextElementSibling.style.display = "none";
+                    }
+                    if (!isOpen) {
+                        this.classList.add("active");
+                        dropdownContent.style.display = "block";
+                    }
+                });
+
+        };
+    </script>
+</body>
+{% endblock %}
