@@ -1,8 +1,9 @@
+
 {% block content %}
-<body style="margin: 0px; font-family: Arial, Helvetica, sans-serif; background-color: #f4f7f6;">
-    <div id="chartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
+<body style="margin: 0; font-family: Arial, Helvetica, sans-serif;">
+<div id="chartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
         <div style="background:white; width:90%; height:85%; position:relative; border-radius:12px; padding:20px; display:flex; flex-direction:column;">
-            <span onclick="closeModal()" style="position:absolute; top:10px; right:20px; font-size:40px; cursor:pointer; color:#333; z-index:10001;">&times;</span>
+            <span onclick="closeModal()" style="position:absolute; top:10px; right:20px; font-size:40px; cursor:pointer; color:#333; z-index:10001;">×</span>
             <h3 id="modalTitle"></h3>
             <div id="modalcanvasdiv">
                 <canvas id="modalCanvas"></canvas>
@@ -26,6 +27,7 @@
                     </div>
 
                     <div id="modal-filter-content">
+
                         <div style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
                             <button type="button" onclick="setSectorProds(true)" style="background:none; border:none; color:#3a5b94; cursor:pointer; font-weight:bold; font-size:12px;">Select All</button>
                             <button type="button" onclick="setSectorProds(false)" style="background:none; border:none; color:#666; cursor:pointer; font-weight:bold; font-size:12px;">Clear All</button>
@@ -71,7 +73,7 @@
         <input type="checkbox" class="sector-prod-check" value="SPARES & SERVICE" checked onchange="updateSectorFilterText()"> SP&S
     </label>
     </div>
-    <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; display: flex; justify-content: flex-end;">
+                        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; display: flex; justify-content: flex-end;">
                             <button type="button" onclick="applySectorFilter()"
                                     style="padding: 6px 20px; background: #3a5b94; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">Apply Filter</button>
                         </div>
@@ -105,12 +107,12 @@
             <img src="{{ url_for('static', filename='images/back.png') }}" alt="Go Back" id="back">
         </a>
         <a href="{{ url_for('logout') }}" title="Logout" style="margin-left: 20px;">
-            <img src="{{ url_for('static', filename='images/logout.png') }}" alt="Logout"  id="logout">
+            <img src="{{ url_for('static', filename='images/logout.png') }}" alt="Logout" id="logout">
         </a>
     </div>
 
     <div class="main-container">
-     <div class="sidebar">
+        <div class="sidebar">
      <a href="javascript:void(0)" class="dropdown-btn">
                 Billing <span style="float:right;">▼</span>
             </a>
@@ -138,99 +140,98 @@
         <a href="{{url_for('order_data_compare') }}" class="sub-link">Orders Comparison</a>
         <a href="{{ url_for('data_compare') }}" class="sub-link">Billing Comparison</a>
     </div>
-         <a href="{{ url_for('pending_orders_page') }}">Pending Orders</a>
-          <a href="{{ url_for('fg_report') }}">FG Report</a>
-          <a href="javascript:void(0)" class="dropdown-btn">
+              <a href="{{ url_for('pending_orders_page') }}">Pending Orders</a>
+             <a href="{{ url_for('fg_report') }}">FG Report</a>
+             <a href="javascript:void(0)" class="dropdown-btn">
          Finance <span style="float:right;">▼</span>
     </a>
     <div class="dropdown-container">
         <a href="{{url_for('collection_report') }}" class="sub-link">Collections</a>
+         <a href="{{url_for('mis_report')}}" class="sub-link">MIS</a>
     </div>
-      <a href="javascript:void(0)" class="dropdown-btn">
-         MIS <span style="float:right;">▼</span>
-    </a>
-    <div class="dropdown-container">
-         <a href="{{url_for('mis_report')}}" class="sub-link">MTD</a>
-         <a href="{{url_for('mis_report_ytd')}}" class="sub-link">YTD</a>
-         <a href="{{url_for('mis_unit_report')}}" class="sub-link">MTD-Uts</a>
-    </div>
-</div>
-        <div class="content">
-            <div class="content1">
-                <div>
-                <h2 id="header2"> Sales YTD DashBoard </h2>
-                </div>
-                <button onclick="downloadExcel()" id="excelbutton" title="Download Excel">
+        </div>
+
+        <div class="content" >
+            <div class="content1" >
+                <h2 id="header2">
+                  Daily Sales Dashboard
+                </h2>
+                 <button onclick="downloadDailyExcel()" id="excelbutton" title="Download Excel" >
                     <img src="{{ url_for('static', filename='images/img.png') }}" alt="Go Back" id="excel">
-                 </button>
-                <div style="display: flex; justify-content: space-around; align-items: center; height: 7vh;">
-                <div class="custom-filter-box1" style=" position: relative;">
-                    <div id="filter-header1" style="cursor:pointer; width: 10vw; background:  #f8f9fa; border: 1px solid; height: 4vh; padding: 5px; display: flex; justify-content: space-between; align-items: center;  ">
-                        <label style="font-size: 2.2vh; color: #000; display: block; margin-bottom: 0px;">FY: </label>
-                        <select id="fin-year-select" onchange="refreshYTDDashboard()" class="form-control" >
-                        </select>
-                    </div>
-                </div>
-                 <button onclick="downloadFullPPT()" id="pptbutton" title="Download PPT">
-<!--                <span>📥</span>-->
+            </button>
+                  <button onclick="downloadDailyPPT()" id="pptbutton" title="Download PPT">
                      <img src="static/images/ppt.webp" id="dwldImg">
                 </button>
-            </div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div id="datepick">
+                        <label style="font-weight: bold; font-size: 14px; margin: 0;">Select Date:</label>
+                        <input type="date" id="selected_date" value="{{ selected_date }}"
+                               style="display: none; border: 1px solid #ddd; border-radius: 4px; padding: 5px; font-size: 14px; cursor: pointer;">
+                        <input type="text" id="my-date-picker" placeholder="" oninput="loadDate(this.value)">
+                        <button id="apply_date">Apply</button>
+                    </div>
+                </div>
             </div>
 
             <div class="parentytd">
                 <div class="divy1">
-                    <h2> KPI </h2>
+                    <h2> KPI</h2>
                 </div>
-               <div class="divy2">
-                   <h4>Target Sales</h4>
 
-                 <div id="ytd-target">₹ 0</div>
+                <div class="divy2" >
+    <h4>Target Sales</h4>
+
+    <div id="kpi-target">₹ 0</div>
 
     <div id="rangediv">
-        <label for="ytd-range" style="font-size: 11px; color: #666; display: block; margin-bottom: 5px;">
-            Adjustment: <span id="ytd-range-value" style="font-weight: bold; color: #000;">0%</span>
+        <label for="daily-range" style="font-size: 11px; color: #666; display: block; margin-bottom: 4px;">
+            Adjustment: <span id="daily-range-value" style="font-weight: bold; color: #000;">0%</span>
         </label>
-        <input type="range" id="ytd-range" min="-100" max="100" value="0" step="1" oninput="adjustYTDTargets(this.value)">
+        <input type="range" id="daily-range" min="-100" max="100" value="0" step="1" oninput="adjustDailyTargets(this.value)">
     </div>
 </div>
-
                 <div class="divy3">
-                    <h2> Achievement</h2>
-                    <div  id="achdiv">
-                        <canvas id="ytdAchievementGauge" style="box-sizing: border-box; height: 157px; width: 191px; position: relative; bottom: 7vh;"></canvas>
+                    <h4>Achievement</h4>
+                    <div id="achdiv">
+                        <canvas id="salesAchievedGauge" style="box-sizing: border-box; height: 157px; width: 191px; position: relative; bottom: 7vh;"></canvas>
                     </div>
                 </div>
-                 <div class="divy4">
+
+                <div class="divy4">
                     <h4>Actual Sales</h4>
-                    <div id="ytd-full">₹ 0</div>
-                </div>
-                <div class="divy5">
-                    <h4>Product Sales</h4>
-                    <div id="ytd-actual">₹ 0</div>
-                </div>
-                <div class="divy6">
-                     <h4>Scrap Sales</h4>
-                    <div id="ytd-scrap">₹ 0</div>
+                    <div id="kpi-full">₹ 0</div>
                 </div>
 
-                <div class="divy7" onclick="openModal('product', 'Product Wise Sales')" >
-                    <h4 style="margin: 10px 0">Product Wise Sales</h4>
-                    <div style="height: 80%; position: relative"><canvas id="ytdProductChart"></canvas></div>
+                <div class="divy5">
+                    <h4>Product Sales</h4>
+                    <div id="kpi-actual">₹ 0</div>
                 </div>
-                <div class="divy8" onclick="openModal('region', 'Region Wise Sales')">
-                    <h4 style="margin: 10px 0">Region Wise Sales</h4>
-                    <div style="height: 80%; position: relative;"><canvas id="ytdRegionChart"></canvas></div>
+
+                <div class="divy6">
+                  <h4>Scrap Sales</h4>
+                    <div id="kpi-scrap">₹ 0</div>
                 </div>
-                <div class="divy9" onclick="openSectorModal('trend', 'Sector Wise Sales')">
-                    <h4 style="margin: 10px 0">Sector Wise Sales</h4>
-                    <div style="position: relative; height: 80%"><canvas id="ytdTrendChart" height="300"></canvas></div>
+
+                <div  class="divy7" onclick="openModal('product', 'Product Wise Sales')">
+                    <h4 style="margin: 10px 0; text-align: center;">Product Wise Sales</h4>
+                    <div style="height: 80%;"><canvas id="productCategoryChart"></canvas></div>
                 </div>
-                <div class="divy10" onclick="openModal('branch', 'Unit Wise Sales')">
-                    <h4 style="margin: 10px 0">Unit Wise Sales</h4>
-                    <div style="height: 80%; position: relative; width: 100%"><canvas id="ytdBranchChart"></canvas></div>
+
+                <div  class="divy8" onclick="openModal('region', 'Region Wise Sales')">
+                    <h4 style="margin: 10px 0; text-align: center;">Region Wise Sales</h4>
+                    <div style="height: 80%"><canvas id="regionSalesChart"></canvas></div>
                 </div>
-                <div class="divy11" onclick="openModal('customer','Top 10 Customers')">
+
+                <div  class="divy9" onclick="openSectorModal('monthly', 'Sector Wise Sales')" >
+                    <h4 style="margin: 10px 0; text-align: center;">Sector Wise Sales</h4>
+                    <div style="height: 80% "><canvas id="monthlyComparisonChart"></canvas></div>
+                </div>
+
+                <div class="divy10" onclick="openModal('branch', 'Unit Wise Sales')" >
+                    <h4 style="margin: 10px 0; text-align: center;">Unit Wise Sales</h4>
+                    <div style="height: 80%;"><canvas id="salesChannelChart"></canvas></div>
+                </div>
+                <div class="divy11" onclick="openModal('customer','Top 10 Customers')" >
                     <h4 style="margin: 10px 0; text-align: center;">Top 10 Customers</h4>
                     <div style="height: 80%;"> <canvas id="customersales"></canvas></div>
                 </div>
@@ -243,58 +244,75 @@
         .sidebar a.active { background-color: #3a5b94; color: white; }
         .parent > div:hover { filter: brightness(0.95); transition: 0.3s; }
     </style>
-     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-    <style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<!--<style>-->
+<!--    .flatpickr-calendar{-->
+<!--    height: 100px;-->
+<!--}-->
+<!--</style>-->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-       .header{background-color: #3a5b94; width: 100%; display: flex; align-items: center; color: white; padding: 0px; box-sizing: border-box; position: relative;}
+<script>
+  flatpickr("#my-date-picker", {
+    dateFormat: "d/m/Y", // This forces DD/MM/YYYY
+  });
+</script>
+
+
+<style>
+       .header{background-color: #3a5b94; width: 100%; display: flex; align-items: center; color: white; padding: 0; box-sizing: border-box; position: relative;}
        .user-info {margin: 0; padding-left: 20px;}
        #comp-name{font-size: 12px; margin: 0 10px 0 0;}
        #logo{height: 60px;}
        #back,#logout,#excel {height: 3vh; vertical-align: middle;}
        #header2 {margin: 0; box-shadow: 0 6px 15px rgba(0,0,0,0.08); text-align: center; padding: 12px 20px; background: white; border-radius: 8px;}
-       .content1{display: flex; justify-content: space-between; align-items: center; height: 7vh; width: 85vw; margin-bottom: 10px;}
-       #fin-year-select{width: 100%; padding: 5px; border: none; background: #f8f9fa; font-size: 16px; }
-       #dwldImg{height: 3vh;}
+       .content1{display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; height: 7vh;}
+       #datepick{background: white; border: 1px solid #ccc; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px;}
+       #apply_date {padding: 6px 12px; background: #3a5b94; color: white; border: none; border-radius: 4px; cursor: pointer;}
        .divy1{box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; border-radius: 8px; margin: 0px; background-color: white; font-weight: bold; padding: 2px; }
        .divy1>h2{margin: 6px;}
        .divy2{background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; height: 30vh; width: 14vw;  display: flex; flex-direction: column; justify-content: space-around;}
        .divy2>h4 {margin: 18px}
-        #ytd-target{font-size: 3.5vh; font-weight: bold; color: #f37102;}
+        #kpi-target{font-size: 3.5vh; font-weight: bold; color: #f37102;}
         #rangediv{margin-top: 10px;}
        .divy3{box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; width: 18vw; height: 30vh; border-radius: 8px; background-color: white; font-weight: bold;}
-       .divy3>h4{font-size: 18px;}
-       #ytd-actual{font-size: 3.5vh; margin-top: 25px; color: #4682B4;}
+        #kpi-actual{font-size: 3.5vh; margin-top: 25px; color: #4682B4;}
        .divy4{box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; width: 18vw; height: 30vh; border-radius: 8px; margin: 0px; background-color: white; font-weight: bold; display: flex; flex-direction: column; justify-content: center;}
        .divy6{box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; width: 18vw; border-radius: 8px; margin: 0px; background-color: white; font-weight: bold; display: flex; flex-direction: column; justify-content: center;}
-        #ytd-full{font-size: 3.5vh; margin-top: 25px; color:green;}
+        #kpi-full{font-size: 3.5vh; margin-top: 25px; color:green;}
        .divy5{box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; width: 18vw;  border-radius: 8px; margin: 0px; background-color: white; font-weight: bold; display: flex; flex-direction: column; justify-content: center;}
-       #ytd-scrap{font-size: 3.5vh; margin-top: 25px; color: #4682B4;}
-       .divy3>h2{font-size: 16px; margin: 5px 10px 5px 10px;}
-       #achdiv{height: 80%; position: relative; padding: 3.8vw;}
+        #kpi-scrap{font-size: 3.5vh; margin-top: 25px; color: #4682B4;}
+       .divy3>h4{font-size: 16px; margin: 5px 10px 5px 10px;}
+        #achdiv{height: 80%; position: relative; padding: 3.8vw;}
        .content{padding: 3vh; overflow: auto;}
        .divy11{cursor:pointer; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); height: 35vw;}
        .divy7{cursor:pointer; box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; border-radius: 8px; background-color: white; font-weight: bold; height: 50vh;}
-       .divy8{cursor:pointer; box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; border-radius: 8px; background-color: white; font-weight: bold; }
+       .divy8{cursor:pointer; box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; border-radius: 8px; background-color: white; font-weight: bold;}
        .divy9{cursor:pointer; box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; border-radius: 8px; background-color: white; font-weight: bold; height: 60vh;}
-       .divy10{cursor:pointer; box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; border-radius: 8px; background-color: white; font-weight: bold; }
-       #closespan{position:absolute; top:10px; right:20px; font-size:40px; cursor:pointer; color:#333; z-index:10001;}
-       #modalTitle{text-align:center; margin-bottom:15px;}
-       .modal-dropdown{position: relative; width: 320px; right: 450px;}
-       #modal-filter-content{display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 15px; margin-top: 5px; z-index: 10006;}
-       #sectorCheckboxContainer{display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: 200px; overflow-y: auto; padding: 5px;}
+       .divy10{cursor:pointer; box-shadow: 0 6px 15px rgb(0 0 0 / 8%); text-align: center; border-radius: 8px; background-color: white; font-weight: bold;}
+         #closespan{position:absolute; top:10px; right:20px; font-size:40px; cursor:pointer; color:#333; z-index:10001;}
+         #modalTitle{text-align:center; margin-bottom:15px;}
+         .modal-dropdown{position: relative; width: 320px; right: 450px;}
+         #modal-filter-content{display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 15px; margin-top: 5px; z-index: 10006;}
+         .checkbox-grid{display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: 200px; overflow-y: auto; padding: 5px;}
+         #modelSectorMainDiv{background:white; width:90%; height:85%; position:relative; border-radius:12px; padding:20px; display:flex; flex-direction:column; overflow:hidden;}
+        #modalProductFilterBar{display:block; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10004;}
+        #chartAreaSector{flex-grow: 1; width: 100%; position: relative;}
+        #modalTitleforSector{text-align:center; margin: 0 0 15px 0; font-family: Arial, sans-serif; flex-shrink: 0;}
+        #modalcanvasdiv{flex-grow:1; position:relative;}
+        #excelbutton{background: #27c94c; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold;    position: fixed;bottom: 10px;right: 20px;z-index: 999;}
+        #pptbutton{cursor: pointer; padding: 8px; color: white; border: none; border-radius: 4px;  font-weight: bold; margin-left: 20px; display: flex; align-items: center; background: #f37102;position: fixed;bottom: 60px; right: 20px;z-index: 999;}
+        #dwldImg{height: 3vh;}
 
-       #modelSectorMainDiv{background:white; width:90%; height:85%; position:relative; border-radius:12px; padding:20px; display:flex; flex-direction:column; overflow:hidden;}
-       #modalProductFilterBar{display:block; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10004;}
-       #chartAreaSector{flex-grow: 1; width: 100%; position: relative;}
-       #modalTitleforSector{text-align:center; margin: 0 0 15px 0; font-family: Arial, sans-serif; flex-shrink: 0;}
-       #modalcanvasdiv{flex-grow:1; position:relative;}
-       #pptbutton{cursor: pointer; padding: 8px; color: white; border: none; border-radius: 4px;  font-weight: bold; margin-left: 20px; display: flex; align-items: center; background: #f37102;position: fixed;bottom: 60px;right: 20px;z-index: 999;}
-       #excelbutton{background: #27c94c; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold;    position: fixed;bottom: 10px;right: 20px;z-index: 999;}
 </style>
-    <style>
+ <style>
      @media only screen and (max-height:565px) {
                 /*For md:*/
+
                 .parent {
     display: grid;
     grid-template-columns: repeat(4, 0fr);
@@ -356,16 +374,6 @@
     grid-column-start:1;
     grid-row-start: 8;
 }
-      .div1{border-radius: 4px; height: 7vh; width: 100%;}
-      .div2{height: 35vh; width: 100%; border-radius: 4px; }
-      .div3{ height: 25vh; width: 100%; border-radius: 4px; }
-      .div4{background: white; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); height: 45vh; width: 99.5%; padding: 7px; text-align: center; box-sizing: border-box;}
-      .div5{border-radius: 4px; width: 100%; height: 30vh;}
-      .div6{ cursor:pointer; background: white; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%;}
-      .div7{cursor:pointer; background: white; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%;}
-      .div8{ border-radius: 4px; width: 43vw; height: 85vh;}
-      .div9{border-radius: 4px; width: 43vw; }
-      .div10{border-radius: 4px; height: 45vw;}
 
         .header{height: 25px;}
         .user-info {padding-left: 10px;font-size:10px;}
@@ -374,327 +382,309 @@
         #back,#logout,#excel {height: 3vh; vertical-align: middle;}
         #header2 {margin: 0; box-shadow: 0 6px 15px rgba(0,0,0,0.08); text-align: center; padding: 3px 20px; background: white; border-radius: 4px; font-size: 15px;}
         .content1{display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; height: 7vh;}
+        #datepick{background: white; border: 1px solid #ccc; padding: 3px 6px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px;}
+        #apply_date {background: #3a5b94; color: white; border: none; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;}
+        #my-date-picker{font-size: 8px;}
         .sidebar a, .dropdown-button{font-size: 7px;}
         .sub-link{font-size: 8px !important;}
         #modalCanvas{height: 60% !important; width: 60% !important}
-        #fin-year-select{font-size: 8px;}
-       .div1>h2{margin: 0px; font-size: 20px;}
-       .div2>h4 {margin: 5px; font-size: 13px; }
-        #ytd-target{font-size: 11px; }
-        #rangediv{margin-top: 5px;}
-        #ytd-range{width: 100px;}
-        .div3>h4 {margin: 10px 6px; font-size: 13px; }
-        #ytd-actual{font-size: 11px; font-weight: bold; margin-top: 15px;}
-        .div4>h2{font-size: 14px; margin: 0 0 15px 0;}
-        #achdiv{height: 90%; position: relative; padding: 2vw; }
-        .content{padding: 10px; overflow: auto;}
-        .div5>h4{margin:15px 0px; font-size: 12px;}
-        #ytd-growth{font-size: 11px; margin-top: 15px;}
-        #closespan{position:absolute; top:10px; right:20px; font-size:30px; cursor:pointer; color:#333; z-index:10001;}
-        #modalTitle{text-align:center; margin:5px;}
-        .modal-dropdown{width: 156px; right: 310px;}
-        #modal-filter-content{display: none; position: absolute; top: 100%; left: 0; width: 185%; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 15px; margin-top: 5px; z-index: 10006;}
-        #sectorCheckboxContainer{height: 30vh; overflow-y: scroll; overflow-x: hidden;}
-        #modelSectorMainDiv{height: 90%; width: 95%; padding: 12px 10px;}
-        #modalProductFilterBar{margin-bottom: 0px;}
-        #chartAreaSector{height: 510px; top: -70px;}
-        #modalTitleforSector{margin: 0px;}
-        #modalcanvasdiv{flex-grow:1; position:relative;left: 145px;}
+        .div1{height: 7vh; width: 12vw; border-radius: 4px;}
+        .div1>h2 {margin: 0px; font-size: 20px;}
+        .div2{height: 35vh; width: 12vw; border-radius: 4px; }
+        .div2>h4 {margin: 5px; font-size: 13px; }
+         #kpi-target{font-size: 15px; }
+          #rangediv{margin-top: 5px;}
+          #daily-range{width: 100px;}
+           .content{padding: 10px; overflow: auto;}
+           .div3{ height: 25vh; width: 12vw; border-radius: 4px; }
+           .div3>h4 {margin: 10px 6px; font-size: 13px; }
+            #kpi-actual{font-size: 15px; font-weight: bold; margin-top: 15px;}
+             .div4{background: white; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); height: 45vh; width: 12vw; padding: 7px; text-align: center; box-sizing: border-box;}
+            #achdiv{height: 90%; position: relative;}
+            .div4>h4{font-size: 14px; margin: 0 0 15px 0;}
+            .div6{ cursor:pointer; background: white; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 34vw;}
+            .div7{cursor:pointer; background: white; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 40vw;}
+            .div9{border-radius: 4px; width: 40vw; }
+            .div8{ border-radius: 4px; width: 34vw;}
+            .div10{border-radius: 4px; height: 45vw;}
+            .div5{border-radius: 4px; width: 12vw; height: 30vh;}
+            .div5>h4{margin:15px 0px; }
+            #kpi-mtd{font-size: 14px; margin-top: 15px;}
+            #closespan{position:absolute; top:10px; right:20px; font-size:30px; cursor:pointer; color:#333; z-index:10001;}
+            #modalTitle{text-align:center; margin:5px;}
+            .modal-dropdown{width: 156px; right: 310px;}
+            #modal-filter-content{display: none; position: absolute; top: 100%; left: 0; width: 185%; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 15px; margin-top: 5px; z-index: 10006;}
+            .checkbox-grid{height: 30vh; overflow-y: scroll; overflow-x: hidden;}
+            #modelSectorMainDiv{height: 90%; width: 95%; padding: 12px 10px;}
+            #modalProductFilterBar{margin-bottom: 0px;}
+            #chartAreaSector{height: 510px; top: -70px;}
+            #modalTitleforSector{margin: 0px;}
+            #modalcanvasdiv{flex-grow:1; position:relative;left: 145px;}
+
+          .div1{width: 100%;}
+          .div2{width: 100%;}
+          .div3{width: 100%;}
+          .div4{width: 99.5%;}
+          .div5{width: 100%;}
+          .div6{width: 100%;}
+          .div7{width: 100%;}
+          .div8{width: 43vw; height: 85vh;}
+          .div9{width: 43vw; }
 }
-@media (max-width: 768px) {
-    .header {
-      flex-direction: column;
-      padding: 10px;
-      text-align: center;
-    }
-    .user-info {
-      padding-left: 0;
-      margin-top: 5px;
-    }
-    #logo {
-      height: 45px;
-    }
-    .content1 {
-      flex-direction: column;
-      height: auto;
-      width: 100%;
-      gap: 10px;
-    }
-    .content {
-      padding: 15px;
-    }
-    .divy2, .divy3, .divy4, .divy5, .divy6 {
-      width: 100% !important;
-      height: auto !important;
-      min-height: 120px;
-      margin-bottom: 15px !important;
-      padding: 15px 10px;
-      box-sizing: border-box;
-    }
-    #ytd-target, #ytd-actual, #ytd-full, #ytd-scrap {
-      font-size: 24px !important;
-      margin-top: 10px !important;
-    }
-
-    #achdiv {
-      padding: 15px;
-      height: auto;
-    }
-
-    /* Layout transformations for lower grid containers/charts */
-    .divy7, .divy9 {
-      height: 40vh !important; /* Reduces large structural heights on compact screens */
-    }
-    .divy11 {
-      height: 60vw !important; /* Scales better visually on mobile */
-    }
-
-    /* Modal & Filter Overrides */
-    .modal-dropdown {
-      width: 100%;
-      right: 0 !important; /* Centers dropdowns reset from absolute tracking offsets */
-    }
-    #modelSectorMainDiv {
-      width: 95%;
-      height: 90%;
-      padding: 10px;
-    }
-    #sectorCheckboxContainer {
-      grid-template-columns: 1fr; /* Stack checkboxes sequentially vertically */
-    }
-
-    /* Fixed utility buttons placement optimization */
-    #pptbutton, #excelbutton {
-      position: static; /* Drops fixed overlays out of viewports into layout streams if needed */
-      width: 100%;
-      margin: 10px 0 0 0;
-      justify-content: center;
-    }
-  }
-
 </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+</body>
+{% endblock %}
+<script>
+const mediaQuery = window.matchMedia("(max-height: 565px)");
 
-   <script>
-   const mediaQuery = window.matchMedia("(max-height: 565px)");
 
-    Chart.register(ChartDataLabels);
-    let charts = {};
-    let modalChartInstance = null;
-    let sectorChartInstance = null;
-    let originalYTD_KPI = { target: 0, actual: 0 };
-    let originalYTD_Prod = { targets: [], actuals: [] };
-    let originalYTD_Reg = { targets: [], actuals: [] };
-    document.getElementById('ytd-range').value = 0;
-    document.getElementById('ytd-range-value').textContent = "0%";
-    function adjustYTDTargets(percent) {
+function downloadDailyPPT() {
+    const selectedDate = document.getElementById('selected_date').value;
+
+    if (!selectedDate) {
+        alert("Please select a date first.");
+        return;
+    }
+    window.location.href = `/export_daily_report?date=${selectedDate}`;
+}
+
+
+function downloadDailyExcel() {
+    const dateValue = document.getElementById('selected_date').value;
+    if (!dateValue) {
+        alert("Please select a date first.");
+        return;
+    }
+    const pageType = window.location.pathname.includes('order') ? 'order' : 'billing';
+    window.location.href = `/api/export/daily_sales_excel?date=${dateValue}&type=${pageType}`;
+}
+
+let modalChartInstance = null;
+let sectorChartInstance = null;
+let originalDailyKPI = { target: 0, actual: 0 };
+let originalDailyProd = { targets: [], actuals: [] };
+let originalDailyReg = { targets: [], actuals: [] };
+Chart.register(ChartDataLabels);
+let charts = {};
+
+function showLoader() { document.getElementById('loader-overlay').style.display = 'flex'; }
+function hideLoader() { document.getElementById('loader-overlay').style.display = 'none'; }
+
+document.getElementById('daily-range').value = 0;
+document.getElementById('daily-range-value').textContent = "0%";
+
+function adjustDailyTargets(percent) {
     const factor = 1 + (parseInt(percent) / 100);
 
-    // 1. Update Slider Label UI
-    const label = document.getElementById('ytd-range-value');
+    // Update Slider Label
+    const label = document.getElementById('daily-range-value');
     label.textContent = (percent > 0 ? "+" : "") + percent + "%";
-    const currencyFormatter = new Intl.NumberFormat('en-IN', {
+
+    // 1. Update KPI & Gauge
+     const currencyFormatter = new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR',
         maximumFractionDigits: 0
     });
-    // 2. Update KPI Card & Gauge
-    const newTarget = originalYTD_KPI.target * factor ;
-    const newTargetDisplay = originalYTD_KPI.target * factor * 100000;
-    const newPercent = (originalYTD_KPI.actual / newTarget) * 100;
+    const newTarget = originalDailyKPI.target * factor;
+    const newTargetDisplay = originalDailyKPI.target * factor * 100000;
+    const newPercent = (originalDailyKPI.actual / newTarget) * 100;
 
-    document.getElementById('ytd-target').innerText = currencyFormatter.format(newTargetDisplay);
-    renderAchievementGauge(newPercent, newTarget, originalYTD_KPI.actual);
+    document.getElementById('kpi-target').textContent = currencyFormatter.format(newTargetDisplay);
+    renderKPIGauge(newPercent, newTarget, originalDailyKPI.actual);
 
-    // 3. Update Product Chart
+    // 2. Update Product Chart
     if (charts.product) {
-        // Update the Target Gap dataset
-        charts.product.data.datasets[1].data = originalYTD_Prod.targets.map((t, i) => {
-            const adjustedT = t * factor;
-            const actual = originalYTD_Prod.actuals[i] || 0;
-            return adjustedT > actual ? adjustedT - actual : 0;
+        // Update Target Gap Data
+        charts.product.data.datasets[1].data = originalDailyProd.targets.map((t, i) => {
+            const adjT = t * factor;
+            const act = originalDailyProd.actuals[i] || 0;
+            return adjT > act ? adjT - act : 0;
         });
 
-        // Update Tooltips/Datalabels formatter dynamically
-        charts.product.options.plugins.datalabels.formatter = (value, ctx) => {
-            const i = ctx.dataIndex;
-            const actual = originalYTD_Prod.actuals[i];
-            const target = originalYTD_Prod.targets[i] * factor;
+        // Update Datalabels Formatter to reflect new %
+        charts.product.options.plugins.datalabels.formatter = (value, context) => {
+            const i = context.dataIndex;
+            const actual = originalDailyProd.actuals[i];
+            const target = originalDailyProd.targets[i] * factor;
             const pct = target > 0 ? Math.round((actual / target) * 100) : 0;
-            return `${pct}%\n${Math.round(actual)} L`;
+            return context.datasetIndex === 1 ? `${pct}% \n ${Math.round(actual)}L` : null;
         };
-
         charts.product.update('none');
     }
 
-    // 4. Update Region Chart
+    // 3. Update Region Chart
     if (charts.region) {
-        charts.region.data.datasets[1].data = originalYTD_Reg.targets.map((t, i) => {
-            const adjustedT = t * factor;
-            const actual = originalYTD_Reg.actuals[i] || 0;
-            return adjustedT > actual ? adjustedT - actual : 0;
+        charts.region.data.datasets[1].data = originalDailyReg.targets.map((t, i) => {
+            const adjT = t * factor;
+            const act = originalDailyReg.actuals[i] || 0;
+            return adjT > act ? adjT - act : 0;
         });
 
         charts.region.options.plugins.datalabels.formatter = (value, context) => {
             const i = context.dataIndex;
-            const actual = originalYTD_Reg.actuals[i];
-            const target = originalYTD_Reg.targets[i] * factor;
+            const actual = originalDailyReg.actuals[i];
+            const target = originalDailyReg.targets[i] * factor;
             const pct = target > 0 ? Math.round((actual / target) * 100) : 0;
             return actual > 0 ? `${Math.round(actual)}L (${pct}%)` : '';
         };
-
         charts.region.update('none');
     }
 }
 
-    function downloadExcel() {
-    const finYear = document.getElementById('fin-year-select').value;
-    const pageType = window.location.pathname.includes('order') ? 'order' : 'billing';
-    if (!finYear) {
-        alert("Please select a Financial Year first");
-        return;
-    }
-    window.location.href = `/sales/export/ytd_excel?fin_year=${finYear}&type=${pageType}`;
+function getQueryString() {
+    const dateVal = document.getElementById('selected_date').value;
+    const params = new URLSearchParams();
+    if (dateVal) params.append('date', dateVal);
+    return params.toString();
 }
-
-    document.addEventListener('DOMContentLoaded', () => {
-    const dropdowns = document.getElementsByClassName("dropdown-btn");
-    const currentUrl = window.location.pathname;
-
-
-    for (let i = 0; i < dropdowns.length; i++) {
-        dropdowns[i].addEventListener("click", function() {
-            const dropdownContent = this.nextElementSibling;
-            const isOpen = dropdownContent.style.display === "block";
-
-
-            for (let j = 0; j < dropdowns.length; j++) {
-                dropdowns[j].classList.remove("active");
-                dropdowns[j].nextElementSibling.style.display = "none";
-                dropdowns[j].querySelector('span').textContent = "▼";
-            }
-
-
-            if (!isOpen) {
-                this.classList.add("active");
-                dropdownContent.style.display = "block";
-                this.querySelector('span').textContent = "▲";
-            }
-        });
-    }
-
-
-    const subLinks = document.querySelectorAll('.sub-link');
-    subLinks.forEach(link => {
-        const linkPath = new URL(link.href).pathname;
-
-        if (currentUrl === linkPath) {
-
-            link.classList.add('active');
-            const parentContainer = link.closest('.dropdown-container');
-            const parentBtn = parentContainer.previousElementSibling;
-            parentContainer.style.display = "block";
-            parentBtn.classList.add('active');
-            parentBtn.querySelector('span').textContent = "▲";
-        }
-    });
-});
-function downloadFullPPT() {
-    const year = document.getElementById('fin-year-select').value;
-    window.location.href = `/export_ytd_full_report?fin_year=${year}`;
-}
-
-
-    function showLoader() { document.getElementById('loader-overlay').style.display = 'flex'; }
-    function hideLoader() { document.getElementById('loader-overlay').style.display = 'none'; }
-
-    window.openSectorModal = function(chartKey, title) {
-    const source = charts[chartKey];
-    if (!source) return;
-
+window.openSectorModal = async function(chartKey, title) {
     document.getElementById('chartModalforSector').style.display = 'flex';
     document.getElementById('modalTitleforSector').textContent = title;
+    const dateVal = document.getElementById('selected_date').value;
+    const params = new URLSearchParams();
+    params.append('date', dateVal);
 
-    setupSectorCheckboxes();
+    // Ensure all products are checked by default when opening
+    window.setSectorProds(true);
 
-    const canvas = document.getElementById('modalCanvasforSector');
-    const ctx = canvas.getContext('2d');
-    if (sectorChartInstance) sectorChartInstance.destroy();
+    // Fetch daily data for the modal
+    if (typeof showLoader === 'function') showLoader();
+    try {
+        const res = await fetch(`/get_daily_sectors?${params.toString()}`);
+        const data = await res.json();
 
-    // Pie/Doughnut connector plugin for Sector chart
-    const sectorLinePlugin = {
-        id: 'sectorLineConnector',
-        afterDraw: (chart) => {
-            const { ctx } = chart;
-            const leftLabels = [], rightLabels = [];
+        const canvas = document.getElementById('modalCanvasforSector');
+        const ctx = canvas.getContext('2d');
+        if (sectorChartInstance) sectorChartInstance.destroy();
 
-            chart.data.datasets[0].data.forEach((value, index) => {
-                const meta = chart.getDatasetMeta(0).data[index];
-                if (meta.hidden) return;
+        // Use your custom line connector plugin logic
+           const sectorLinePlugin = {
+    id: 'sectorLineConnector',
+    afterDraw: (chart) => {
+        const { ctx, chartArea } = chart;
+        const leftSide = [];
+        const rightSide = [];
 
-                const props = meta.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
-                const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
-                const isRight = Math.cos(midAngle) > 0;
+        // Pass 1: Collect all data and determine sides
+        chart.data.datasets[0].data.forEach((value, index) => {
+            const meta = chart.getDatasetMeta(0).data[index];
+            if (meta.hidden) return;
 
-                const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
-                const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
-                let x2 = Math.cos(midAngle) * (props.outerRadius + 35) + props.x;
-                let y2 = Math.sin(midAngle) * (props.outerRadius + 35) + props.y;
+            const props = meta.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+            const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
+            const isRight = Math.cos(midAngle) > 0;
 
-                // Anti-overlap logic
-                const sideList = isRight ? rightLabels : leftLabels;
-                const minGap = 28;
-                sideList.sort((a, b) => a.y - b.y);
-                sideList.forEach(prev => {
-                    if (Math.abs(y2 - prev.y) < minGap) {
-                        y2 = y2 > prev.y ? prev.y + minGap : prev.y - minGap;
-                    }
-                });
-                sideList.push({ y: y2 });
+            const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
+            const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
 
-                const x3 = x2 + (isRight ? 20 : -20);
-                ctx.save();
-                ctx.strokeStyle = '#999';
-                ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y2); ctx.stroke();
-                let labelName = chart.data.labels[index];
-                if (labelName === 'Domestic Dealers') {
-                    labelName = 'Dealers';
-                } else if (labelName === 'Direct Export') {
-                    labelName = 'Export';
+            // Initial elbow position
+            const x2_init = Math.cos(midAngle) * (props.outerRadius + 35) + props.x;
+            const y2_init = Math.sin(midAngle) * (props.outerRadius + 35) + props.y;
+
+            const info = {
+                x1, y1, x2_init, y2_init,
+                isRight, index, value,
+                midAngle,
+                y_final: y2_init // Will be adjusted
+            };
+
+            if (isRight) rightSide.push(info);
+            else leftSide.push(info);
+        });
+
+        // Pass 2: Vertical Collision Resolution (Bi-directional)
+        const resolveVerticalSpace = (sideList) => {
+            if (sideList.length === 0) return;
+            const minGap = 32; // Optimized for 12px font + 2 lines of text
+
+            // Sort by natural vertical position
+            sideList.sort((a, b) => a.y2_init - b.y2_init);
+
+            // Forward push
+            for (let i = 1; i < sideList.length; i++) {
+                if (sideList[i].y_final - sideList[i-1].y_final < minGap) {
+                    sideList[i].y_final = sideList[i-1].y_final + minGap;
                 }
-                const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                const pct = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+            }
+            // Backward push (balance the distribution)
+            for (let i = sideList.length - 2; i >= 0; i--) {
+                if (sideList[i+1].y_final - sideList[i].y_final < minGap) {
+                    sideList[i].y_final = sideList[i+1].y_final - minGap;
+                }
+            }
+        };
 
-                if(mediaQuery.matches == true){
+        resolveVerticalSpace(leftSide);
+        resolveVerticalSpace(rightSide);
+
+        // Pass 3: Drawing
+        const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+        const map = { 'DD': 'Domestic Direct', 'DE':'Dealers','DX':'Deemed Export','EX':'Export' };
+
+        [...leftSide, ...rightSide].forEach(item => {
+            const { x1, y1, x2_init, y_final, isRight, index, value } = item;
+
+            const x2 = x2_init;
+            const y2 = y_final;
+            const x3 = x2 + (isRight ? 20 : -20);
+
+            // Draw Lines
+            ctx.save();
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x3, y2);
+            ctx.stroke();
+
+            // Text Logic
+            const pct = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+            const labelName = chart.data.labels[index];
+            const fullName = map[labelName] || labelName;
+
+            const textX = x3 + (isRight ? 5 : -5);
+            ctx.textAlign = isRight ? 'left' : 'right';
+            ctx.textBaseline = 'middle';
+
+            if(mediaQuery.matches == true){
                 ctx.font = 'bold 8px Arial'; ctx.fillStyle = '#333';
                 }
                 else{
                 ctx.font = 'bold 12px Arial'; ctx.fillStyle = '#333';
                 }
-                ctx.textAlign = isRight ? 'left' : 'right';
-                const textX = x3 + (isRight ? 5 : -5);
-                ctx.fillText(labelName, textX, y2 - 7);
-                ctx.fillText(`${Math.round(value)} L (${pct})`, textX, y2 + 8);
-                ctx.restore();
-            });
-        }
-    };
+            ctx.fillText(fullName, textX, y2 - 8);
 
-    sectorChartInstance = new Chart(ctx, {
-        type: source.config.type,
-        data: JSON.parse(JSON.stringify(source.config.data)),
-        options: {
-            ...source.config.options,
-            maintainAspectRatio: false,
-            layout: { padding: 110 },
-            plugins: { legend: { display: false }, datalabels: { display: false },
-              tooltip: {
+            ctx.font = 'bold 11px Arial';
+            ctx.fillStyle = '#666';
+            ctx.fillText(`${value.toFixed(2)} L (${pct})`, textX, y2 + 8);
+
+            ctx.restore();
+        });
+    }
+};
+
+
+        sectorChartInstance = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    data: data.values,
+                    backgroundColor: ['#3a5b94', '#3498db', '#76b041', '#e74c3c', '#f1c40f', '#808080'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                layout: { padding: 110 },
+                plugins: { legend: { display: false }, datalabels: { display: false },
+                tooltip: {
                 backgroundColor: '#1a1a1a',
-    padding: 10,
-    callbacks: {
+        padding: 10,
+        callbacks: {
         title: (tooltipItems) => {
             return tooltipItems[0].label;
         },
@@ -705,10 +695,15 @@ function downloadFullPPT() {
                 }
             },
 
-             }
-        },
-        plugins: [sectorLinePlugin]
-    });
+                 }
+            },
+            plugins: [sectorLinePlugin]
+        });
+    } catch (e) {
+        console.error("Failed to load Sector Modal:", e);
+    } finally {
+        if (typeof hideLoader === 'function') hideLoader();
+    }
     if(mediaQuery.matches == true){resize(352);}
 };
 
@@ -717,7 +712,6 @@ function resize(height){
     canvas.style.height = height + 'px';
 }
 
-// Filter
 window.toggleSectorFilter = () => {
     const el = document.getElementById('modal-filter-content');
     el.style.display = el.style.display === 'block' ? 'none' : 'block';
@@ -757,49 +751,28 @@ window.updateSectorFilterText = () => {
     }
 };
 
-
 window.applySectorFilter = async function() {
+    const dateVal = document.getElementById('selected_date')?.value;
+    if (!dateVal) {
+        console.error("No date selected");
+        return;
+    }
     if (typeof showLoader === 'function') showLoader();
 
     const params = new URLSearchParams();
-    const yearElement = document.getElementById('fin-year-select');
-    const yearValue = yearElement ? yearElement.value : null;
-
-    if (!yearValue) {
-        console.error("Year element not found or value empty. Check if ID 'fin_year_select' exists.");
-        if (typeof hideLoader === 'function') hideLoader();
-        alert("Please select a Financial Year first.");
-        return; // Stop here if no year is found
-    }
-
-    params.append('fin_year', yearValue);
-    document.querySelectorAll('.sector-prod-check:checked').forEach(cb => {
+    params.append('date', dateVal);
+    const checkedProds = document.querySelectorAll('.sector-prod-check:checked');
+    checkedProds.forEach((cb) => {
         params.append('product', cb.value);
     });
-
-
-    document.querySelectorAll('.month-check:checked').forEach(cb => {
-        params.append('month', cb.value);
-    });
-
     try {
-
-        console.log("Fetching URL:", `/api/ytd/sector?${params.toString()}`);
-
-        const response = await fetch(`/api/ytd/sector?${params.toString()}`);
+        const response = await fetch(`/get_daily_sectors?${params.toString()}`);
         const data = await response.json();
 
-        if (data.error) {
-            console.error("Server Error:", data.error);
-            alert("Error: " + data.error);
-            return;
-        }
-
-        if (sectorChartInstance && data.labels) {
+        if (sectorChartInstance) {
             sectorChartInstance.data.labels = data.labels;
             sectorChartInstance.data.datasets[0].data = data.values;
             sectorChartInstance.update();
-
             document.getElementById('modal-filter-content').style.display = 'none';
         }
     } catch (e) {
@@ -817,7 +790,8 @@ window.closeSectorModal = function() {
         sectorChartInstance = null;
     }
 };
-    function openModal(chartKey, title) {
+
+function openModal(chartKey, title) {
     const source = charts[chartKey];
     if (!source) return;
 
@@ -830,7 +804,6 @@ window.closeSectorModal = function() {
 
     const sourceConfig = source.config;
 
-    // Base options for the modal
     let modalOptions = {
         ...sourceConfig.options,
         maintainAspectRatio: false,
@@ -839,93 +812,124 @@ window.closeSectorModal = function() {
 
     let activePlugins = [];
 
-    // Sector and Unit Charts
-    if (chartKey === 'branch' || chartKey === 'trend' ) {
+    if (chartKey === 'branch' || chartKey === 'monthly') {
 
         const modalLinePlugin = {
             id: 'modalLineConnector',
             afterDraw: (chart) => {
-                const { ctx } = chart;
-                const leftLabels = [];
-                const rightLabels = [];
+        const { ctx, chartArea } = chart;
+        const leftSide = [];
+        const rightSide = [];
 
-                chart.data.datasets.forEach((dataset, i) => {
-                    const meta = chart.getDatasetMeta(i);
-                    meta.data.forEach((datapoint, index) => {
-                        if (datapoint.hidden) return;
+        // Pass 1: Collect all data and determine sides
+        chart.data.datasets[0].data.forEach((value, index) => {
+            const meta = chart.getDatasetMeta(0).data[index];
+            if (meta.hidden) return;
 
-                        const props = datapoint.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
-                        const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
-                        const isRight = Math.cos(midAngle) > 0;
+            const props = meta.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+            const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
+            const isRight = Math.cos(midAngle) > 0;
 
-                        // 1. Line Start
-                        const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
-                        const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
+            const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
+            const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
 
-                        // 2. Initial Elbow (Further out for modal)
-                        let x2 = Math.cos(midAngle) * (props.outerRadius + 35) + props.x;
-                        let y2 = Math.sin(midAngle) * (props.outerRadius + 35) + props.y;
+            // Initial elbow position
+            const x2_init = Math.cos(midAngle) * (props.outerRadius + 35) + props.x;
+            const y2_init = Math.sin(midAngle) * (props.outerRadius + 35) + props.y;
 
-                        // 3. STAGGERING LOGIC (Anti-Overlap)
-                        const sideList = isRight ? rightLabels : leftLabels;
-                        const minGap = 28; // Space between labels
+            const info = {
+                x1, y1, x2_init, y2_init,
+                isRight, index, value,
+                midAngle,
+                y_final: y2_init // Will be adjusted
+            };
 
-                        sideList.sort((a, b) => a.y - b.y);
-                        sideList.forEach(prev => {
-                            if (Math.abs(y2 - prev.y) < minGap) {
-                                y2 = y2 > prev.y ? prev.y + minGap : prev.y - minGap;
-                            }
-                        });
-                        sideList.push({ y: y2 });
+            if (isRight) rightSide.push(info);
+            else leftSide.push(info);
+        });
 
-                        // 4. Horizontal Tail
-                        const x3 = x2 + (isRight ? 25 : -25);
+        // Pass 2: Vertical Collision Resolution (Bi-directional)
+        const resolveVerticalSpace = (sideList) => {
+            if (sideList.length === 0) return;
+            const minGap = 32; // Optimized for 12px font + 2 lines of text
 
-                        // 5. Draw Line
-                        ctx.save();
-                        ctx.strokeStyle = '#888';
-                        ctx.lineWidth = 1.2;
-                        ctx.beginPath();
-                        ctx.moveTo(x1, y1);
-                        ctx.lineTo(x2, y2);
-                        ctx.lineTo(x3, y2);
-                        ctx.stroke();
+            // Sort by natural vertical position
+            sideList.sort((a, b) => a.y2_init - b.y2_init);
 
-                        // 6. Draw Text Manually
-                        const value = dataset.data[index];
-                        const total = dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = total ? ((value / total) * 100).toFixed(1) + '%' : '0%';
-                        let labelName = chart.data.labels[index];
-                        const displayText =  labelName + '\n' + Math.round(value) + ' L (' + percentage + ')';
-                        const lines = displayText.split('\n');
-                        ctx.font = 'bold 12px Arial';
-                        ctx.fillStyle = '#333';
-                        ctx.textAlign = isRight ? 'left' : 'right';
-                        ctx.textBaseline = 'middle';
-                        const textX = x3 + (isRight ? 5 : -5);
-                        const lineHeight = 12;
-                        ctx.fillText(lines[0], textX, y2);
-                        ctx.fillText(lines[1], textX, y2 + lineHeight);
-                        ctx.restore();
-
-                    });
-                });
+            // Forward push
+            for (let i = 1; i < sideList.length; i++) {
+                if (sideList[i].y_final - sideList[i-1].y_final < minGap) {
+                    sideList[i].y_final = sideList[i-1].y_final + minGap;
+                }
+            }
+            // Backward push (balance the distribution)
+            for (let i = sideList.length - 2; i >= 0; i--) {
+                if (sideList[i+1].y_final - sideList[i].y_final < minGap) {
+                    sideList[i].y_final = sideList[i+1].y_final - minGap;
+                }
             }
         };
 
-        activePlugins.push(modalLinePlugin);
+        resolveVerticalSpace(leftSide);
+        resolveVerticalSpace(rightSide);
 
-        // Configure Layout & Legend for Modal
+        // Pass 3: Drawing
+        const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+        const map = { 'DD': 'Domestic Direct', 'DE':'Dealers','DX':'Deemed Export','EX':'Export' };
+
+        [...leftSide, ...rightSide].forEach(item => {
+            const { x1, y1, x2_init, y_final, isRight, index, value } = item;
+
+            const x2 = x2_init;
+            const y2 = y_final;
+            const x3 = x2 + (isRight ? 20 : -20);
+
+            // Draw Lines
+            ctx.save();
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x3, y2);
+            ctx.stroke();
+
+            // Text Logic
+            const pct = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+            const labelName = chart.data.labels[index];
+            const fullName = map[labelName] || labelName;
+
+            const textX = x3 + (isRight ? 5 : -5);
+            ctx.textAlign = isRight ? 'left' : 'right';
+            ctx.textBaseline = 'middle';
+
+            if(mediaQuery.matches == true){
+                ctx.font = 'bold 8px Arial'; ctx.fillStyle = '#333';
+                }
+                else{
+                ctx.font = 'bold 12px Arial'; ctx.fillStyle = '#333';
+                }
+            ctx.fillText(fullName, textX, y2 - 8);
+
+            ctx.font = 'bold 11px Arial';
+            ctx.fillStyle = '#666';
+            ctx.fillText(`${value.toFixed(2)} L (${pct})`, textX, y2 + 8);
+
+            ctx.restore();
+        });
+    }
+        };
+
+        activePlugins.push(modalLinePlugin);
         modalOptions.layout = { padding: { left: 110, right: 110, top: 60, bottom: 60 } };
         modalOptions.plugins = {
-            ...sourceConfig.options.plugins,
+             ...sourceConfig.options.plugins,
             legend: { display: false, position: 'right' },
             datalabels: { display: false }
         };
 
     } else {
-        // --- STANDARD CONDITION: For Bar charts or other types ---
-       const originalFormatter = sourceConfig.options.plugins?.datalabels?.formatter;
+            const originalFormatter = sourceConfig.options.plugins?.datalabels?.formatter;
        const originalTooltip = sourceConfig.options.plugins?.tooltip?.callbacks;
        const originalRich = sourceConfig.options.plugins?.datalabels?.rich;
 
@@ -974,14 +978,14 @@ window.closeSectorModal = function() {
             }
         };
             }
-                   if (chartKey === 'customer') {
+        if (chartKey === 'customer') {
 
-                    modalOptions.indexAxis = 'y';
-                    modalOptions.layout = {
-                        padding: { left: 20, right: 40, top: 20, bottom: 20 }
-                    };
-                    modalOptions.scales = {
-                                x: {
+    modalOptions.indexAxis = 'y';
+    modalOptions.layout = {
+        padding: { left: 20, right: 40, top: 20, bottom: 20 }
+    };
+    modalOptions.scales = {
+         x: {
                         beginAtZero: true,
                         title: { display: true, text: 'Value in Lakhs' },
                         grid: { display: false },
@@ -993,17 +997,17 @@ window.closeSectorModal = function() {
                         },
                         grid: { display: false },
                     }
-                    };
+    };
 
-                    modalOptions.plugins = {
-                        legend: { display: false },
-                        datalabels: {
-                            display: true,
-                            anchor: 'end',
-                            align: 'right',
-                            formatter: (val) => Math.round(val) + ' L'
-                        },
-                        tooltip: {
+    modalOptions.plugins = {
+        legend: { display: false },
+        datalabels: {
+            display: true,
+            anchor: 'end',
+            align: 'right',
+            formatter: (val) => Math.round(val) + ' L'
+        },
+         tooltip: {
             backgroundColor: '#1a1a1a',
             padding: 10,
             callbacks: {
@@ -1018,45 +1022,41 @@ window.closeSectorModal = function() {
                     });
 
                     return [
+                        `${ctx.label}`,
                         ` Actual: ${currencyFormatter.format(val)}`
                     ];
                 }
             }
         },
-                    };
-                }
+    };
+}
+
             modalChartInstance = new Chart(modalCtx, {
                 type: sourceConfig.type,
                 data: JSON.parse(JSON.stringify(sourceConfig.data)),
                 options: modalOptions,
                 plugins: activePlugins
             });
-        }
-
-    function closeModal() {
-        document.getElementById('chartModal').style.display = 'none';
-        if (modalChartInstance) {
-            modalChartInstance.destroy();
-            modalChartInstance = null;
-        }
+}
+function closeModal() {
+    document.getElementById('chartModal').style.display = 'none';
+    if (modalChartInstance) {
+        modalChartInstance.destroy();
+        modalChartInstance = null;
     }
+}
 
-    window.onclick = (event) => {
-        if (event.target == document.getElementById('chartModal')) closeModal();
-    };
-
-
-    function renderAchievementGauge(percent, target, actual) {
-    const ctx = document.getElementById('ytdAchievementGauge').getContext('2d');
+function renderKPIGauge(percent, target, actual) {
+    const ctx = document.getElementById('salesAchievedGauge').getContext('2d');
     const val = Math.min(Math.max(parseFloat(percent) || 0, 0), 100);
     const targetVal = parseFloat(target) || 0;
-    const safeActual = parseFloat(actual) || 0;
-    const actualAmount = ((val / 100) * targetVal).toLocaleString(undefined, {maximumFractionDigits: 0}) + "L";
+    const actualLabel = actual ? Number(actual).toFixed(2) + " L" : "0 L";
+
     const activeSegmentIndex = Math.min(Math.floor(val / 10), 9);
     const dataValue = Array(10).fill("");
-    dataValue[activeSegmentIndex] = actualAmount;
+    dataValue[activeSegmentIndex] = actualLabel;
 
-    if (charts.gauge) charts.gauge.destroy();
+    if(charts.gauge) charts.gauge.destroy();
 
     const centerTextPlugin = {
         id: 'centerText',
@@ -1070,10 +1070,11 @@ window.closeSectorModal = function() {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             if(mediaQuery.matches == true){
-               ctx.font = 'bold 11px Arial';
+               ctx.font = 'bold 15px Arial';
             }else{
-               ctx.font = 'bold 20px Arial';
+               ctx.font = 'bold 24px Arial';
             }
+
             ctx.fillStyle = '#333';
 
             // Adjust the 35px downward so it sits below the needle base
@@ -1082,8 +1083,8 @@ window.closeSectorModal = function() {
         }
     };
 
-    // --- PLUGIN: 0 and Target at Ends ---
-    const gaugeLabelsPlugin = {
+    // --- Plugin: 0 and Target at Ends ---
+    const gaugeLabels = {
         id: 'gaugeLabels',
         afterDatasetsDraw(chart) {
             const { ctx } = chart;
@@ -1093,14 +1094,15 @@ window.closeSectorModal = function() {
             const outerRadius = meta.data[0].outerRadius;
 
             ctx.save();
-             if(mediaQuery.matches == true){
-                ctx.font = 'bold 7px Arial';
-                ctx.textAlign = 'center';
+            if(mediaQuery.matches == true){
+            ctx.font = 'bold 7px Arial';
+            ctx.textAlign = 'center';
             }else{
                 ctx.font = 'bold 11px Arial';
                 ctx.textAlign = 'center';
             }
             ctx.fillStyle = '#666';
+
 
             ctx.fillText('0', x - outerRadius + 5, y + 15);
             if(mediaQuery.matches == true){
@@ -1112,6 +1114,7 @@ window.closeSectorModal = function() {
         }
     };
 
+    // --- Plugin: Needle ---
     const needlePlugin = {
         id: 'needle',
         afterDatasetDraw(chart) {
@@ -1122,9 +1125,8 @@ window.closeSectorModal = function() {
             const cy = chart._metasets[0].data[0].y;  // usually near bottom of arc
 
             const angle = Math.PI + (val / 100) * Math.PI;
-
-            // Needle properties — feel free to tune
             const needleLength = height * 0.50;
+
             var needleWidth=0;
             var baseRadius=0;
             // Needle properties — feel free to tune
@@ -1135,6 +1137,7 @@ window.closeSectorModal = function() {
              needleWidth  = 10;
              baseRadius   = 10;
             }
+
 
             // Draw needle triangle
             ctx.translate(cx, cy);
@@ -1172,143 +1175,137 @@ window.closeSectorModal = function() {
         }
     };
     if(mediaQuery.matches == true){
+     charts.gauge = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: dataValue,
+            datasets: [{
+                data: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+                backgroundColor: ['#c0392b','#c0392b','#c0392b','#f39c12','#f39c12','#f39c12','#27ae60','#27ae60','#27ae60','#27ae60'],
+                borderWidth: 0,
+                circumference: 180,
+                rotation: -90,
+                cutout: '60%',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { bottom: 60, top: 10} },
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    display: (context) => context.dataIndex === activeSegmentIndex,
+                    color: '#fff',
+                    font: { weight: 'bold', size: 7 },
+                    formatter: (value, context) => context.chart.data.labels[context.dataIndex]
+                },
+                tooltip: { enabled: false }
+            }
+        },
+        plugins: [needlePlugin, gaugeLabels, ChartDataLabels, centerTextPlugin]
+    });
+}
+else{
     charts.gauge = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: dataValue,
             datasets: [{
                 data: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-                backgroundColor: ['#c0392b', '#c0392b', '#c0392b', '#f39c12', '#f39c12', '#f39c12', '#27ae60', '#27ae60', '#27ae60', '#27ae60'],
+                backgroundColor: ['#c0392b','#c0392b','#c0392b','#f39c12','#f39c12','#f39c12','#27ae60','#27ae60','#27ae60','#27ae60'],
                 borderWidth: 0,
                 circumference: 180,
                 rotation: -90,
-                cutout: '60%'
+                cutout: '60%',
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            layout: { padding: { bottom: 60,  top: 10 } },
+            layout: { padding: { bottom: 60, top: 10} },
             plugins: {
                 legend: { display: false },
                 datalabels: {
                     display: (context) => context.dataIndex === activeSegmentIndex,
-                    color: '#ffffff',
-                    font: { weight: 'bold',  size: 7 },
-                    anchor: 'center',
-                    align: 'center',
+                    color: '#fff',
+                    font: { weight: 'bold', size: 10 },
                     formatter: (value, context) => context.chart.data.labels[context.dataIndex]
                 },
                 tooltip: { enabled: false }
             }
         },
-        plugins: [needlePlugin, gaugeLabelsPlugin, centerTextPlugin]
-    });
-}
-else{
-charts.gauge = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: dataValue,
-            datasets: [{
-                data: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-                backgroundColor: ['#c0392b', '#c0392b', '#c0392b', '#f39c12', '#f39c12', '#f39c12', '#27ae60', '#27ae60', '#27ae60', '#27ae60'],
-                borderWidth: 0,
-                circumference: 180,
-                rotation: -90,
-                cutout: '60%'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: { padding: { bottom: 60,  top: 10 } },
-            plugins: {
-                legend: { display: false },
-                datalabels: {
-                    display: (context) => context.dataIndex === activeSegmentIndex,
-                    color: '#ffffff',
-                    font: { weight: 'bold',  size: 10 },
-                    anchor: 'center',
-                    align: 'center',
-                    formatter: (value, context) => context.chart.data.labels[context.dataIndex]
-                },
-                tooltip: { enabled: false }
-            }
-        },
-        plugins: [needlePlugin, gaugeLabelsPlugin, centerTextPlugin]
+        plugins: [needlePlugin, gaugeLabels, ChartDataLabels, centerTextPlugin]
     });
 }
 }
-    var act, tar;
-    //  Dashboard Data Loading
-        async function refreshYTDDashboard() {
-        const yearValue = document.getElementById('fin-year-select').value;
-        const qs = `fin_year=${yearValue}`;
-        showLoader();
+async function refreshDashboard() {
+    const qs = getQueryString();
+    if (!qs) return;
+    showLoader();
 
-        try {
-            //  KPIs
-            const kpiRes = await fetch(`/api/ytd/kpis?${qs}`);
-            const kpiData = await kpiRes.json();
-
-
-    const cleanActual = Number(String(kpiData.actual).replace(/[^0-9.-]/g, '')) || 0;
-    const cleanTarget = Number(String(kpiData.target).replace(/[^0-9.-]/g, '')) || 0;
-    const cleanScrapValue = Number(String(kpiData.scrap).replace(/[^0-9.-]/g, '')) || 0;
-    const cleanNetValue =  Number(String(kpiData.net_value).replace(/[^0-9.-]/g, '')) || 0;
-    const ActualValue = cleanActual * 100000;
-    const TargetValue = cleanTarget * 100000;
-    const scrapValue = cleanScrapValue * 100000;
-    const netValue = cleanNetValue * 100000;
-    const currencyFormatter = new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 0
-    });
-
-    document.getElementById('ytd-actual').innerText = currencyFormatter.format(ActualValue);
-    document.getElementById('ytd-target').innerText = currencyFormatter.format(TargetValue);
-    document.getElementById('ytd-scrap').innerText = currencyFormatter.format(scrapValue);
-    document.getElementById('ytd-full').innerText = currencyFormatter.format(netValue);
+    try {
+        // 1. DAILY KPIs
+        const kpiRes = await fetch(`/get_daily_summary?${qs}`);
+        const kpi = await kpiRes.json();
+        const currencyFormatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+});
 
 
-    renderAchievementGauge(kpiData.raw_percent, cleanTarget, cleanActual);
-    originalYTD_KPI.target = cleanTarget;
-    originalYTD_KPI.actual = cleanActual;
-            act = kpiData.actual;
-            tar = kpiData.target;
-            //  Product Chart
-           const prodRes = await fetch(`/api/ytd/products?${qs}`);
-           const prodData = await prodRes.json();
-           originalYTD_Prod.targets = [...prodData.targets];
-           originalYTD_Prod.actuals = [...prodData.actuals];
+const cleanValue = (val) => parseFloat(String(val || 0).replace(/[^0-9.]/g, '')) || 0;
 
-if (charts.product) charts.product.destroy();
+const rawTodayTarget = cleanValue(kpi.today_target);
+const rawTodayActual = cleanValue(kpi.today_actual);
+const netValue = cleanValue(kpi.today_net_value);
+const scrapValue = cleanValue(kpi.today_scrap);
 
-charts.product = new Chart(document.getElementById('ytdProductChart'), {
+originalDailyKPI.target = rawTodayTarget;
+originalDailyKPI.actual = rawTodayActual;
+
+
+document.getElementById('kpi-target').textContent = currencyFormatter.format(rawTodayTarget * 100000);
+document.getElementById('kpi-actual').textContent = currencyFormatter.format(rawTodayActual * 100000);
+document.getElementById('kpi-full').textContent = currencyFormatter.format(netValue * 100000);
+document.getElementById('kpi-scrap').textContent = currencyFormatter.format(scrapValue * 100000);
+
+renderKPIGauge(kpi.achievement, rawTodayTarget, netValue);
+
+        // 2. PRODUCT CHART
+        const pRes = await fetch(`/get_daily_products?${qs}`);
+        const pData = await pRes.json();
+        originalDailyProd.targets = [...pData.targets];
+        originalDailyProd.actuals = [...pData.actuals];
+        if (charts.product) charts.product.destroy();
+
+    charts.product = new Chart(document.getElementById('productCategoryChart'), {
     type: 'bar',
     data: {
-        labels: prodData.labels,
+        labels: pData.labels,
         datasets: [
             {
                 label: 'Actual',
-                data: prodData.actuals,
+                data: pData.actuals,
                 backgroundColor: ['#043927','#D3D3D3','#FFA500','#0492C2','#00008B','#90EE90','#C0C0C0','#FA8128','#82CAFF','#AFB1AE','#0041C2','#964B00','#2C3E4C'],
-                stack: 'ytd',
+                borderRadius: 0,
+                stack: 'stack1',
                 order: 1
             },
             {
                 label: 'Target Gap',
-                // Calculate difference: Target - Actual
-                data: prodData.targets.map((t, i) => {
-                    const actual = prodData.actuals[i] || 0;
+                data: pData.targets.map((t, i) => {
+                    const actual = pData.actuals[i] || 0;
+
                     return t > actual ? t - actual : 0;
                 }),
-                backgroundColor: 'rgba(255, 255, 255, 0)', // Transparent
-                borderColor: ['#043927','#D3D3D3','#FFA500','#0492C2','#00008B','#90EE90','#C0C0C0','#FA8128','#82CAFF','#AFB1AE','#0041C2','#964B00','#2C3E4C'],
+                backgroundColor: 'rgba(58, 91, 148, 0.05)',
+                borderColor: ['#043927','#D3D3D3','#FFA500','#0492C2','#00008B','#90EE90','#C0C0C0','#FA8128','#82CAFF','#AFB1AE','#0041C2','#964B00','#2C3E4C'], // Outline
                 borderWidth: 1,
-                stack: 'ytd',
+                borderDash: [5, 5],
+                borderRadius: 0,
+                stack: 'stack1',
                 order: 2
             }
         ]
@@ -1316,37 +1313,51 @@ charts.product = new Chart(document.getElementById('ytdProductChart'), {
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: {
+         layout: {
             padding: { top: 40 }
         },
         plugins: {
-            legend: { display: false,  position: 'top' },
+            legend: { display: false },
             datalabels: {
-                display: (ctx) => ctx.datasetIndex === 1, // Only show label on the gap (top)
-                anchor: 'end',
+                display: true,
                 align: 'top',
-                formatter: (value, ctx) => {
-                    const i = ctx.dataIndex;
-                    const actual = prodData.actuals[i];
-                    const target = prodData.targets[i];
+                anchor: 'end',
+                formatter: (value, context) => {
+                    const i = context.dataIndex;
+                    const actual = pData.actuals[i];
+                    const target = pData.targets[i];
                     const pct = target > 0 ? Math.round((actual / target) * 100) : 0;
-                    return `${pct}%\n${Math.round(actual)} L`;
+                    const lab = `${pct}% \n ${Math.round(actual)}L`;
+                    if (context.datasetIndex === 1) {
+                        return lab;
+                    }
+                    return null;
                 },
-                font: { size: 9, weight: 'bold' },
+                rich: {
+                    pct: {
+                        color: '#1a1a1a',
+                        fontWeight: 'bold',
+                        fontSize: 12,
+                        padding: { bottom: 2 }
+                    },
+                    val: {
+                        color: '#666',
+                        fontSize: 8
+                    }
+                },
                 textAlign: 'center'
             },
             tooltip: {
-                 backgroundColor: '#1a1a1a',
-                 padding: 10,
+                backgroundColor: '#1a1a1a',
+    padding: 10,
     callbacks: {
         label: (ctx) => {
             const i = ctx.dataIndex;
-            const act = (prodData.actuals[i] || 0) * 100000;
-            const tar = (prodData.targets[i] || 0) * 100000;
+            const act = (pData.actuals[i] || 0) * 100000;
+            const tar = (pData.targets[i] || 0) * 100000;
             const diff = tar - act;
             const achievement = tar > 0 ? Math.round((act / tar) * 100) : 0;
 
-            // Formatter for Indian Rupee style (e.g., 1,00,000)
             const currencyFormatter = new Intl.NumberFormat('en-IN', {
                 style: 'currency',
                 currency: 'INR',
@@ -1364,170 +1375,45 @@ charts.product = new Chart(document.getElementById('ytdProductChart'), {
             }
         },
         scales: {
-            x: { stacked: true, grid: { display: false }, ticks: { color: '#444', font: { size: 10, weight: '600' } } },
-            y: { stacked: true, grid: { display: false }, beginAtZero: true, ticks: { display: false }  }
-        }
-    }
-});
-            // Sector Chart
-const trendRes = await fetch(`/api/ytd/sector?${qs}`);
-const trendData = await trendRes.json();
-if (charts.trend) charts.trend.destroy();
-
-// 1. The Anti-Overlap Plugin for Trend Chart
-const trendLinePlugin = {
-    id: 'trendLineConnector',
-    afterDraw: (chart) => {
-        const { ctx } = chart;
-        const leftLabels = [];
-        const rightLabels = [];
-
-        chart.data.datasets.forEach((dataset, i) => {
-            const meta = chart.getDatasetMeta(i);
-            meta.data.forEach((datapoint, index) => {
-                if (datapoint.hidden) return;
-
-                const props = datapoint.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
-                const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
-                const isRight = Math.cos(midAngle) > 0;
-
-                // Points calculation
-                const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
-                const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
-
-                let x2 = Math.cos(midAngle) * (props.outerRadius + 30) + props.x;
-                let y2 = Math.sin(midAngle) * (props.outerRadius + 30) + props.y;
-
-                // --- STAGGERING LOGIC ---
-                const sideList = isRight ? rightLabels : leftLabels;
-                const minGap = 26; // Vertical gap to prevent overlap
-
-                sideList.sort((a, b) => a.y - b.y);
-                sideList.forEach(prev => {
-                    if (Math.abs(y2 - prev.y) < minGap) {
-                        y2 = y2 > prev.y ? prev.y + minGap : prev.y - minGap;
-                    }
-                });
-                sideList.push({ y: y2 });
-
-                const x3 = x2 + (isRight ? 20 : -20);
-
-                // Draw the Connector Line
-                ctx.save();
-                ctx.strokeStyle = '#999';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.lineTo(x3, y2);
-                ctx.stroke();
-
-                // Draw Text Manually
-                const value = dataset.data[index];
-                const total = dataset.data.reduce((a, b) => a + b, 0);
-                const percentage =  ((value / total) * 100).toFixed(1) + '%';
-                let labelName = chart.data.labels[index];
-                if (labelName === 'Domestic Dealers') {
-                    labelName = 'Dealers';
-                } else if (labelName === 'Direct Export') {
-                    labelName = 'Export';
-                }
-                const shortLabel = labelName + '\n' + percentage;
-                const lines = shortLabel.split('\n');
-
-                ctx.font = 'bold 10px Arial';
-                ctx.fillStyle = '#333';
-                ctx.textAlign = isRight ? 'left' : 'right';
-                ctx.textBaseline = 'middle';
-                const textX = x3 + (isRight ? 5 : -5);
-                const lineHeight = 12;
-                ctx.fillText(lines[0], textX, y2);
-                ctx.fillText(lines[1], textX, y2 + lineHeight);
-
-                ctx.restore();
-            });
-        });
-    }
-};
-
-charts.trend = new Chart(document.getElementById('ytdTrendChart'), {
-    type: 'pie',
-    data: {
-        labels: trendData.labels,
-        datasets: [{
-            data: trendData.values,
-            backgroundColor: ['#3a5b94', '#3498db', '#76b041', '#e74c3c', '#f1c40f', '#808080', '#4e5294', '#8ca62d'],
-            borderWidth: 2,
-            borderColor: '#fff',
-            hoverOffset: 10
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-            // Provide space for labels to be drawn outside the pie
-            padding: { left: 80, right: 80, top: 60, bottom: 60 }
-        },
-        plugins: {
-            legend: { display: false },
-            // Disable datalabels to let our custom plugin handle text
-            datalabels: { display: false },
-            tooltip: {
-                backgroundColor: '#1a1a1a',
-    padding: 10,
-    callbacks: {
-        title: (tooltipItems) => {
-            return tooltipItems[0].label;
-        },
-        label: (ctx) => {
-            const i = ctx.dataIndex;
-            const act = (trendData.values[i] || 0) * 100000;
-
-            const currencyFormatter = new Intl.NumberFormat('en-IN', {
-                style: 'currency',
-                currency: 'INR',
-                maximumFractionDigits: 0
-            });
-
-            return [
-                ` Actual: ${currencyFormatter.format(act)}`,
-            ];
-                    }
-                }
+            x: {
+                stacked: true,
+                grid: { display: false },
+                ticks: { color: '#444', font: { size: 10, weight: '600' } }
             },
+            y: {
+                stacked: true,
+                beginAtZero: true,
+                display: false
+            }
         }
-    },
-    plugins: [trendLinePlugin]
+    }
 });
+        // 3. REGION CHART
+        const rRes = await fetch(`/get_daily_regions?${qs}`);
+        let rData = await rRes.json();
+        originalDailyReg.targets = [...rData.targets];
+        originalDailyReg.actuals = [...rData.actuals];
+       const mappedLabels = rData.labels.map(label =>
+    label === 'InternationalMarket' ? 'IMD' : label
+);
 
-
-
-            // Region Chart
-            const regRes = await fetch(`/api/ytd/regions?${qs}`);
-            let regData = await regRes.json();
-            originalYTD_Reg.targets = [...regData.targets];
-            originalYTD_Reg.actuals = [...regData.actuals];
-            const mappedLabels = regData.labels.map(label =>
-            label === 'InternationalMarket' ? 'IMD' : label
-            );
-            if (charts.region) charts.region.destroy();
-            charts.region = new Chart(document.getElementById('ytdRegionChart'), {
+if (charts.region) charts.region.destroy();
+charts.region = new Chart(document.getElementById('regionSalesChart'), {
     type: 'bar',
     data: {
         labels: mappedLabels,
         datasets: [
             {
                 label: 'Actual',
-                data: regData.actuals,
+                data: rData.actuals,
                 backgroundColor: ['#F5F5DC','#ADD8E6','#B8E2B0','#ff6969','#625ffa', '#3498db'],
                 stack: 'RegionStack',
                 order: 1
             },
             {
                 label: 'Target Gap',
-                data: regData.targets.map((target, i) => {
-                    const actual = regData.actuals[i] || 0;
+                data: rData.targets.map((target, i) => {
+                    const actual = rData.actuals[i] || 0;
                     return target > actual ? target - actual : 0;
                 }),
                 backgroundColor: 'rgba(255, 255, 255, 0)', // Hollow
@@ -1554,24 +1440,25 @@ charts.trend = new Chart(document.getElementById('ytdTrendChart'), {
                 },
                 anchor: 'center',
                 align: 'right',
+                clamp: true,
                 color: '#000',
                 font: { size: 10, weight: 'bold' },
                 formatter: (value, context) => {
                     const i = context.dataIndex;
-                    const actual = regData.actuals[i];
-                    const target = regData.targets[i];
+                    const actual = rData.actuals[i];
+                    const target = rData.targets[i];
                     const pct = target > 0 ? Math.round((actual / target) * 100) : 0;
                     return actual > 0 ? `${Math.round(actual)}L (${pct}%)` : '';
                 }
             },
             tooltip: {
-                 backgroundColor: '#1a1a1a',
+               backgroundColor: '#1a1a1a',
     padding: 10,
     callbacks: {
         label: (ctx) => {
             const i = ctx.dataIndex;
-            const act = (regData.actuals[i] || 0) * 100000;
-            const tar = (regData.targets[i] || 0) * 100000;
+            const act = (rData.actuals[i] || 0) * 100000;
+            const tar = (rData.targets[i] || 0) * 100000;
             const diff = tar - act;
             const achievement = tar > 0 ? Math.round((act / tar) * 100) : 0;
 
@@ -1589,7 +1476,7 @@ charts.trend = new Chart(document.getElementById('ytdTrendChart'), {
             ];
                     }
                 }
-            }
+            },
         },
         scales: {
             x: {
@@ -1606,106 +1493,141 @@ charts.trend = new Chart(document.getElementById('ytdTrendChart'), {
     }
 });
 
-            // 5. Unit Chart
-            const unitRes = await fetch(`/api/ytd/Unit?${qs}`);
-const unitData = await unitRes.json();
-if (charts.branch) charts.branch.destroy();
-// 1. Define the Unit-specific Anti-Overlap Plugin
-const unitLinePlugin = {
-    id: 'unitLineConnector',
+        // 4. SECTOR CHART
+        const sRes = await fetch(`/get_daily_sectors?${qs}`);
+        const sData = await sRes.json();
+        const monthlyCanvas = document.getElementById('monthlyComparisonChart');
+        const existingMonthly = Chart.getChart(monthlyCanvas);
+        if (existingMonthly) existingMonthly.destroy();
+
+        const highResLinePlugin = {
+    id: 'highResLineConnector',
     afterDraw: (chart) => {
-        const { ctx } = chart;
-        const leftLabels = [];
-        const rightLabels = [];
+        const { ctx, chartArea } = chart;
+        const leftSide = [];
+        const rightSide = [];
 
-        chart.data.datasets.forEach((dataset, i) => {
-            const meta = chart.getDatasetMeta(i);
-            meta.data.forEach((datapoint, index) => {
-                if (datapoint.hidden) return;
+        // Pass 1: Collect all data and determine sides
+        chart.data.datasets[0].data.forEach((value, index) => {
+            const meta = chart.getDatasetMeta(0).data[index];
+            if (meta.hidden) return;
 
-                const props = datapoint.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
-                const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
-                const isRight = Math.cos(midAngle) > 0;
+            const props = meta.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+            const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
+            const isRight = Math.cos(midAngle) > 0;
 
-                // Line Start (Edge of doughnut)
-                const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
-                const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
+            const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
+            const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
 
-                // Initial Elbow
-                let x2 = Math.cos(midAngle) * (props.outerRadius + 30) + props.x;
-                let y2 = Math.sin(midAngle) * (props.outerRadius + 30) + props.y;
+            // Initial elbow position
+            const x2_init = Math.cos(midAngle) * (props.outerRadius + 35) + props.x;
+            const y2_init = Math.sin(midAngle) * (props.outerRadius + 35) + props.y;
 
-                // --- STAGGERING LOGIC (Anti-Overlap) ---
-                const sideList = isRight ? rightLabels : leftLabels;
-                const minGap = 26; // Vertical distance between labels
+            const info = {
+                x1, y1, x2_init, y2_init,
+                isRight, index, value,
+                midAngle,
+                y_final: y2_init // Will be adjusted
+            };
 
-                sideList.sort((a, b) => a.y - b.y);
-                sideList.forEach(prev => {
-                    if (Math.abs(y2 - prev.y) < minGap) {
-                        y2 = y2 > prev.y ? prev.y + minGap : prev.y - minGap;
-                    }
-                });
-                sideList.push({ y: y2 });
+            if (isRight) rightSide.push(info);
+            else leftSide.push(info);
+        });
 
-                const x3 = x2 + (isRight ? 20 : -20);
+        // Pass 2: Vertical Collision Resolution (Bi-directional)
+        const resolveVerticalSpace = (sideList) => {
+            if (sideList.length === 0) return;
+            const minGap = 32; // Optimized for 12px font + 2 lines of text
 
-                // Draw the Connector Line
-                ctx.save();
-                ctx.strokeStyle = '#999';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.lineTo(x3, y2);
-                ctx.stroke();
+            // Sort by natural vertical position
+            sideList.sort((a, b) => a.y2_init - b.y2_init);
 
-                // Draw Text Manually
-                const value = dataset.data[index];
-                const total = dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = total ? ((value / total) * 100).toFixed(1) + '%' : '0%';
-                const labelName = chart.data.labels[index];
-                const shortLabel = labelName + '\n' + percentage;
-                const lines = shortLabel.split('\n');
+            // Forward push
+            for (let i = 1; i < sideList.length; i++) {
+                if (sideList[i].y_final - sideList[i-1].y_final < minGap) {
+                    sideList[i].y_final = sideList[i-1].y_final + minGap;
+                }
+            }
+            // Backward push (balance the distribution)
+            for (let i = sideList.length - 2; i >= 0; i--) {
+                if (sideList[i+1].y_final - sideList[i].y_final < minGap) {
+                    sideList[i].y_final = sideList[i+1].y_final - minGap;
+                }
+            }
+        };
 
-                ctx.font = 'bold 10px Arial';
-                ctx.fillStyle = '#333';
-                ctx.textAlign = isRight ? 'left' : 'right';
-                ctx.textBaseline = 'middle';
-                const textX = x3 + (isRight ? 5 : -5);
-                const lineHeight = 12;
-                ctx.fillText(lines[0], textX, y2);
-                ctx.fillText(lines[1], textX, y2 + lineHeight);
+        resolveVerticalSpace(leftSide);
+        resolveVerticalSpace(rightSide);
 
-                ctx.restore();
-            });
+        // Pass 3: Drawing
+        const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+        const map = { 'DD': 'Domestic Direct', 'DE':'Dealers','DX':'Deemed Export','EX':'Export' };
+
+        [...leftSide, ...rightSide].forEach(item => {
+            const { x1, y1, x2_init, y_final, isRight, index, value } = item;
+
+            const x2 = x2_init;
+            const y2 = y_final;
+            const x3 = x2 + (isRight ? 20 : -20);
+
+            // Draw Lines
+            ctx.save();
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x3, y2);
+            ctx.stroke();
+
+            // Text Logic
+            const pct = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+            const labelName = chart.data.labels[index];
+            const fullName = map[labelName] || labelName;
+
+            const textX = x3 + (isRight ? 5 : -5);
+            ctx.textAlign = isRight ? 'left' : 'right';
+            ctx.textBaseline = 'middle';
+
+            if(mediaQuery.matches == true){
+                ctx.font = 'bold 8px Arial'; ctx.fillStyle = '#333';
+                }
+                else{
+                ctx.font = 'bold 12px Arial'; ctx.fillStyle = '#333';
+                }
+            ctx.fillText(fullName, textX, y2 - 8);
+
+            ctx.font = 'bold 11px Arial';
+            ctx.fillStyle = '#666';
+            ctx.fillText(`${pct}`, textX, y2 + 8);
+
+            ctx.restore();
         });
     }
 };
 
-// 2. Initialize the Doughnut Chart
-charts.branch = new Chart(document.getElementById('ytdBranchChart'), {
-    type: 'doughnut',
+charts.monthly = new Chart(monthlyCanvas, {
+    type: 'pie',
     data: {
-        labels: unitData.labels,
+        labels: sData.labels,
         datasets: [{
-            data: unitData.values,
-            backgroundColor: ['#3a5b94', '#3498db', '#76b041', '#e74c3c', '#f1c40f', '#808080', '#4e5294', '#8ca62d'],
-            borderWidth: 1,
+            data: sData.values,
+            backgroundColor: ['#3a5b94', '#3498db', '#76b041', '#e74c3c', '#f1c40f', '#808080'],
+            borderWidth: 2,
             borderColor: '#fff',
             hoverOffset: 10
-
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
         layout: {
-            // Room for the lines and staggered text on the sides
-            padding: { left: 90, right: 90, top: 40, bottom: 40 }
+
+            padding: { left: 60, right: 60, top: 60, bottom: 60 }
         },
         plugins: {
             legend: { display: false },
-            // Disable default datalabels to avoid doubling up
+
             datalabels: { display: false },
             tooltip: {
                 backgroundColor: '#1a1a1a',
@@ -1716,7 +1638,7 @@ charts.branch = new Chart(document.getElementById('ytdBranchChart'), {
         },
         label: (ctx) => {
             const i = ctx.dataIndex;
-            const act = (unitData.values[i] || 0) * 100000;
+            const act = (sData.values[i] || 0) * 100000;
 
             const currencyFormatter = new Intl.NumberFormat('en-IN', {
                 style: 'currency',
@@ -1732,20 +1654,192 @@ charts.branch = new Chart(document.getElementById('ytdBranchChart'), {
             },
         }
     },
-    plugins: [unitLinePlugin]
+
+    plugins: [highResLinePlugin]
 });
-// Render Top 10 Customers Chart
-const custRes = await fetch(`/get_ytd_name_data?${qs}`);
-const custData = await custRes.json();
-if (charts.customer) charts.customer.destroy();
-var test = document.getElementById('customersales');
-charts.customer = new Chart(test, {
+
+        // 5. UNIT CHART
+        const uRes = await fetch(`/get_daily_units?${qs}`);
+        const uData = await uRes.json();
+        const canvas = document.getElementById('salesChannelChart');
+       let existingChart = Chart.getChart(canvas);
+        if (existingChart) existingChart.destroy();
+
+// 2. Define the Custom Plugin for the lines
+    const ResLinePlugin = {
+    id: 'ResLineConnector',
+    afterDraw: (chart) => {
+        const { ctx, chartArea } = chart;
+        const leftSide = [];
+        const rightSide = [];
+
+        // Pass 1: Collect all data and determine sides
+        chart.data.datasets[0].data.forEach((value, index) => {
+            const meta = chart.getDatasetMeta(0).data[index];
+            if (meta.hidden) return;
+
+            const props = meta.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+            const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
+            const isRight = Math.cos(midAngle) > 0;
+
+            const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
+            const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
+
+            // Initial elbow position
+            const x2_init = Math.cos(midAngle) * (props.outerRadius + 35) + props.x;
+            const y2_init = Math.sin(midAngle) * (props.outerRadius + 35) + props.y;
+
+            const info = {
+                x1, y1, x2_init, y2_init,
+                isRight, index, value,
+                midAngle,
+                y_final: y2_init // Will be adjusted
+            };
+
+            if (isRight) rightSide.push(info);
+            else leftSide.push(info);
+        });
+
+        // Pass 2: Vertical Collision Resolution (Bi-directional)
+        const resolveVerticalSpace = (sideList) => {
+            if (sideList.length === 0) return;
+            const minGap = 32; // Optimized for 12px font + 2 lines of text
+
+            // Sort by natural vertical position
+            sideList.sort((a, b) => a.y2_init - b.y2_init);
+
+            // Forward push
+            for (let i = 1; i < sideList.length; i++) {
+                if (sideList[i].y_final - sideList[i-1].y_final < minGap) {
+                    sideList[i].y_final = sideList[i-1].y_final + minGap;
+                }
+            }
+            // Backward push (balance the distribution)
+            for (let i = sideList.length - 2; i >= 0; i--) {
+                if (sideList[i+1].y_final - sideList[i].y_final < minGap) {
+                    sideList[i].y_final = sideList[i+1].y_final - minGap;
+                }
+            }
+        };
+
+        resolveVerticalSpace(leftSide);
+        resolveVerticalSpace(rightSide);
+
+        // Pass 3: Drawing
+        const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+        const map = { 'DD': 'Domestic Direct', 'DE':'Dealers','DX':'Deemed Export','EX':'Export' };
+
+        [...leftSide, ...rightSide].forEach(item => {
+            const { x1, y1, x2_init, y_final, isRight, index, value } = item;
+
+            const x2 = x2_init;
+            const y2 = y_final;
+            const x3 = x2 + (isRight ? 20 : -20);
+
+            // Draw Lines
+            ctx.save();
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x3, y2);
+            ctx.stroke();
+
+            // Text Logic
+            const pct = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+            const labelName = chart.data.labels[index];
+            const fullName = map[labelName] || labelName;
+
+            const textX = x3 + (isRight ? 5 : -5);
+            ctx.textAlign = isRight ? 'left' : 'right';
+            ctx.textBaseline = 'middle';
+
+            if(mediaQuery.matches == true){
+                ctx.font = 'bold 8px Arial'; ctx.fillStyle = '#333';
+                }
+                else{
+                ctx.font = 'bold 12px Arial'; ctx.fillStyle = '#333';
+                }
+            ctx.fillText(fullName, textX, y2 - 8);
+
+            ctx.font = 'bold 11px Arial';
+            ctx.fillStyle = '#666';
+            ctx.fillText(`${pct}`, textX, y2 + 8);
+
+            ctx.restore();
+        });
+    }
+};
+
+// 3. Create the Chart
+charts.branch = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+        labels: uData.labels,
+        datasets: [{
+            data: uData.values,
+            backgroundColor: ['#3a5b94', '#3498db', '#76b041', '#e74c3c', '#f1c40f', '#808080', '#4e5294', '#8ca62d'],
+            borderWidth: 2,
+            hoverOffset: 10
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+       padding: {
+        top: 50,
+        bottom: 50,
+        left: 40,
+        right: 40
+      }
+        },
+        plugins: {
+            legend: { display: false },
+            datalabels: {
+                display: false
+            },
+            tooltip: {
+                backgroundColor: '#1a1a1a',
+    padding: 10,
+    callbacks: {
+        title: (tooltipItems) => {
+            return tooltipItems[0].label;
+        },
+        label: (ctx) => {
+            const i = ctx.dataIndex;
+            const act = (uData.values[i] || 0) * 100000;
+
+            const currencyFormatter = new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            });
+
+            return [
+                ` Actual: ${currencyFormatter.format(act)}`,
+            ];
+                    }
+                }
+            },
+        }
+    },
+    plugins: [ResLinePlugin]
+});
+
+        // 6. CUSTOMER CHART
+        const cRes = await fetch(`/get_daily_customers?${qs}`);
+        const cData = await cRes.json();
+        if (charts.customer) charts.customer.destroy();
+        var test = document.getElementById('customersales');
+    charts.customer = new Chart(test, {
     type: 'bar',
     data: {
-        labels: custData.labels, // Customer Names
+        labels: cData.labels, // Customer Names
         datasets: [{
             label: 'Value (Lakhs)',
-            data: custData.values,
+            data: cData.values,
             backgroundColor: '#3a5b94',
             borderColor: '#2c3e50',
             borderRadius: 0,
@@ -1785,7 +1879,7 @@ charts.customer = new Chart(test, {
     callbacks: {
         label: (ctx) => {
             const i = ctx.dataIndex;
-            const act = (custData.values[i] || 0) * 100000;
+            const act = (cData.values[i] || 0) * 100000;
 
             const currencyFormatter = new Intl.NumberFormat('en-IN', {
                 style: 'currency',
@@ -1804,34 +1898,84 @@ charts.customer = new Chart(test, {
     }
 });
 
-        } catch (err) {
-            console.error("Dashboard Error:", err);
-        } finally {
-            hideLoader();
-        }
+    } catch (err) {
+        console.error("Dashboard refresh failed:", err);
+    } finally {
+        hideLoader();
+    }
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const dateInput = document.getElementById('daily-date-picker');
+
+    // 1. Use the date passed from Flask (which is now always "Today" by default)
+    const serverToday = "{{ selected_date }}";
+
+    if (dateInput) {
+        dateInput.value = serverToday;
     }
 
-    // --- Initialization ---
-    async function initDashboard() {
-        const res = await fetch('/get_available_years');
-        const years = await res.json();
-        const select = document.getElementById('fin-year-select');
-        years.forEach(y => {
-            let opt = document.createElement('option');
-            opt.value = opt.textContent = y;
-            select.appendChild(opt);
+
+    // 3. Listener for manual changes
+<!--    const applyBtn = document.getElementById('apply_date');-->
+<!--    if (applyBtn) {-->
+<!--        applyBtn.addEventListener('click', refreshDailyDashboard);-->
+<!--    }-->
+});
+document.addEventListener('DOMContentLoaded', () => {
+    refreshDashboard();
+    const applyBtn = document.getElementById('apply_date');
+    if (applyBtn) {
+        // FIX: Changed from refreshDailyDashboard to refreshDashboard
+        applyBtn.addEventListener('click', refreshDashboard);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dropdowns = document.getElementsByClassName("dropdown-btn");
+    const currentUrl = window.location.pathname;
+
+    // --- Sidebar Dropdown Logic ---
+    for (let i = 0; i < dropdowns.length; i++) {
+        dropdowns[i].addEventListener("click", function() {
+            const dropdownContent = this.nextElementSibling;
+            const isOpen = dropdownContent.style.display === "block";
+
+            for (let j = 0; j < dropdowns.length; j++) {
+                dropdowns[j].classList.remove("active");
+                dropdowns[j].nextElementSibling.style.display = "none";
+                dropdowns[j].querySelector('span').textContent = "▼";
+            }
+
+            if (!isOpen) {
+                this.classList.add("active");
+                dropdownContent.style.display = "block";
+                this.querySelector('span').textContent = "▲";
+            }
         });
-        if(years.length > 0) refreshYTDDashboard();
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        initDashboard();
-
-        // Handle year filter change
-        document.getElementById('fin-year-select').addEventListener('change', refreshYTDDashboard);
-
+    // --- Auto-Open Sidebar Logic ---
+    const subLinks = document.querySelectorAll('.sub-link');
+    subLinks.forEach(link => {
+        const linkPath = new URL(link.href).pathname;
+        if (currentUrl === linkPath) {
+            link.classList.add('active');
+            const parentContainer = link.closest('.dropdown-container');
+            const parentBtn = parentContainer.previousElementSibling;
+            parentContainer.style.display = "block";
+            parentBtn.classList.add('active');
+            parentBtn.querySelector('span').textContent = "▲";
+        }
     });
-</script>
+});
 
-</body>
-{% endblock %}
+window.onload = () => {
+    const today = document.getElementById('selected_date').value;
+    document.getElementById('my-date-picker').value = today.split("-").reverse().join("-");
+};
+
+function loadDate(val){
+    val = val.split("/").reverse().join("-");
+    document.getElementById('selected_date').value = val;
+}
+</script>
