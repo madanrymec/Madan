@@ -1,0 +1,388 @@
+
+Here is the updated implementation. This configuration ensures that if the user selects a single date (or if no range is specified), the application **automatically falls back to treating it as a single-day selection** (where `start_date` equals `end_date`), preserving your original single-day functionality perfectly.
+
+---
+
+## 1. Frontend Updates (`daily_sales.html`)
+
+We configure Flatpickr to operate in `range` mode, but add an alternative assignment logic: if only one date is picked, both `start_date` and `end_date` are populated with that same single date.
+
+### A. The HTML Markup
+
+Replace your current `<div id="datepick">` block  with this structure containing hidden fields to track the boundaries cleanly:
+
+```html
+<div id="datepick">
+    <label style="font-weight: bold; font-size: 14px; margin: 0;">Select Date / Range:</label>
+    <input type="hidden" id="start_date" value="{{ start_date }}">
+    <input type="hidden" id="end_date" value="{{ end_date }}">
+    
+    <input type="text" id="my-date-picker" placeholder="Select Date or Range.." style="width: 220px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+    <button id="apply_date">Apply</button>
+</div>
+
+```
+
+### B. JavaScript Section
+
+Update your scripts at the bottom of the file (replacing the original `flatpickr` initialization, `getQueryString`, and export download bindings):
+
+```javascript
+// Initialize range flatpickr with single-date fallback handling
+flatpickr("#my-date-picker", {
+    mode: "range",
+    dateFormat: "d/m/Y",
+    defaultDate: [
+        document.getElementById('start_date').value.split("-").reverse().join("/"),
+        document.getElementById('end_date').value.split("-").reverse().join("/")
+    ],
+    onClose: function(selectedDates) {
+        if (selectedDates.length > 0) {
+            const startDate = selectedDates[0].toISOString().split('T')[0];
+            // Fallback: If only 1 date is picked, end_date becomes identical to start_date
+            const endDate = selectedDates.length === 2 ? selectedDates[1].toISOString().split('T')[0] : startDate;
+            
+            document.getElementById('start_date').value = startDate;
+            document.getElementById('end_date').value = endDate;
+        }
+    }
+});
+
+// Build the request parameters dynamically
+function getQueryString() {
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    return params.toString();
+}
+
+// Update Export Functions to respect the date windows
+function downloadDailyPPT() {
+    const start = document.getElementById('start_date').value;
+    const end = document.getElementById('end_date').value;
+    if (!start || !end) { alert("Please select a date first."); return; }
+    window.location.href = `/export_daily_report?start_date=${start}&end_date=${end}`;
+}
+
+function downloadDailyExcel() {
+    const start = document.getElementById('start_date').value;
+    const end = document.getElementById('end_date').value;
+    if (!start || !end) { alert("Please select a date first."); return; }
+    const pageType = window.location.pathname.includes('order') ? 'order' : 'billing';
+    window.location.href = `/api/export/daily_sales_excel?start_date=${start}&end_date=${end}&type=${pageType}`;
+}
+
+// Ensure the sector modal pulls dates correctly from the current range state
+window.openSectorModal = async function(chartKey, title) {
+    document.getElementById('chartModalforSector').style.display = 'flex';
+    document.getElementById('modalTitleforSector').textContent = title;
+    const start = document.getElementById('start_date').value;
+    const end = document.getElementById('end_date').value;
+    const params = new URLSearchParams({ start_date: start, end_date: end });
+    
+    window.setSectorProds(true);
+    if (typeof showLoader === 'function') showLoader();
+    try {
+        const res = await fetch(`/get_daily_sectors?${params.toString()}`);
+        // ... (Keep the rest of your sector line connector drawing logic matching your code)
+
+```
+
+---
+
+## 2. Backend Updates (`app.py`)
+
+The Python endpoints read `start_date` and `end_date`. If they match (a single date), `days_in_range` resolves to `1`, keeping your baseline daily math unchanged. If they differ, the metric scaling adapts automatically.
+
+```python
+from datetime import datetime
+from flask import request, jsonify, render_template
+
+@app.route('/daily')
+@requires_login
+def daily_dashboard():
+    # If parameters aren't supplied, default to execution day as single-day view
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    start_date = request.args.get('start_date', today_date)
+    end_date = request.args.get('end_date', today_date)
+    return render_template('daily_sales.html', start_date=start_date, end_date=end_date, username=session['username'])
+
+@app.route('/get_daily_summary')
+def get_daily_summary():
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not start_date_str or not end_date_str:
+        return jsonify({"error": "Missing date window boundaries"}), 400
+
+    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    
+    # Resolves to 1 day for single selections, scaling automatically for longer spans
+    days_in_range = (end_date - start_date).days + 1
+
+    month = start_date.month
+    year = start_date.year
+    fin_year = f"{year}-{year + 1}" if month >= 4 else f"{year - 1}-{year}"
+    mtd_start = start_date.replace(day=1).strftime('%Y-%m-%d')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 1. Net Value Aggregation 
+        cursor.execute("""
+            SELECT SUM(Net_Value)/100000 AS total FROM billing_data 
+            WHERE Billing_Date BETWEEN %s AND %s AND Dist_Channel_TEXT != 'Inter Unit Transfer'
+        """, (start_date_str, end_date_str))
+        today_net = cursor.fetchone()['total'] or 0
+
+        # 2. Main Sales Figures
+        cursor.execute("""
+            SELECT SUM(Net_Value)/100000 AS total FROM billing_data 
+            WHERE Billing_Date BETWEEN %s AND %s AND Dist_Channel_TEXT != 'Inter Unit Transfer' AND Unit != 'UN07'
+        """, (start_date_str, end_date_str))
+        today_actual = cursor.fetchone()['total'] or 0
+
+        # 3. Cumulative Month to Date
+        cursor.execute("""
+            SELECT SUM(Net_Value)/100000 AS total FROM billing_data 
+            WHERE Billing_Date >= %s AND Billing_Date <= %s 
+        """, (mtd_start, end_date_str))
+        mtd_actual = cursor.fetchone()['total'] or 0
+
+        # 4. Proportional Target Calculation (Daily target * span width)
+        cursor.execute("SELECT SUM(Target) as annual FROM billing_target WHERE fin_year=%s", (fin_year,))
+        annual_target = cursor.fetchone()['annual'] or 0
+
+        daily_target = (annual_target / 365) * days_in_range
+        achievement = (today_actual / daily_target * 100) if daily_target > 0 else 0
+
+        # 5. Inter Unit Transfers
+        cursor.execute("""
+            SELECT SUM(Net_Value)/100000 AS total FROM billing_data 
+            WHERE Billing_Date BETWEEN %s AND %s AND Dist_Channel_TEXT = 'Inter Unit Transfer'
+        """, (start_date_str, end_date_str))
+        today_iut = cursor.fetchone()['total'] or 0
+
+        # 6. Scrap Sales
+        cursor.execute("""
+            SELECT SUM(Net_Value)/100000 AS total FROM billing_data 
+            WHERE Billing_Date BETWEEN %s AND %s AND Unit = 'UN07'
+        """, (start_date_str, end_date_str))
+        today_scrap = cursor.fetchone()['total'] or 0
+
+        return jsonify({
+            "today_net_value": f"{float(today_net):,.5f}",
+            "today_actual": f"{float(today_actual):,.5f}",
+            "today_target": f"{float(daily_target):,.0f}",
+            "achievement": round(achievement, 1),
+            "mtd_actual": f"{float(mtd_actual):,.5f}",
+            "today_iut": f"{float(today_iut):,.5f}",
+            "today_scrap": f"{float(today_scrap):,.5f}"
+        })
+    finally:
+        conn.close()
+
+@app.route('/get_daily_products')
+def get_daily_products():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+    days_in_range = (end_date_obj - date_obj).days + 1
+    fin_year = f"{date_obj.year}-{date_obj.year + 1}" if date_obj.month >= 4 else f"{date_obj.year - 1}-{date_obj.year}"
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT 
+            CASE 
+                WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
+                WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
+                WHEN Prod = 'TRANSFORMERS MYSORE' AND VTEXT1='Switchgear' THEN 'SWITCHGEARS'
+                ELSE Prod
+            END AS display_prod, 
+            SUM(Net_Value)/100000 as actual
+        FROM billing_data 
+        WHERE Billing_Date BETWEEN %s AND %s AND Dist_Channel_TEXT != 'Inter Unit Transfer'
+        GROUP BY display_prod
+    """, (start_date, end_date))
+    actual_map = {r['display_prod']: float(r['actual'] or 0) for r in cursor.fetchall()}
+
+    cursor.execute(
+        "SELECT Product, (SUM(Target)/365)*%s as daily_target FROM billing_target WHERE fin_year=%s GROUP BY Product",
+        (days_in_range, fin_year))
+    target_map = {r['Product']: float(r['daily_target'] or 0) for r in cursor.fetchall()}
+    conn.close()
+
+    PRODUCT_MAP = [
+        ('DC MACHINES', 'DCM'), ('HV MOTORS', 'HVM'), ('HV GENERATORS', 'HVG'),
+        ('RRM', 'RRM'), ('LV MOTORS (NS)', 'LVM(NS)'), ('LV MOTORS (S)', 'LVM(S)'),
+        ('EVM', 'EVM'), ('LV GENERATORS', 'LVG'), ('DG SETS', 'DGS'),
+        ('TRANSFORMERS PUNE', 'TRF(P)'), ('TRANSFORMERS MYSORE', 'TRF(M)'),
+        ('SWITCHGEARS', 'SWG'), ('SPARES & SERVICE', 'SP&S')
+    ]
+
+    return jsonify({
+        "labels": [p[1] for p in PRODUCT_MAP],
+        "actuals": [actual_map.get(p[0], 0) for p in PRODUCT_MAP],
+        "targets": [target_map.get(p[0], 0) for p in PRODUCT_MAP]
+    })
+
+@app.route('/get_daily_regions')
+def get_daily_regions():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+    days_in_range = (end_date_obj - date_obj).days + 1
+    fin_year = f"{date_obj.year}-{date_obj.year + 1}" if date_obj.month >= 4 else f"{date_obj.year - 1}-{date_obj.year}"
+    valid_regions = ('Central India', 'East India', 'North India', 'South India', 'West India', 'InternationalMarket')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT 
+            CASE WHEN Sales_office = 'Bangalore - IMD' THEN 'InternationalMarket' ELSE Sales_Region_Name END AS display_region, 
+            SUM(Net_Value)/100000 AS actual
+        FROM billing_data
+        WHERE Billing_Date BETWEEN %s AND %s AND Dist_Channel_TEXT != 'Inter Unit Transfer'
+        GROUP BY display_region
+    """, (start_date, end_date))
+    actual_dict = {r['display_region']: float(r['actual'] or 0) for r in cursor.fetchall()}
+
+    cursor.execute(
+        "SELECT Sales_Region_Name as region, (SUM(Target)/365)*%s as daily_target FROM billing_target WHERE fin_year=%s GROUP BY region",
+        (days_in_range, fin_year))
+    target_dict = {r['region']: float(r['daily_target'] or 0) for r in cursor.fetchall()}
+    conn.close()
+
+    return jsonify({
+        "labels": valid_regions,
+        "actuals": [actual_dict.get(r, 0) for r in valid_regions],
+        "targets": [target_dict.get(r, 0) for r in valid_regions]
+    })
+
+@app.route('/get_daily_sectors')
+def get_daily_sectors():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    products = request.args.getlist('product')
+
+    if not start_date or not end_date:
+        return jsonify({"error": "Missing boundaries"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    valid_sectors = ['Direct Export', 'Domestic Direct', 'Domestic Dealers', 'Deemed Export', 'SEZ']
+    sector_placeholders = ', '.join(['%s'] * len(valid_sectors))
+
+    query = f"""
+        SELECT Dist_Channel_TEXT as channel, SUM(Net_Value)/100000 as actual
+        FROM billing_data
+        WHERE Dist_Channel_TEXT IN ({sector_placeholders}) 
+        AND Billing_Date BETWEEN %s AND %s 
+        AND Dist_Channel_TEXT != 'Inter Unit Transfer'
+    """
+    params = list(valid_sectors)
+    params.extend([start_date, end_date])
+
+    if products:
+        product_clauses = []
+        for p in products:
+            if p == 'LV MOTORS (NS)': product_clauses.append("(Prod = 'LV MOTORS' AND Plant = 'AC02')")
+            elif p == 'LV MOTORS (S)': product_clauses.append("(Prod = 'LV MOTORS' AND Plant = 'AC25')")
+            elif p == 'SWITCHGEARS': product_clauses.append("(Prod = 'TRANSFORMERS MYSORE' AND VTEXT1 = 'Switchgear')")
+            elif p == 'TRANSFORMERS MYSORE': product_clauses.append("(Prod = 'TRANSFORMERS MYSORE' AND (`VTEXT1` != 'Switchgear' OR `VTEXT1` IS NULL))")
+            else:
+                product_clauses.append("Prod = %s")
+                params.append(p)
+        query += " AND (" + " OR ".join(product_clauses) + ")"
+
+    query += " GROUP BY Dist_Channel_TEXT"
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+    conn.close()
+
+    processed_data = {}
+    for r in rows:
+        channel = r['channel']
+        actual = float(r['actual'] or 0)
+        label = 'Domestic Direct' if channel in ['SEZ', 'Domestic Direct'] else channel
+        processed_data[label] = processed_data.get(label, 0) + actual
+
+    return jsonify({
+        "labels": list(processed_data.keys()),
+        "values": list(processed_data.values())
+    })
+
+@app.route('/get_daily_units')
+def get_daily_units():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT 
+            CASE WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16' ELSE Unit END AS display_unit, 
+            SUM(Net_Value)/100000 as total 
+        FROM billing_data
+        WHERE Billing_Date BETWEEN %s AND %s AND Dist_Channel_TEXT != 'Inter Unit Transfer' AND Unit != 'UN07'
+        GROUP BY display_unit ORDER BY total DESC
+    """, (start_date, end_date))
+    rows = cursor.fetchall()
+    conn.close()
+
+    return jsonify({
+        "labels": [r['display_unit'] for r in rows],
+        "values": [float(r['total'] or 0) for r in rows]
+    })
+
+@app.route('/get_daily_customers')
+def get_daily_customers():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT Name, SUM(Net_Value) / 100000 AS total_value
+        FROM billing_data
+        WHERE Billing_Date BETWEEN %s AND %s AND Dist_Channel_TEXT != 'Inter Unit Transfer'
+        GROUP BY Name ORDER BY total_value DESC LIMIT 10
+    """, (start_date, end_date))
+    rows = cursor.fetchall()
+    conn.close()
+
+    NAME_REPLACEMENTS = {
+        "KIRLOSKAR ELECTRIC COMPANY LIMITED": "KEC, Ajman",
+        "KIRLOSKAR ELECTRIC CO LTD": "KEC, Ajman"
+    }
+
+    processed_labels = []
+    processed_values = []
+    for r in rows:
+        original_name = r['Name'].strip() if r['Name'] else "Unknown"
+        short_name = original_name
+        for long_name, alias in NAME_REPLACEMENTS.items():
+            if long_name in original_name.upper():
+                short_name = alias
+                break
+        processed_labels.append(short_name)
+        processed_values.append(float(r['total_value'] or 0))
+
+    return jsonify({
+        "labels": processed_labels,
+        "values": processed_values
+    })
+
+```
