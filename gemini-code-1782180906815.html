@@ -1,0 +1,1070 @@
+{% block content %}
+<body style="margin: 0px; font-family: Arial, Helvetica, sans-serif; background-color: #f4f7f6;">
+    <header>
+        <div class="header" style="background-color: #3a5b94; width: 100%; display: flex; align-items: center; color: white; padding: 0px; box-sizing: border-box; position: relative;">
+            <p class="user-info" style="margin: 0; padding-left: 20px;">Welcome, {{ username }}!</p>
+            <h3 style="margin: 0; position: absolute; left: 50%; transform: translateX(-50%); font-size: 1.17em; font-weight: bold;">DIGITAL DASHBOARD</h3>
+            <div style="display: flex; align-items: center; margin-left: auto;">
+                <h2 id="comp-name" style="font-size: 12px; margin: 0 10px 0 0; font-weight: bold;">KIRLOSKAR ELECTRIC COMPANY</h2>
+                <img id="logo" style="height: 60px;" src="{{ url_for('static', filename='images/KEC_LOGO.jpg') }}" alt="Company Logo">
+            </div>
+        </div>
+    </header>
+
+    <div id="loader-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center;">
+        <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3a5b94; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+    </div>
+
+    <div class="exit-bar" style="padding: 1px 10px; display: flex; justify-content: flex-end;">
+         <a href="#" onclick="history.back(); return false;" title="Go Back" style="margin-left: 20px;">
+            <img id="back" style="height: 3vh; vertical-align: middle;" src="{{ url_for('static', filename='images/back_mis.svg') }}" alt="Go Back">
+        </a>
+        <a href="{{ url_for('logout') }}" title="Logout" style="margin-left: 20px;">
+            <img id="logout" style="height: 3vh; vertical-align: middle;" src="{{ url_for('static', filename='images/logout_mis.svg') }}" alt="Logout">
+        </a>
+    </div>
+
+    <div class="main-container1">
+        <div class="sidebar">
+            <a href="javascript:void(0)" class="dropdown-btn">Billing <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{ url_for('quarterly_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('home') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('daily_dashboard') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Order Book <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{ url_for('quarterly_order_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('order_mtd') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('order_daily') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Comparison <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_data_compare') }}" class="sub-link">Orders Comparison</a>
+                <a href="{{ url_for('data_compare') }}" class="sub-link">Billing Comparison</a>
+            </div>
+            <a href="{{ url_for('pending_orders_page') }}">Pending Orders</a>
+            <a href="{{ url_for('fg_report') }}">FG Report</a>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Finance <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('collection_report') }}" class="sub-link">Collections</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">MIS <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('mis_report') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('mis_unit_report') }}" class="sub-link">MTD-Uts</a>
+            </div>
+        </div>
+
+        <div class="content" style="padding: 20px; overflow: auto;">
+            <div class="content1" style="position: absolute; top: 63px; right: 120px; margin-bottom: 0px; height: 7vh;">
+                <div id="filter-wrapper" style="display: flex; gap: 15px; align-items: center; justify-content: flex-end;">
+
+                    <div id="FYdiv" style="background: #3e5172; color: #fff; border: 1px solid #ccc; padding: 0px 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px;">
+                        <label id="FYlabel" style="font-weight: bold; font-size: 2vh; margin: 0;">FY:</label>
+                        <select id="fin_year_select" style="border: none; outline: none; background: transparent; font-size: 2vh; cursor: pointer; color: white;">
+                            {% for year in years %}
+                                <option style="color: #3e5172;" value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="UnitDiv" style="background: #3e5172; color: #fff; border: 1px solid #ccc; padding: 0px 12px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; font-size: 12px; align-items: center; gap: 8px;">
+                        <label style="font-weight: bold; font-size: 2vh; margin: 0;">UNIT:</label>
+                        <select id="unit_select" style="border: none; outline: none; background: transparent; font-size: 2vh; cursor: pointer; color: white;">
+                            <option style="color: #3e5172;" value="CFD CORP">CFD CORP</option>
+                            <option style="color: #3e5172;" value="Bran O_S">Bran O_S</option>
+                            <option style="color: #3e5172;" value="Unit-1 Govanahalli" selected>Unit-1 Govanahalli</option>
+                            <option style="color: #3e5172;" value="Unit-2 HUBLI-Special">Unit-2 HUBLI-Special</option>
+                            <option style="color: #3e5172;" value="Unit-25ACM ACM-STD Motors">Unit-25ACM ACM-STD Motors</option>
+                            <option style="color: #3e5172;" value="Unit-25ACG ACG&EVM">Unit-25ACG ACG&EVM</option>
+                            <option style="color: #3e5172;" value="Unit-7 TUMKUR">Unit-7 TUMKUR</option>
+                            <option style="color: #3e5172;" value="UN05 Mysore Unit">UN05 Mysore Unit</option>
+                            <option style="color: #3e5172;" value="Unit-16 PUNE">Unit-16 PUNE</option>
+                            <option style="color: #3e5172;" value="DG Set HUBLI">DG Set HUBLI</option>
+                            <option style="color: #3e5172;" value="Unit-12-20 Spares&Service">Unit-12-20 Spares&Service</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="financial-container" style="width: 100%; margin: 0px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-radius: 4px; overflow: hidden; height: fit-content;">
+                <div class="table-wrapper" style=" height: 85vh; width: 100%; overflow: auto; border: 1px solid #c0c0c0; background-color: #ffffff;">
+                    <table class="pbt-table" style="table-layout: fixed !important; border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12px; color: #333333;">
+                        <colgroup>
+                            <col style="width: 18%;">
+                            <col style="width: 5%;" span="16">
+                            <col style="width: 10%;">
+                        </colgroup>
+                        <thead>
+                            <tr class="header-group-row">
+                                <th class="sticky-col first-header" rowspan="2" style="position: sticky; top: 0; left: 0; background-color: #d9e1f2; color: #2f3542; font-weight: bold; border-right: 1px solid #a6b9d8; border-bottom: 1px solid #a6b9d8; padding: 6px 8px; text-align: center; z-index: 5;">Particulars</th>
+                                <th colspan="4" style="position: sticky; top: 0; background-color: #8faadc; color: #2f3542; font-weight: bold; border-right: 1px solid #555; border-bottom: 1px solid #a6b9d8; padding: 6px 8px; text-align: center; z-index: 4;">Q1</th>
+                                <th colspan="4" style="position: sticky; top: 0; background-color: #b4c6e7; color: #2f3542; font-weight: bold; border-right: 1px solid #555; border-bottom: 1px solid #a6b9d8; padding: 6px 8px; text-align: center; z-index: 4;">Q2</th>
+                                <th colspan="4" style="position: sticky; top: 0; background-color: #8faadc; color: #2f3542; font-weight: bold; border-right: 1px solid #555; border-bottom: 1px solid #a6b9d8; padding: 6px 8px; text-align: center; z-index: 4;">Q3</th>
+                                <th colspan="4" style="position: sticky; top: 0; background-color: #b4c6e7; color: #2f3542; font-weight: bold; border-right: 1px solid #555; border-bottom: 1px solid #a6b9d8; padding: 6px 8px; text-align: center; z-index: 4;">Q4</th>
+                                <th class="grand-total-header" rowspan="2" style="position: sticky; top: 0; right: 0; background-color: #fff2cc; color: #2f3542; font-weight: bold; border-bottom: 1px solid #a6b9d8; padding: 6px 8px; text-align: center; z-index: 4;">GRAND TOTAL</th>
+                            </tr>
+                            <tr class="header-unit-row">
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">April</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">May</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">June</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #eef2f9; border-right: 1px solid #555; padding: 6px 4px; font-weight: bold;">Q1<br>Total</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">July</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">August</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">September</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #eef2f9; border-right: 1px solid #555; padding: 6px 4px; font-weight: bold;">Q2<br>Total</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">October</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">November</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">December</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #eef2f9; border-right: 1px solid #555; padding: 6px 4px; font-weight: bold;">Q3<br>Total</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">January</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">February</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #d9e1f2; border-right: 1px solid #a6b9d8; padding: 6px 4px;">March</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid #a6b9d8; z-index: 4; background-color: #eef2f9; border-right: 1px solid #555; padding: 6px 4px; font-weight: bold;">Q4<br>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly_trend_tbody" style="font-size: 12px;">
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="18" style="position: sticky; left: 0; background-color: #7f7f7f; color: #ffffff; font-weight: bold; padding: 4px 8px;"><span style="position: sticky; left: 20px;">A. Income</span></td>
+                            </tr>
+
+                            <tr id="net-sales-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('net-sales')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="net-sales-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Net Sales
+                                </td>
+                                <td id="cell-ns-april">0.00</td><td id="cell-ns-may">0.00</td><td id="cell-ns-june">0.00</td>
+                                <td id="cell-ns-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ns-july">0.00</td><td id="cell-ns-august">0.00</td><td id="cell-ns-september">0.00</td>
+                                <td id="cell-ns-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ns-october">0.00</td><td id="cell-ns-november">0.00</td><td id="cell-ns-december">0.00</td>
+                                <td id="cell-ns-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ns-january">0.00</td><td id="cell-ns-february">0.00</td><td id="cell-ns-march">0.00</td>
+                                <td id="cell-ns-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ns-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="net-sales-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="net-sales-subtable"></table></td></tr>
+
+                            <tr id="scrap-sales-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('scrap-sales')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="scrap-sales-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Scrap Sales
+                                </td>
+                                <td id="cell-ss-april">0.00</td><td id="cell-ss-may">0.00</td><td id="cell-ss-june">0.00</td>
+                                <td id="cell-ss-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ss-july">0.00</td><td id="cell-ss-august">0.00</td><td id="cell-ss-september">0.00</td>
+                                <td id="cell-ss-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ss-october">0.00</td><td id="cell-ss-november">0.00</td><td id="cell-ss-december">0.00</td>
+                                <td id="cell-ss-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ss-january">0.00</td><td id="cell-ss-february">0.00</td><td id="cell-ss-march">0.00</td>
+                                <td id="cell-ss-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ss-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="scrap-sales-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="scrap-sales-subtable"></table></td></tr>
+
+                            <tr id="other-income-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('other-income')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="other-income-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Other Income
+                                </td>
+                                <td id="cell-oi-april">0.00</td><td id="cell-oi-may">0.00</td><td id="cell-oi-june">0.00</td>
+                                <td id="cell-oi-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-oi-july">0.00</td><td id="cell-oi-august">0.00</td><td id="cell-oi-september">0.00</td>
+                                <td id="cell-oi-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-oi-october">0.00</td><td id="cell-oi-november">0.00</td><td id="cell-oi-december">0.00</td>
+                                <td id="cell-oi-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-oi-january">0.00</td><td id="cell-oi-february">0.00</td><td id="cell-oi-march">0.00</td>
+                                <td id="cell-oi-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-oi-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="other-income-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="other-income-subtable"></table></td></tr>
+
+                            <tr id="iut-out-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('iut-out')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="iut-out-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>IUT - Out
+                                </td>
+                                <td id="cell-io-april">0.00</td><td id="cell-io-may">0.00</td><td id="cell-io-june">0.00</td>
+                                <td id="cell-io-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-io-july">0.00</td><td id="cell-io-august">0.00</td><td id="cell-io-september">0.00</td>
+                                <td id="cell-io-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-io-october">0.00</td><td id="cell-io-november">0.00</td><td id="cell-io-december">0.00</td>
+                                <td id="cell-io-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-io-january">0.00</td><td id="cell-io-february">0.00</td><td id="cell-io-march">0.00</td>
+                                <td id="cell-io-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-io-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="iut-out-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="iut-out-subtable"></table></td></tr>
+
+                            <tr class="subtotal-row" style="background-color: #eaeaea; font-weight: bold;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: #eaeaea; border-right: 1px solid #c0c0c0;">Total Income - A</td>
+                                <td id="cell-total-april">0.00</td><td id="cell-total-may">0.00</td><td id="cell-total-june">0.00</td>
+                                <td id="cell-total-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-total-july">0.00</td><td id="cell-total-august">0.00</td><td id="cell-total-september">0.00</td>
+                                <td id="cell-total-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-total-october">0.00</td><td id="cell-total-november">0.00</td><td id="cell-total-december">0.00</td>
+                                <td id="cell-total-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-total-january">0.00</td><td id="cell-total-february">0.00</td><td id="cell-total-march">0.00</td>
+                                <td id="cell-total-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-total-grand-total" style="background-color: #fff2cc;">0.00</td>
+                            </tr>
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="18" style="position: sticky; left: 0; background-color: #7f7f7f; color: #ffffff; font-weight: bold; padding: 4px 8px;"><span style="position: sticky; left: 20px;">B. Expenditure</span></td>
+                            </tr>
+
+                            <tr id="rm-consumption-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('rm-consumption')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="rm-consumption-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>RM Consumption
+                                </td>
+                                <td id="cell-rm-april">0.00</td><td id="cell-rm-may">0.00</td><td id="cell-rm-june">0.00</td>
+                                <td id="cell-rm-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-rm-july">0.00</td><td id="cell-rm-august">0.00</td><td id="cell-rm-september">0.00</td>
+                                <td id="cell-rm-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-rm-october">0.00</td><td id="cell-rm-november">0.00</td><td id="cell-rm-december">0.00</td>
+                                <td id="cell-rm-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-rm-january">0.00</td><td id="cell-rm-february">0.00</td><td id="cell-rm-march">0.00</td>
+                                <td id="cell-rm-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-rm-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="rm-consumption-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="rm-consumption-subtable"></table></td></tr>
+
+                            <tr id="employee-expenses-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('employee-expenses')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="employee-expenses-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Employee related expenses
+                                </td>
+                                <td id="cell-ee-april">0.00</td><td id="cell-ee-may">0.00</td><td id="cell-ee-june">0.00</td>
+                                <td id="cell-ee-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ee-july">0.00</td><td id="cell-ee-august">0.00</td><td id="cell-ee-september">0.00</td>
+                                <td id="cell-ee-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ee-october">0.00</td><td id="cell-ee-november">0.00</td><td id="cell-ee-december">0.00</td>
+                                <td id="cell-ee-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ee-january">0.00</td><td id="cell-ee-february">0.00</td><td id="cell-ee-march">0.00</td>
+                                <td id="cell-ee-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ee-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="employee-expenses-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="employee-expenses-subtable"></table></td></tr>
+
+                            <tr id="iut-in-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('iut-in')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="iut-in-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>IUT-In
+                                </td>
+                                <td id="cell-ii-april">0.00</td><td id="cell-ii-may">0.00</td><td id="cell-ii-june">0.00</td>
+                                <td id="cell-ii-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ii-july">0.00</td><td id="cell-ii-august">0.00</td><td id="cell-ii-september">0.00</td>
+                                <td id="cell-ii-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ii-october">0.00</td><td id="cell-ii-november">0.00</td><td id="cell-ii-december">0.00</td>
+                                <td id="cell-ii-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ii-january">0.00</td><td id="cell-ii-february">0.00</td><td id="cell-ii-march">0.00</td>
+                                <td id="cell-ii-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ii-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="iut-in-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="iut-in-subtable"></table></td></tr>
+
+                            <tr id="transport-charges-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('transport-charges')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="transport-charges-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Transport charges
+                                </td>
+                                <td id="cell-tc-april">0.00</td><td id="cell-tc-may">0.00</td><td id="cell-tc-june">0.00</td>
+                                <td id="cell-tc-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-tc-july">0.00</td><td id="cell-tc-august">0.00</td><td id="cell-tc-september">0.00</td>
+                                <td id="cell-tc-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-tc-october">0.00</td><td id="cell-tc-november">0.00</td><td id="cell-tc-december">0.00</td>
+                                <td id="cell-tc-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-tc-january">0.00</td><td id="cell-tc-february">0.00</td><td id="cell-tc-march">0.00</td>
+                                <td id="cell-tc-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-tc-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="transport-charges-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="transport-charges-subtable"></table></td></tr>
+
+                            <tr id="finance-charges-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('finance-charges')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="finance-charges-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Interest & finance charges
+                                </td>
+                                <td id="cell-fc-april">0.00</td><td id="cell-fc-may">0.00</td><td id="cell-fc-june">0.00</td>
+                                <td id="cell-fc-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-fc-july">0.00</td><td id="cell-fc-august">0.00</td><td id="cell-fc-september">0.00</td>
+                                <td id="cell-fc-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-fc-october">0.00</td><td id="cell-fc-november">0.00</td><td id="cell-fc-december">0.00</td>
+                                <td id="cell-fc-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-fc-january">0.00</td><td id="cell-fc-february">0.00</td><td id="cell-fc-march">0.00</td>
+                                <td id="cell-fc-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-fc-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="finance-charges-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="finance-charges-subtable"></table></td></tr>
+
+                            <tr id="depreciation-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('depreciation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="depreciation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Depreciation
+                                </td>
+                                <td id="cell-dep-april">0.00</td><td id="cell-dep-may">0.00</td><td id="cell-dep-june">0.00</td>
+                                <td id="cell-dep-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-dep-july">0.00</td><td id="cell-dep-august">0.00</td><td id="cell-dep-september">0.00</td>
+                                <td id="cell-dep-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-dep-october">0.00</td><td id="cell-dep-november">0.00</td><td id="cell-dep-december">0.00</td>
+                                <td id="cell-dep-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-dep-january">0.00</td><td id="cell-dep-february">0.00</td><td id="cell-dep-march">0.00</td>
+                                <td id="cell-dep-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-dep-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="depreciation-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="depreciation-subtable"></table></td></tr>
+
+                            <tr id="revenue-expenses-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('revenue-expenses')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="revenue-expenses-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Revenue expenses
+                                </td>
+                                <td id="cell-re-april">0.00</td><td id="cell-re-may">0.00</td><td id="cell-re-june">0.00</td>
+                                <td id="cell-re-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-re-july">0.00</td><td id="cell-re-august">0.00</td><td id="cell-re-september">0.00</td>
+                                <td id="cell-re-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-re-october">0.00</td><td id="cell-re-november">0.00</td><td id="cell-re-december">0.00</td>
+                                <td id="cell-re-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-re-january">0.00</td><td id="cell-re-february">0.00</td><td id="cell-re-march">0.00</td>
+                                <td id="cell-re-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-re-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="revenue-expenses-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: #f7f9fc;" id="revenue-expenses-subtable"></table></td></tr>
+
+                            <tr class="subtotal-row" style="background-color: #eaeaea; font-weight: bold;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: #eaeaea; border-right: 1px solid #c0c0c0;">Total Expenditure - B</td>
+                                <td id="cell-exp-april">0.00</td><td id="cell-exp-may">0.00</td><td id="cell-exp-june">0.00</td>
+                                <td id="cell-exp-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-exp-july">0.00</td><td id="cell-exp-august">0.00</td><td id="cell-exp-september">0.00</td>
+                                <td id="cell-exp-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-exp-october">0.00</td><td id="cell-exp-november">0.00</td><td id="cell-exp-december">0.00</td>
+                                <td id="cell-exp-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-exp-january">0.00</td><td id="cell-exp-february">0.00</td><td id="cell-exp-march">0.00</td>
+                                <td id="cell-exp-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-exp-grand-total" style="background-color: #fff2cc;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row" style="background-color: #eaeaea; font-weight: bold; border-top: 1px solid #c0c0c0; border-bottom: 1px solid #c0c0c0;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; color: #2f3542; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">Gross Profit/(Loss)</td>
+                                <td id="cell-gp-april">0.00</td><td id="cell-gp-may">0.00</td><td id="cell-gp-june">0.00</td>
+                                <td id="cell-gp-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-gp-july">0.00</td><td id="cell-gp-august">0.00</td><td id="cell-gp-september">0.00</td>
+                                <td id="cell-gp-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-gp-october">0.00</td><td id="cell-gp-november">0.00</td><td id="cell-gp-december">0.00</td>
+                                <td id="cell-gp-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-gp-january">0.00</td><td id="cell-gp-february">0.00</td><td id="cell-gp-march">0.00</td>
+                                <td id="cell-gp-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-gp-grand-total" style="background-color: #fff2cc;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row" style="background-color: #eaeaea; font-weight: bold; border-top: 1px solid #c0c0c0; border-bottom: 1px solid #c0c0c0;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; color: #2f3542; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">EBIDTA from operation <br> (Before allocation)</td>
+                                <td id="cell-eb-april">0.00</td><td id="cell-eb-may">0.00</td><td id="cell-eb-june">0.00</td>
+                                <td id="cell-eb-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-eb-july">0.00</td><td id="cell-eb-august">0.00</td><td id="cell-eb-september">0.00</td>
+                                <td id="cell-eb-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-eb-october">0.00</td><td id="cell-eb-november">0.00</td><td id="cell-eb-december">0.00</td>
+                                <td id="cell-eb-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-eb-january">0.00</td><td id="cell-eb-february">0.00</td><td id="cell-eb-march">0.00</td>
+                                <td id="cell-eb-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-eb-grand-total" style="background-color: #fff2cc;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row border-double" style="background-color: #d9e1f2; font-weight: bold;">
+                                <td class="sticky-col text-left highlight-blue" style="position: sticky; left: 0; font-weight: bold; color: #1f4e78; background-color: #d9e1f2; border-right: 1px solid #c0c0c0;">PBT before allocation [C=A-B]</td>
+                                <td id="cell-pbt-april">0.00</td><td id="cell-pbt-may">0.00</td><td id="cell-pbt-june">0.00</td>
+                                <td id="cell-pbt-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-pbt-july">0.00</td><td id="cell-pbt-august">0.00</td><td id="cell-pbt-september">0.00</td>
+                                <td id="cell-pbt-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-pbt-october">0.00</td><td id="cell-pbt-november">0.00</td><td id="cell-pbt-december">0.00</td>
+                                <td id="cell-pbt-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-pbt-january">0.00</td><td id="cell-pbt-february">0.00</td><td id="cell-pbt-march">0.00</td>
+                                <td id="cell-pbt-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-pbt-grand-total" style="background-color: #fff2cc; color: #1f4e78;">0.00</td>
+                            </tr>
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="18" style="position: sticky; left: 0; background-color: #7f7f7f; color: #ffffff; font-weight: bold; padding: 4px 8px;"><span style="position: sticky; left: 20px;">D.Corporate & Branch allocation</span></td>
+                            </tr>
+                            
+                            <tr id="ere-allocation-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('ere-allocation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="ere-allocation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>ERE - allocation
+                                </td>
+                                <td id="cell-erea-april">0.00</td><td id="cell-erea-may">0.00</td><td id="cell-erea-june">0.00</td>
+                                <td id="cell-erea-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-erea-july">0.00</td><td id="cell-erea-august">0.00</td><td id="cell-erea-september">0.00</td>
+                                <td id="cell-erea-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-erea-october">0.00</td><td id="cell-erea-november">0.00</td><td id="cell-erea-december">0.00</td>
+                                <td id="cell-erea-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-erea-january">0.00</td><td id="cell-erea-february">0.00</td><td id="cell-erea-march">0.00</td>
+                                <td id="cell-erea-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-erea-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="ere-allocation-dropdown-container" class="dropdown-container-row" style="display: none;"></tr>
+
+                            <tr id="ore-allocation-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('ore-allocation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="ore-allocation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>ORE - allocation
+                                </td>
+                                <td id="cell-orea-april">0.00</td><td id="cell-orea-may">0.00</td><td id="cell-orea-june">0.00</td>
+                                <td id="cell-orea-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-orea-july">0.00</td><td id="cell-orea-august">0.00</td><td id="cell-orea-september">0.00</td>
+                                <td id="cell-orea-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-orea-october">0.00</td><td id="cell-orea-november">0.00</td><td id="cell-orea-december">0.00</td>
+                                <td id="cell-orea-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-orea-january">0.00</td><td id="cell-orea-february">0.00</td><td id="cell-orea-march">0.00</td>
+                                <td id="cell-orea-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-orea-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="ore-allocation-dropdown-container" class="dropdown-container-row" style="display: none;"></tr>
+
+                            <tr id="interest-allocation-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('interest-allocation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="interest-allocation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Interest - allocation
+                                </td>
+                                <td id="cell-inta-april">0.00</td><td id="cell-inta-may">0.00</td><td id="cell-inta-june">0.00</td>
+                                <td id="cell-inta-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-inta-july">0.00</td><td id="cell-inta-august">0.00</td><td id="cell-inta-september">0.00</td>
+                                <td id="cell-inta-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-inta-october">0.00</td><td id="cell-inta-november">0.00</td><td id="cell-inta-december">0.00</td>
+                                <td id="cell-inta-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-inta-january">0.00</td><td id="cell-inta-february">0.00</td><td id="cell-inta-march">0.00</td>
+                                <td id="cell-inta-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-inta-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="interest-allocation-dropdown-container" class="dropdown-container-row" style="display: none;"></tr>
+
+                            <tr id="depreciation-allocation-master-row" style="cursor: pointer; background: #fcfcfc;" onclick="toggleRowAccordion('depreciation-allocation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: #3a5b94; background-color: #f2f2f2; border-right: 1px solid #c0c0c0; padding: 5px 10px 5px 15px;">
+                                    <span id="depreciation-allocation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s;">▶</span>Depreciation - allocation
+                                </td>
+                                <td id="cell-depa-april">0.00</td><td id="cell-depa-may">0.00</td><td id="cell-depa-june">0.00</td>
+                                <td id="cell-depa-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-depa-july">0.00</td><td id="cell-depa-august">0.00</td><td id="cell-depa-september">0.00</td>
+                                <td id="cell-depa-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-depa-october">0.00</td><td id="cell-depa-november">0.00</td><td id="cell-depa-december">0.00</td>
+                                <td id="cell-depa-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-depa-january">0.00</td><td id="cell-depa-february">0.00</td><td id="cell-depa-march">0.00</td>
+                                <td id="cell-depa-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-depa-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00</td>
+                            </tr>
+                            <tr id="depreciation-allocation-dropdown-container" class="dropdown-container-row" style="display: none;"></tr>
+
+                            <tr class="subtotal-row" style="background-color: #eaeaea; font-weight: bold;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: #eaeaea; border-right: 1px solid #c0c0c0;">Total allocation - D</td>
+                                <td id="cell-allocd-april">0.00</td><td id="cell-allocd-may">0.00</td><td id="cell-allocd-june">0.00</td>
+                                <td id="cell-allocd-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-allocd-july">0.00</td><td id="cell-allocd-august">0.00</td><td id="cell-allocd-september">0.00</td>
+                                <td id="cell-allocd-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-allocd-october">0.00</td><td id="cell-allocd-november">0.00</td><td id="cell-allocd-december">0.00</td>
+                                <td id="cell-allocd-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-allocd-january">0.00</td><td id="cell-allocd-february">0.00</td><td id="cell-allocd-march">0.00</td>
+                                <td id="cell-allocd-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-allocd-grand-total" style="background-color: #fff2cc;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row" style="background-color: #f2f2f2; font-weight: bold;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; color: #2f3542; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">EBIDTA from operation (after allocation)</td>
+                                <td id="cell-ebidtaa-april">0.00</td><td id="cell-ebidtaa-may">0.00</td><td id="cell-ebidtaa-june">0.00</td>
+                                <td id="cell-ebidtaa-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ebidtaa-july">0.00</td><td id="cell-ebidtaa-august">0.00</td><td id="cell-ebidtaa-september">0.00</td>
+                                <td id="cell-ebidtaa-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ebidtaa-october">0.00</td><td id="cell-ebidtaa-november">0.00</td><td id="cell-ebidtaa-december">0.00</td>
+                                <td id="cell-ebidtaa-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ebidtaa-january">0.00</td><td id="cell-ebidtaa-february">0.00</td><td id="cell-ebidtaa-march">0.00</td>
+                                <td id="cell-ebidtaa-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-ebidtaa-grand-total" style="background-color: #fff2cc;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row border-double" style="background-color: #d9e1f2; font-weight: bold;">
+                                <td class="sticky-col text-left highlight-blue" style="position: sticky; left: 0; font-weight: bold; color: #1f4e78; background-color: #d9e1f2; border-right: 1px solid #c0c0c0;">PBT after allocation [ E=C-D ]</td>
+                                <td id="cell-pbta-april">0.00</td><td id="cell-pbta-may">0.00</td><td id="cell-pbta-june">0.00</td>
+                                <td id="cell-pbta-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-pbta-july">0.00</td><td id="cell-pbta-august">0.00</td><td id="cell-pbta-september">0.00</td>
+                                <td id="cell-pbta-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-pbta-october">0.00</td><td id="cell-pbta-november">0.00</td><td id="cell-pbta-december">0.00</td>
+                                <td id="cell-pbta-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-pbta-january">0.00</td><td id="cell-pbta-february">0.00</td><td id="cell-pbta-march">0.00</td>
+                                <td id="cell-pbta-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00</td>
+                                <td id="cell-pbta-grand-total" style="background-color: #fff2cc; color: #1f4e78;">0.00</td>
+                            </tr>
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="18" style="position: sticky; left: 0; background-color: #7f7f7f; color: #ffffff; font-weight: bold; padding: 4px 8px;"><span style="position: sticky; left: 20px;">E. % to total income before allocation</span></td>
+                            </tr>
+
+                            <tr class="ratio-row" style="background-color: #ffffff; color: #333;">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">RM Consumption</td>
+                                <td id="cell-pct-rm-april">0.00%</td><td id="cell-pct-rm-may">0.00%</td><td id="cell-pct-rm-june">0.00%</td>
+                                <td id="cell-pct-rm-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-rm-july">0.00%</td><td id="cell-pct-rm-august">0.00%</td><td id="cell-pct-rm-september">0.00%</td>
+                                <td id="cell-pct-rm-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-rm-october">0.00%</td><td id="cell-pct-rm-november">0.00%</td><td id="cell-pct-rm-december">0.00%</td>
+                                <td id="cell-pct-rm-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-rm-january">0.00%</td><td id="cell-pct-rm-february">0.00%</td><td id="cell-pct-rm-march">0.00%</td>
+                                <td id="cell-pct-rm-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-rm-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row" style="background-color: #ffffff; color: #333;">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">RM Consumption including freight</td>
+                                <td id="cell-pct-rmf-april">0.00%</td><td id="cell-pct-rmf-may">0.00%</td><td id="cell-pct-rmf-june">0.00%</td>
+                                <td id="cell-pct-rmf-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-rmf-july">0.00%</td><td id="cell-pct-rmf-august">0.00%</td><td id="cell-pct-rmf-september">0.00%</td>
+                                <td id="cell-pct-rmf-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-rmf-october">0.00%</td><td id="cell-pct-rmf-november">0.00%</td><td id="cell-pct-rmf-december">0.00%</td>
+                                <td id="cell-pct-rmf-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-rmf-january">0.00%</td><td id="cell-pct-rmf-february">0.00%</td><td id="cell-pct-rmf-march">0.00%</td>
+                                <td id="cell-pct-rmf-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-rmf-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row" style="background-color: #ffffff; color: #333;">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">Employee related expenses</td>
+                                <td id="cell-pct-ee-april">0.00%</td><td id="cell-pct-ee-may">0.00%</td><td id="cell-pct-ee-june">0.00%</td>
+                                <td id="cell-pct-ee-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-ee-july">0.00%</td><td id="cell-pct-ee-august">0.00%</td><td id="cell-pct-ee-september">0.00%</td>
+                                <td id="cell-pct-ee-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-ee-october">0.00%</td><td id="cell-pct-ee-november">0.00%</td><td id="cell-pct-ee-december">0.00%</td>
+                                <td id="cell-pct-ee-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-ee-january">0.00%</td><td id="cell-pct-ee-february">0.00%</td><td id="cell-pct-ee-march">0.00%</td>
+                                <td id="cell-pct-ee-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-ee-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row" style="background-color: #ffffff; color: #333;">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">Revenue expenses</td>
+                                <td id="cell-pct-re-april">0.00%</td><td id="cell-pct-re-may">0.00%</td><td id="cell-pct-re-june">0.00%</td>
+                                <td id="cell-pct-re-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-re-july">0.00%</td><td id="cell-pct-re-august">0.00%</td><td id="cell-pct-re-september">0.00%</td>
+                                <td id="cell-pct-re-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-re-october">0.00%</td><td id="cell-pct-re-november">0.00%</td><td id="cell-pct-re-december">0.00%</td>
+                                <td id="cell-pct-re-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-re-january">0.00%</td><td id="cell-pct-re-february">0.00%</td><td id="cell-pct-re-march">0.00%</td>
+                                <td id="cell-pct-re-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-re-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row" style="background-color: #ffffff; color: #333;">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">Transport charges</td>
+                                <td id="cell-pct-tc-april">0.00%</td><td id="cell-pct-tc-may">0.00%</td><td id="cell-pct-tc-june">0.00%</td>
+                                <td id="cell-pct-tc-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-tc-july">0.00%</td><td id="cell-pct-tc-august">0.00%</td><td id="cell-pct-tc-september">0.00%</td>
+                                <td id="cell-pct-tc-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-tc-october">0.00%</td><td id="cell-pct-tc-november">0.00%</td><td id="cell-pct-tc-december">0.00%</td>
+                                <td id="cell-pct-tc-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-tc-january">0.00%</td><td id="cell-pct-tc-february">0.00%</td><td id="cell-pct-tc-march">0.00%</td>
+                                <td id="cell-pct-tc-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-tc-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row" style="background-color: #ffffff; color: #333;">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">Interest & finance charges</td>
+                                <td id="cell-pct-fc-april">0.00%</td><td id="cell-pct-fc-may">0.00%</td><td id="cell-pct-fc-june">0.00%</td>
+                                <td id="cell-pct-fc-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-fc-july">0.00%</td><td id="cell-pct-fc-august">0.00%</td><td id="cell-pct-fc-september">0.00%</td>
+                                <td id="cell-pct-fc-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-fc-october">0.00%</td><td id="cell-pct-fc-november">0.00%</td><td id="cell-pct-fc-december">0.00%</td>
+                                <td id="cell-pct-fc-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-fc-january">0.00%</td><td id="cell-pct-fc-february">0.00%</td><td id="cell-pct-fc-march">0.00%</td>
+                                <td id="cell-pct-fc-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-fc-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row" style="background-color: #ffffff; color: #333;">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">Depreciation</td>
+                                <td id="cell-pct-dep-april">0.00%</td><td id="cell-pct-dep-may">0.00%</td><td id="cell-pct-dep-june">0.00%</td>
+                                <td id="cell-pct-dep-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-dep-july">0.00%</td><td id="cell-pct-dep-august">0.00%</td><td id="cell-pct-dep-september">0.00%</td>
+                                <td id="cell-pct-dep-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-dep-october">0.00%</td><td id="cell-pct-dep-november">0.00%</td><td id="cell-pct-dep-december">0.00%</td>
+                                <td id="cell-pct-dep-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-dep-january">0.00%</td><td id="cell-pct-dep-february">0.00%</td><td id="cell-pct-dep-march">0.00%</td>
+                                <td id="cell-pct-dep-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-dep-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row border-double" style="background-color: #ffffff; color: #111; font-weight: bold;">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: #f2f2f2; border-right: 1px solid #c0c0c0;">PBT before allocation</td>
+                                <td id="cell-pct-pbt-april">0.00%</td><td id="cell-pct-pbt-may">0.00%</td><td id="cell-pct-pbt-june">0.00%</td>
+                                <td id="cell-pct-pbt-q1" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-pbt-july">0.00%</td><td id="cell-pct-pbt-august">0.00%</td><td id="cell-pct-pbt-september">0.00%</td>
+                                <td id="cell-pct-pbt-q2" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-pbt-october">0.00%</td><td id="cell-pct-pbt-november">0.00%</td><td id="cell-pct-pbt-december">0.00%</td>
+                                <td id="cell-pct-pbt-q3" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-pbt-january">0.00%</td><td id="cell-pct-pbt-february">0.00%</td><td id="cell-pct-pbt-march">0.00%</td>
+                                <td id="cell-pct-pbt-q4" style="font-weight:bold; background-color:#eef2f9; border-right: 1px solid #555;">0.00%</td>
+                                <td id="cell-pct-pbt-grand-total" style="font-weight: bold; background-color: #fff2cc;">0.00%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        sticky-col {
+            font-size: 12px;
+        }
+        td {
+            padding: 2px 10px;
+            border: 0.5px solid #e0e0e0;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script>
+        const chronologicalMonths = ["April", "May", "June", "July", "August", "September", "October", "November", "December", "January", "February", "March"];
+
+        let unitMonthlyState = {
+            netSales: { totals: {}, breakdown: {} },
+            scrapSales: { totals: {}, breakdown: {} },
+            otherIncome: { totals: {}, breakdown: {} },
+            iutOut: { totals: {}, breakdown: {} },
+            rmConsumption: { totals: {}, breakdown: {} },
+            employeeExpenses: { totals: {}, breakdown: {} },
+            iutIn: { totals: {}, breakdown: {} },
+            transportCharges: { totals: {}, breakdown: {} },
+            financeCharges: { totals: {}, breakdown: {} },
+            depreciation: { totals: {}, breakdown: {} },
+            revenueExpenses: { totals: {}, breakdown: {} },
+            ereAllocation: { totals: {}, breakdown: {} },
+            oreAllocation: { totals: {}, breakdown: {} },
+            interestAllocation: { totals: {}, breakdown: {} },
+            depreciationAllocation: { totals: {}, breakdown: {} }
+        };
+
+        const masterAccountDescriptions = {
+            "700001" : " Direct Revenue-Manf", "700002" : " Direct Revenue-Trade", "700003" : " Direct Revenue-Trade", "700004" : " Direct Revenue-Serv",
+            "700006" : " Foreign Rev-Manf Mat", "700007" : " Foreign Rev-Trade Ma", "700008" : " Foreign Rev-Service", "700009" : " Revenue from Dealer",
+            "700010" : " Rev from Dealer Sale", "700012" : " Rev from Dealer sale", "700013" : " Rev from Dealer sale", "700014" : " Deemed Export-Manf M",
+            "700015" : " Deemed Export-Trade", "700018" : " SEZ Revenue-Manf Mat", "700019" : " SEZ Revenue-Trade Ma", "700024" : " Project Revenue- Tra",
+            "700025" : " Project Revenue- Ser", "700026" : " Indirect Foreign Rev", "700030" : " Direct Revenue-Compo", "700031" : " E DUTY ON SALES",
+        };
+        Object.assign(masterAccountDescriptions, {
+            "700005":"Scrap Sales Rev",
+            // [Truncated full GL code list internally for readability - assuming unchanged based on your original file]
+            "410001":"CRGO Steel-Raw Mat"
+            // Ensure you paste your complete accounts list here from your original file.
+        });
+
+        const currencyFormatter = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        function formatCellValue(val) {
+            if (val === 0 || val === null || val === undefined || isNaN(val)) return '0.00';
+            if (val < 0) return `(${currencyFormatter.format(Math.abs(val))})`;
+            return currencyFormatter.format(val);
+        }
+
+        function toggleRowAccordion(rowPrefix) {
+            const containerRow = document.getElementById(`${rowPrefix}-dropdown-container`);
+            const arrow = document.getElementById(`${rowPrefix}-arrow`);
+            if (!containerRow || !arrow) return;
+
+            const isOpening = containerRow.style.display === 'none';
+            document.querySelectorAll('.dropdown-container-row').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.row-arrow').forEach(el => el.style.transform = 'rotate(0deg)');
+            chronologicalMonths.forEach(m => {
+                document.querySelectorAll(`[class^="child-of-"]`).forEach(child => child.style.display = 'none');
+            });
+            
+            containerRow.style.display = isOpening ? 'table-row' : 'none';
+            arrow.style.transform = isOpening ? 'rotate(90deg)' : 'rotate(0deg)';
+
+            const children = document.querySelectorAll(`.child-of-${rowPrefix}-dropdown-container`);
+            children.forEach(child => {
+                child.style.display = isOpening ? 'table-row' : 'none';
+            });
+        }
+
+        function initializeStateMetrics() {
+            Object.keys(unitMonthlyState).forEach(key => {
+                unitMonthlyState[key].totals = {};
+                unitMonthlyState[key].breakdown = {};
+                chronologicalMonths.forEach(m => { unitMonthlyState[key].totals[m] = 0.0; });
+                unitMonthlyState[key].totals['GRAND TOTAL'] = 0.0;
+            });
+        }
+
+        async function fetchMetricData(endpoint, stateTarget, queryParams) {
+            try {
+                const response = await fetch(`${endpoint}?${queryParams}`);
+                const data = await response.json();
+                if (data && !data.error) {
+                    unitMonthlyState[stateTarget].totals = data.monthly_totals || {};
+                    unitMonthlyState[stateTarget].breakdown = data.dropdown_accounts || {};
+                }
+            } catch (err) {
+                console.error(`Pipeline failure fetching metric context [${stateTarget}]:`, err);
+            }
+        }
+
+        function calculateOperationalTrends() {
+            let grandTotalIncome = 0.0;
+            let grandTotalExpenditure = 0.0;
+            let grandTotalGrossProfit = 0.0;
+            let grandTotalmonthEbidta = 0.0;
+            let grandTotalPBT = 0.0;
+            let grandTotalAllocationD = 0.0;
+            let grandTotalEBIDTAAfter = 0.0;
+            let grandTotalPBTAfter = 0.0;
+
+            let totalRmc = 0.0, totalNetSales = 0.0, totalScrapSales = 0.0;
+            let totalEe = 0.0, totalRe = 0.0, totalTc = 0.0, totalFc = 0.0, totalDep = 0.0, totalIutOut = 0.0;
+
+            let qData = {
+                q1: { ns:0, ss:0, oi:0, io:0, rm:0, ee:0, ii:0, tc:0, fc:0, dep:0, re:0, erea:0, orea:0, inta:0, depa:0 },
+                q2: { ns:0, ss:0, oi:0, io:0, rm:0, ee:0, ii:0, tc:0, fc:0, dep:0, re:0, erea:0, orea:0, inta:0, depa:0 },
+                q3: { ns:0, ss:0, oi:0, io:0, rm:0, ee:0, ii:0, tc:0, fc:0, dep:0, re:0, erea:0, orea:0, inta:0, depa:0 },
+                q4: { ns:0, ss:0, oi:0, io:0, rm:0, ee:0, ii:0, tc:0, fc:0, dep:0, re:0, erea:0, orea:0, inta:0, depa:0 }
+            };
+
+            chronologicalMonths.forEach(m => {
+                const mKey = m.toLowerCase();
+                let q = ["april", "may", "june"].includes(mKey) ? "q1" :
+                        ["july", "august", "september"].includes(mKey) ? "q2" :
+                        ["october", "november", "december"].includes(mKey) ? "q3" : "q4";
+
+                const ns = Math.abs(parseFloat(unitMonthlyState.netSales.totals[m] || 0.0));
+                const ss = Math.abs(parseFloat(unitMonthlyState.scrapSales.totals[m] || 0.0));
+                const oi = Math.abs(parseFloat(unitMonthlyState.otherIncome.totals[m] || 0.0));
+                const io = Math.abs(parseFloat(unitMonthlyState.iutOut.totals[m] || 0.0));
+                const rm = parseFloat(unitMonthlyState.rmConsumption.totals[m] || 0.0);
+                const ee = parseFloat(unitMonthlyState.employeeExpenses.totals[m] || 0.0);
+                const ii = parseFloat(unitMonthlyState.iutIn.totals[m] || 0.0);
+                const tc = parseFloat(unitMonthlyState.transportCharges.totals[m] || 0.0);
+                const fc = parseFloat(unitMonthlyState.financeCharges.totals[m] || 0.0);
+                const dep = parseFloat(unitMonthlyState.depreciation.totals[m] || 0.0);
+                const re = parseFloat(unitMonthlyState.revenueExpenses.totals[m] || 0.0);
+                const erea = parseFloat(unitMonthlyState.ereAllocation.totals[m] || 0.0);
+                const orea = parseFloat(unitMonthlyState.oreAllocation.totals[m] || 0.0);
+                const inta = parseFloat(unitMonthlyState.interestAllocation.totals[m] || 0.0);
+                const depa = parseFloat(unitMonthlyState.depreciationAllocation.totals[m] || 0.0);
+
+                // Add to Quartely buckets
+                qData[q].ns += ns; qData[q].ss += ss; qData[q].oi += oi; qData[q].io += io;
+                qData[q].rm += rm; qData[q].ee += ee; qData[q].ii += ii; qData[q].tc += tc;
+                qData[q].fc += fc; qData[q].dep += dep; qData[q].re += re; qData[q].erea += erea;
+                qData[q].orea += orea; qData[q].inta += inta; qData[q].depa += depa;
+
+                const totalMonthIncome = ns + ss + oi + io;
+                grandTotalIncome += totalMonthIncome;
+                document.getElementById(`cell-total-${mKey}`).textContent = formatCellValue(totalMonthIncome);
+
+                const totalMonthExpenditure = rm + ee + ii + tc + fc + dep + re;
+                grandTotalExpenditure += totalMonthExpenditure;
+                document.getElementById(`cell-exp-${mKey}`).textContent = formatCellValue(totalMonthExpenditure);
+
+                const monthGrossProfit = (ns + ss + io) - (rm + ii);
+                grandTotalGrossProfit += monthGrossProfit;
+                document.getElementById(`cell-gp-${mKey}`).textContent = formatCellValue(monthGrossProfit);
+
+                const monthPBT = totalMonthIncome - totalMonthExpenditure;
+                grandTotalPBT += monthPBT;
+                document.getElementById(`cell-pbt-${mKey}`).textContent = formatCellValue(monthPBT);
+
+                const monthEbidta = monthPBT + dep + fc - oi;
+                grandTotalmonthEbidta += monthEbidta;
+                document.getElementById(`cell-eb-${mKey}`).textContent = formatCellValue(monthEbidta);
+
+                const monthAllocationD = erea + orea + inta + depa;
+                grandTotalAllocationD += monthAllocationD;
+                document.getElementById(`cell-allocd-${mKey}`).textContent = formatCellValue(monthAllocationD);
+
+                const monthPBTAfter = monthPBT - monthAllocationD;
+                grandTotalPBTAfter += monthPBTAfter;
+                document.getElementById(`cell-pbta-${mKey}`).textContent = formatCellValue(monthPBTAfter);
+
+                const monthEBIDTAAfter = monthPBTAfter + inta + depa + fc + dep - oi;
+                grandTotalEBIDTAAfter += monthEBIDTAAfter;
+                document.getElementById(`cell-ebidtaa-${mKey}`).textContent = formatCellValue(monthEBIDTAAfter);
+
+                const denom40_41 = ns + ss;
+                document.getElementById(`cell-pct-rm-${mKey}`).textContent = denom40_41 !== 0 ? (((rm + ii - io) / denom40_41) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-rmf-${mKey}`).textContent = denom40_41 !== 0 ? (((rm + ii - io + tc) / denom40_41) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-ee-${mKey}`).textContent = totalMonthIncome !== 0 ? ((ee / totalMonthIncome) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-re-${mKey}`).textContent = totalMonthIncome !== 0 ? ((re / totalMonthIncome) * 100).toFixed(2) + "%" : "0.00%";
+                const denom44 = ns + io;
+                document.getElementById(`cell-pct-tc-${mKey}`).textContent = denom44 !== 0 ? ((tc / denom44) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-fc-${mKey}`).textContent = totalMonthIncome !== 0 ? ((fc / totalMonthIncome) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-dep-${mKey}`).textContent = totalMonthIncome !== 0 ? ((dep / totalMonthIncome) * 100).toFixed(2) + "%" : "0.00%";
+
+                if (totalMonthIncome !== 0) {
+                    const pbtPct = (monthPBT / totalMonthIncome) * 100;
+                    document.getElementById(`cell-pct-pbt-${mKey}`).textContent = pbtPct < 0 ? `(${Math.abs(pbtPct).toFixed(2)}%)` : pbtPct.toFixed(2) + "%";
+                } else {
+                    document.getElementById(`cell-pct-pbt-${mKey}`).textContent = "0.00%";
+                }
+
+                totalRmc += rm; totalNetSales += ns; totalScrapSales += ss; totalEe += ee;
+                totalRe += re; totalTc += tc; totalFc += fc; totalDep += dep; totalIutOut += io;
+            });
+
+            // Quarterly Subtotals processing
+            ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+                const d = qData[q];
+                const qTotalIncome = d.ns + d.ss + d.oi + d.io;
+                document.getElementById(`cell-total-${q}`).textContent = formatCellValue(qTotalIncome);
+
+                const qTotalExp = d.rm + d.ee + d.ii + d.tc + d.fc + d.dep + d.re;
+                document.getElementById(`cell-exp-${q}`).textContent = formatCellValue(qTotalExp);
+
+                const qGP = (d.ns + d.ss + d.io) - (d.rm + d.ii);
+                document.getElementById(`cell-gp-${q}`).textContent = formatCellValue(qGP);
+
+                const qPBT = qTotalIncome - qTotalExp;
+                document.getElementById(`cell-pbt-${q}`).textContent = formatCellValue(qPBT);
+
+                const qEbidta = qPBT + d.dep + d.fc - d.oi;
+                document.getElementById(`cell-eb-${q}`).textContent = formatCellValue(qEbidta);
+
+                const qAllocD = d.erea + d.orea + d.inta + d.depa;
+                document.getElementById(`cell-allocd-${q}`).textContent = formatCellValue(qAllocD);
+
+                const qPBTA = qPBT - qAllocD;
+                document.getElementById(`cell-pbta-${q}`).textContent = formatCellValue(qPBTA);
+
+                const qEbidtaA = qPBTA + d.inta + d.depa + d.fc + d.dep - d.oi;
+                document.getElementById(`cell-ebidtaa-${q}`).textContent = formatCellValue(qEbidtaA);
+
+                const denom40_41 = d.ns + d.ss;
+                document.getElementById(`cell-pct-rm-${q}`).textContent = denom40_41 !== 0 ? (((d.rm + d.ii - d.io) / denom40_41) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-rmf-${q}`).textContent = denom40_41 !== 0 ? (((d.rm + d.ii - d.io + d.tc) / denom40_41) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-ee-${q}`).textContent = qTotalIncome !== 0 ? ((d.ee / qTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-re-${q}`).textContent = qTotalIncome !== 0 ? ((d.re / qTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+                
+                const denom44 = d.ns + d.io;
+                document.getElementById(`cell-pct-tc-${q}`).textContent = denom44 !== 0 ? ((d.tc / denom44) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-fc-${q}`).textContent = qTotalIncome !== 0 ? ((d.fc / qTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+                document.getElementById(`cell-pct-dep-${q}`).textContent = qTotalIncome !== 0 ? ((d.dep / qTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+
+                if (qTotalIncome !== 0) {
+                    const pbtPct = (qPBT / qTotalIncome) * 100;
+                    document.getElementById(`cell-pct-pbt-${q}`).textContent = pbtPct < 0 ? `(${Math.abs(pbtPct).toFixed(2)}%)` : pbtPct.toFixed(2) + "%";
+                } else {
+                    document.getElementById(`cell-pct-pbt-${q}`).textContent = "0.00%";
+                }
+            });
+
+            document.getElementById('cell-total-grand-total').textContent = formatCellValue(grandTotalIncome);
+            document.getElementById('cell-exp-grand-total').textContent = formatCellValue(grandTotalExpenditure);
+            document.getElementById('cell-gp-grand-total').textContent = formatCellValue(grandTotalGrossProfit);
+            document.getElementById('cell-pbt-grand-total').textContent = formatCellValue(grandTotalPBT);
+            document.getElementById('cell-eb-grand-total').textContent = formatCellValue(grandTotalmonthEbidta);
+            document.getElementById('cell-allocd-grand-total').textContent = formatCellValue(grandTotalAllocationD);
+            document.getElementById('cell-ebidtaa-grand-total').textContent = formatCellValue(grandTotalEBIDTAAfter);
+            document.getElementById('cell-pbta-grand-total').textContent = formatCellValue(grandTotalPBTAfter);
+
+            const gtDenom40_41 = totalNetSales + totalScrapSales;
+            document.getElementById('cell-pct-rm-grand-total').textContent = gtDenom40_41 !== 0 ? ((totalRmc / gtDenom40_41) * 100).toFixed(2) + "%" : "0.00%";
+            document.getElementById('cell-pct-rmf-grand-total').textContent = gtDenom40_41 !== 0 ? (((totalRmc + totalTc) / gtDenom40_41) * 100).toFixed(2) + "%" : "0.00%";
+            document.getElementById('cell-pct-ee-grand-total').textContent = grandTotalIncome !== 0 ? ((totalEe / grandTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+            document.getElementById('cell-pct-re-grand-total').textContent = grandTotalIncome !== 0 ? ((totalRe / grandTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+            const gtDenom44 = totalNetSales + totalIutOut;
+            document.getElementById('cell-pct-tc-grand-total').textContent = gtDenom44 !== 0 ? ((totalTc / gtDenom44) * 100).toFixed(2) + "%" : "0.00%";
+            document.getElementById('cell-pct-fc-grand-total').textContent = grandTotalIncome !== 0 ? ((totalFc / grandTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+            document.getElementById('cell-pct-dep-grand-total').textContent = grandTotalIncome !== 0 ? ((totalDep / grandTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+
+            if (grandTotalIncome !== 0) {
+                const gtPbtPct = (grandTotalPBT / grandTotalIncome) * 100;
+                document.getElementById('cell-pct-pbt-grand-total').textContent = gtPbtPct < 0 ? `(${Math.abs(gtPbtPct).toFixed(2)}%)` : gtPbtPct.toFixed(2) + "%";
+            } else {
+                document.getElementById('cell-pct-pbt-grand-total').textContent = "0.00%";
+            }
+        }
+
+        function updateMasterRowCells(idPrefix, totalsMap) {
+            let qSums = { q1: 0, q2: 0, q3: 0, q4: 0 };
+            chronologicalMonths.forEach(m => {
+                const cellId = `cell-${idPrefix}-${m.toLowerCase()}`;
+                const cellEl = document.getElementById(cellId);
+                let val = parseFloat(totalsMap[m] || 0.0);
+                if (['ns', 'ss', 'oi', 'io'].includes(idPrefix)) { val = Math.abs(val); }
+                
+                if (cellEl) cellEl.textContent = formatCellValue(val);
+
+                const mKey = m.toLowerCase();
+                if (["april", "may", "june"].includes(mKey)) qSums.q1 += val;
+                else if (["july", "august", "september"].includes(mKey)) qSums.q2 += val;
+                else if (["october", "november", "december"].includes(mKey)) qSums.q3 += val;
+                else qSums.q4 += val;
+            });
+
+            ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+                const qEl = document.getElementById(`cell-${idPrefix}-${q}`);
+                if (qEl) qEl.textContent = formatCellValue(qSums[q]);
+            });
+
+            const grandTotalEl = document.getElementById(`cell-${idPrefix}-grand-total`);
+            if (grandTotalEl) {
+                let gtVal = parseFloat(totalsMap['GRAND TOTAL'] || 0.0);
+                if (['ns', 'ss', 'oi', 'io'].includes(idPrefix)) gtVal = Math.abs(gtVal);
+                grandTotalEl.textContent = formatCellValue(gtVal);
+            }
+        }
+
+        function buildTrendSubTableRows(containerRowId, breakdownAccounts) {
+            const containerRow = document.getElementById(containerRowId);
+            if (!containerRow) return;
+
+            let nextEl = containerRow.nextElementSibling;
+            while (nextEl && nextEl.classList.contains(`child-of-${containerRowId}`)) {
+                const toRemove = nextEl;
+                nextEl = nextEl.nextElementSibling;
+                toRemove.remove();
+            }
+
+            if (!breakdownAccounts || Object.keys(breakdownAccounts).length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.className = `child-of-${containerRowId}`;
+                emptyRow.style.background = "#fcfdf2";
+                emptyRow.style.display = containerRow.style.display;
+                emptyRow.innerHTML = `
+                    <td class="sticky-col text-left indent" style="position: sticky; left: 0; color:#999; background-color: #fcfdf2; font-style:italic; font-size:12px; padding-left:25px;">No account breakdown details found.</td>
+                    <td colspan="17" style="text-align: left; padding-left: 20px; color: #999; font-style: italic;">-</td>
+                `;
+                containerRow.parentNode.insertBefore(emptyRow, containerRow.nextSibling);
+                return;
+            }
+
+            const accountNumbers = Object.keys(breakdownAccounts).reverse();
+            accountNumbers.forEach(acctNum => {
+                const tr = document.createElement('tr');
+                tr.className = `child-of-${containerRowId}`;
+                tr.style.background = "#fcfdf2";
+                tr.style.display = containerRow.style.display;
+
+                const description = masterAccountDescriptions[acctNum] || "Sub-Ledger Position Entry";
+
+                let rowHtml = `<td class="sticky-col text-left indent" style="position: sticky; left: 0; color:#555; background-color: #fcfdf2; font-size:12px; padding-left:25px; overflow-wrap:break-word; white-space:normal; border-right: 1px solid #c0c0c0; border-bottom: 1px solid #e0e0e0;">
+                                ${acctNum} - ${description}
+                            </td>`;
+
+                const monthlyMap = breakdownAccounts[acctNum];
+                let qSums = { q1: 0, q2: 0, q3: 0, q4: 0 };
+
+                chronologicalMonths.forEach((m, idx) => {
+                    let cellVal = parseFloat(monthlyMap[m] || 0.0);
+                    if (containerRowId.includes('sales') || containerRowId.includes('income') || containerRowId.includes('out')) {
+                        cellVal = Math.abs(cellVal);
+                    }
+                    
+                    const mKey = m.toLowerCase();
+                    if (["april", "may", "june"].includes(mKey)) qSums.q1 += cellVal;
+                    else if (["july", "august", "september"].includes(mKey)) qSums.q2 += cellVal;
+                    else if (["october", "november", "december"].includes(mKey)) qSums.q3 += cellVal;
+                    else qSums.q4 += cellVal;
+
+                    rowHtml += `<td style="text-align: left; font-size:12px; padding: 5px 10px; border-bottom:1px solid #e0e0e0; border-right: 1px solid #e0e0e0;">${formatCellValue(cellVal)}</td>`;
+
+                    // Inject the Quarter totals right after the 3rd, 6th, 9th, and 12th months
+                    if (idx === 2) rowHtml += `<td style="text-align: left; font-size:12px; font-weight: bold; background: #eef2f9; padding: 5px 10px; border-bottom:1px solid #e0e0e0; border-right: 1px solid #555;">${formatCellValue(qSums.q1)}</td>`;
+                    if (idx === 5) rowHtml += `<td style="text-align: left; font-size:12px; font-weight: bold; background: #eef2f9; padding: 5px 10px; border-bottom:1px solid #e0e0e0; border-right: 1px solid #555;">${formatCellValue(qSums.q2)}</td>`;
+                    if (idx === 8) rowHtml += `<td style="text-align: left; font-size:12px; font-weight: bold; background: #eef2f9; padding: 5px 10px; border-bottom:1px solid #e0e0e0; border-right: 1px solid #555;">${formatCellValue(qSums.q3)}</td>`;
+                    if (idx === 11) rowHtml += `<td style="text-align: left; font-size:12px; font-weight: bold; background: #eef2f9; padding: 5px 10px; border-bottom:1px solid #e0e0e0; border-right: 1px solid #555;">${formatCellValue(qSums.q4)}</td>`;
+                });
+
+                let finalRowGt = parseFloat(monthlyMap['GRAND TOTAL'] || 0.0);
+                if (containerRowId.includes('sales') || containerRowId.includes('income') || containerRowId.includes('out')) {
+                    finalRowGt = Math.abs(finalRowGt);
+                }
+                rowHtml += `<td style="text-align: left; font-weight: bold; background: #fff2cc; padding: 5px 10px; border-bottom:1px solid #e0e0e0; border-right: 1px solid #e0e0e0;">${formatCellValue(finalRowGt)}</td>`;
+                
+                tr.innerHTML = rowHtml;
+                containerRow.parentNode.insertBefore(tr, containerRow.nextSibling);
+            });
+        }
+
+        async function refreshUnitMonthlyReport() {
+            const yearSelect = document.getElementById('fin_year_select');
+            const unitSelect = document.getElementById('unit_select');
+            if (!yearSelect || !unitSelect) return;
+
+            const selectedYear = yearSelect.value;
+            const selectedUnit = unitSelect.value;
+            const queryParams = `fin_year=${encodeURIComponent(selectedYear)}&unit=${encodeURIComponent(selectedUnit)}`;
+
+            document.getElementById('loader-overlay').style.display = 'flex';
+            initializeStateMetrics();
+
+            await Promise.all([
+                fetchMetricData('/api/mis/unit-monthly-sales', 'netSales', queryParams),
+                fetchMetricData('/api/mis/unit-scrap-sales', 'scrapSales', queryParams),
+                fetchMetricData('/api/mis/other-income-monthly-sales', 'otherIncome', queryParams),
+                fetchMetricData('/api/mis/iut-out-monthly-sales', 'iutOut', queryParams),
+                fetchMetricData('/api/mis/rm-consp-monthly-sales', 'rmConsumption', queryParams),
+                fetchMetricData('/api/mis/employee-monthly-sales', 'employeeExpenses', queryParams),
+                fetchMetricData('/api/mis/iut-in-monthly-sales', 'iutIn', queryParams),
+                fetchMetricData('/api/mis/transport-monthly-sales', 'transportCharges', queryParams),
+                fetchMetricData('/api/mis/finance-cahrges-monthly-sales', 'financeCharges', queryParams),
+                fetchMetricData('/api/mis/depreciation-monthly-sales', 'depreciation', queryParams),
+                fetchMetricData('/api/mis/revenue-expenses-monthly-sales', 'revenueExpenses', queryParams),
+                fetchMetricData('/api/mis/ere-allocation-monthly-sales', 'ereAllocation', queryParams),
+                fetchMetricData('/api/mis/ore-allocation-monthly-sales', 'oreAllocation', queryParams),
+                fetchMetricData('/api/mis/intrest-allocation-monthly-sales', 'interestAllocation', queryParams),
+                fetchMetricData('/api/mis/dep-allocation-monthly-sales', 'depreciationAllocation', queryParams)
+            ]);
+
+            updateMasterRowCells('ns', unitMonthlyState.netSales.totals);
+            updateMasterRowCells('ss', unitMonthlyState.scrapSales.totals);
+            updateMasterRowCells('oi', unitMonthlyState.otherIncome.totals);
+            updateMasterRowCells('io', unitMonthlyState.iutOut.totals);
+            updateMasterRowCells('rm', unitMonthlyState.rmConsumption.totals);
+            updateMasterRowCells('ee', unitMonthlyState.employeeExpenses.totals);
+            updateMasterRowCells('ii', unitMonthlyState.iutIn.totals);
+            updateMasterRowCells('tc', unitMonthlyState.transportCharges.totals);
+            updateMasterRowCells('fc', unitMonthlyState.financeCharges.totals);
+            updateMasterRowCells('dep', unitMonthlyState.depreciation.totals);
+            updateMasterRowCells('re', unitMonthlyState.revenueExpenses.totals);
+            updateMasterRowCells('erea', unitMonthlyState.ereAllocation.totals);
+            updateMasterRowCells('orea', unitMonthlyState.oreAllocation.totals);
+            updateMasterRowCells('inta', unitMonthlyState.interestAllocation.totals);
+            updateMasterRowCells('depa', unitMonthlyState.depreciationAllocation.totals);
+
+            buildTrendSubTableRows('net-sales-dropdown-container', unitMonthlyState.netSales.breakdown);
+            buildTrendSubTableRows('scrap-sales-dropdown-container', unitMonthlyState.scrapSales.breakdown);
+            buildTrendSubTableRows('other-income-dropdown-container', unitMonthlyState.otherIncome.breakdown);
+            buildTrendSubTableRows('iut-out-dropdown-container', unitMonthlyState.iutOut.breakdown);
+            buildTrendSubTableRows('rm-consumption-dropdown-container', unitMonthlyState.rmConsumption.breakdown);
+            buildTrendSubTableRows('employee-expenses-dropdown-container', unitMonthlyState.employeeExpenses.breakdown);
+            buildTrendSubTableRows('iut-in-dropdown-container', unitMonthlyState.iutIn.breakdown);
+            buildTrendSubTableRows('transport-charges-dropdown-container', unitMonthlyState.transportCharges.breakdown);
+            buildTrendSubTableRows('finance-charges-dropdown-container', unitMonthlyState.financeCharges.breakdown);
+            buildTrendSubTableRows('depreciation-dropdown-container', unitMonthlyState.depreciation.breakdown);
+            buildTrendSubTableRows('revenue-expenses-dropdown-container', unitMonthlyState.revenueExpenses.breakdown);
+            buildTrendSubTableRows('ere-allocation-dropdown-container', unitMonthlyState.ereAllocation.breakdown);
+            buildTrendSubTableRows('ore-allocation-dropdown-container', unitMonthlyState.oreAllocation.breakdown);
+            buildTrendSubTableRows('interest-allocation-dropdown-container', unitMonthlyState.interestAllocation.breakdown);
+            buildTrendSubTableRows('depreciation-allocation-dropdown-container', unitMonthlyState.depreciationAllocation.breakdown);
+
+            calculateOperationalTrends();
+            document.getElementById('loader-overlay').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const yearMenu = document.getElementById('fin_year_select');
+            const unitMenu = document.getElementById('unit_select');
+            if (yearMenu) yearMenu.addEventListener('change', refreshUnitMonthlyReport);
+            if (unitMenu) unitMenu.addEventListener('change', refreshUnitMonthlyReport);
+
+            refreshUnitMonthlyReport();
+
+            const dropdowns = document.getElementsByClassName("dropdown-btn");
+            for (let i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].addEventListener("click", function() {
+                    const dropdownContent = this.nextElementSibling;
+                    if (!dropdownContent) return;
+                    const isOpen = dropdownContent.style.display === "block";
+                    for (let j = 0; j < dropdowns.length; j++) {
+                        dropdowns[j].classList.remove("active");
+                        if (dropdowns[j].nextElementSibling) dropdowns[j].nextElementSibling.style.display = "none";
+                    }
+                    if (!isOpen) {
+                        this.classList.add("active");
+                        dropdownContent.style.display = "block";
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+{% endblock %}
