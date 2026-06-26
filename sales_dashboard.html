@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FY2026-27 Sales Performance  Control Room</title>
+<title> Sales Performance </title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root{
@@ -384,14 +385,13 @@
 </style>
 </head>
 <body>
-
+<a href="{{ url_for('home') }}" style="display: none;">Sales Dashboard</a>
 <div class="topbar">
   <div class="topbar-inner">
     <div class="brand-block">
-      <div class="brand-mark"><span>KE</span></div>
+      <div class="brand-mark"><span> <img src="static/images/kec.jpg" style="height: 8vh;"> </span></div>
       <div class="brand-text">
-        <h1>Sales Performance Control Room</h1>
-        <div class="sub">Heavy Electricals &middot; Billing Export FY 2026&ndash;27</div>
+        <h1>Sales Dashboard</h1>
       </div>
     </div>
     <div class="period-chip" id="periodChip">Loading period&hellip;</div>
@@ -505,30 +505,27 @@
   </div>
 
   <div class="footer">
-    <span id="footerLeft">KIRLOSKAR ELECTRIC CO. LTD.</span>
+    <span id="footerLeft">Kirloskar Electric Company Ltd</span>
   </div>
+
 </div>
 
 <script>
 // ===================== Helpers =====================
 const fmtINR = (v) => {
-  if (v === null || v === undefined || isNaN(v)) return 'b ';
+  if (!v || isNaN(v)) return '0';
   const abs = Math.abs(v);
   if (abs >= 1e7) return (v/1e7).toFixed(2) + ' Cr';
   if (abs >= 1e5) return (v/1e5).toFixed(2) + ' L';
   if (abs >= 1e3) return (v/1e3).toFixed(1) + ' K';
-  return v.toFixed(0);
+  return parseFloat(v).toFixed(0);
 };
-const fmtINRFull = (v) => '\u20B9' + Math.round(v).toLocaleString('en-IN');
-const fmtNum = (v) => Math.round(v).toLocaleString('en-IN');
-const fmtPct = (v, d=1) => (v===null||v===undefined||isNaN(v)) ? 'b ' : v.toFixed(d) + '%';
+const fmtINRFull = (v) => '\u20B9' + Math.round(v || 0).toLocaleString('en-IN');
+const fmtNum = (v) => Math.round(v || 0).toLocaleString('en-IN');
+const fmtPct = (v, d=1) => (!v || isNaN(v)) ? '0%' : v.toFixed(d) + '%';
 
-const COPPER = '#c87d3f';
 const COPPER_BRIGHT = '#e6985a';
 const TEAL = '#3fb8a6';
-const GOOD = '#5ec98f';
-const WARN = '#e0a83e';
-const BAD = '#d96a5a';
 const TEXT_1 = '#aab8c2';
 const TEXT_2 = '#6b7b88';
 const LINE = '#2a3744';
@@ -539,55 +536,18 @@ Chart.defaults.color = TEXT_1;
 Chart.defaults.font.size = 11;
 
 // ===================== Filter state =====================
-const state = { month:'', region:'', office:'', product:'' };
+const state = { month:'', region:'', office:'', product:'', fin_year: '2026-2027' };
 let charts = {};
 
-// ===================== Populate slicers =====================
-function uniqueSorted(arr){ return [...new Set(arr)].sort(); }
-
-function initSlicers(){
-  const months = [...new Set(DASH.raw.map(r=>r.month))];
-  // sort months chronologically using monthly order from DASH.monthly
-  const monthOrder = DASH.monthly.map(m=>m.MonthLabel);
-  months.sort((a,b)=>monthOrder.indexOf(a)-monthOrder.indexOf(b));
-  const regions = uniqueSorted(DASH.raw.map(r=>r.region));
-  const offices = uniqueSorted(DASH.raw.map(r=>r.office));
-  const products = uniqueSorted(DASH.raw.map(r=>r.product));
-
-  fillSelect('f-month', months, 'All months');
-  fillSelect('f-region', regions, 'All regions');
-  fillSelect('f-office', offices, 'All sales offices');
-  fillSelect('f-product', products, 'All products');
-
-  document.getElementById('f-month').addEventListener('change', e=>{state.month=e.target.value; render();});
-  document.getElementById('f-region').addEventListener('change', e=>{state.region=e.target.value; render();});
-  document.getElementById('f-office').addEventListener('change', e=>{state.office=e.target.value; render();});
-  document.getElementById('f-product').addEventListener('change', e=>{state.product=e.target.value; render();});
-  document.getElementById('resetBtn').addEventListener('click', ()=>{
-    state.month=''; state.region=''; state.office=''; state.product='';
-    ['f-month','f-region','f-office','f-product'].forEach(id=>document.getElementById(id).value='');
-    render();
-  });
-}
-
-function fillSelect(id, values, allLabel){
-  const sel = document.getElementById(id);
-  values.forEach(v=>{
-    const opt = document.createElement('option');
-    opt.value = v; opt.textContent = v;
-    sel.appendChild(opt);
-  });
-}
-
-// ===================== Filtering =====================
-function getFiltered(){
-  return DASH.raw.filter(r=>{
-    if(state.month && r.month!==state.month) return false;
-    if(state.region && r.region!==state.region) return false;
-    if(state.office && r.office!==state.office) return false;
-    if(state.product && r.product!==state.product) return false;
-    return true;
-  });
+// Helper to build URL query strings from state
+function buildQueryString() {
+  const params = new URLSearchParams();
+  if (state.month) params.append('month', state.month);
+  if (state.region) params.append('region', state.region);
+  if (state.office) params.append('sales_office', state.office);
+  if (state.product) params.append('product', state.product);
+  if (state.fin_year) params.append('fin_year', state.fin_year);
+  return '?' + params.toString();
 }
 
 function updateActiveFilters(){
@@ -596,389 +556,203 @@ function updateActiveFilters(){
   if(state.region) labels.push('Region: '+state.region);
   if(state.office) labels.push('Office: '+state.office);
   if(state.product) labels.push('Product: '+state.product);
+
   const el = document.getElementById('activeFilters');
-  el.textContent = labels.length ? ('Active b  ' + labels.join('   B7   ')) : '';
+  el.textContent = labels.length ? ('Active • ' + labels.join(' | ')) : '';
 }
 
-// ===================== KPI Section =====================
-function computeKpis(rows){
-  const totalNet = rows.reduce((s,r)=>s+r.net,0);
-  const totalQty = rows.reduce((s,r)=>s+r.qty,0);
-  const invoiceSet = new Set(rows.map(r=>r.doc));
-  const totalInvoices = invoiceSet.size;
-  const avgInvoice = totalInvoices ? totalNet/totalInvoices : 0;
-  const officeSet = new Set(rows.map(r=>r.office));
-  return {totalNet, totalQty, totalInvoices, avgInvoice, officeCount: officeSet.size};
+// ===================== Event Listeners =====================
+function initSlicers(){
+  document.getElementById('f-month').addEventListener('change', e => { state.month = e.target.value; render(); });
+  document.getElementById('f-region').addEventListener('change', e => { state.region = e.target.value; render(); });
+  document.getElementById('f-office').addEventListener('change', e => { state.office = e.target.value; render(); });
+  document.getElementById('f-product').addEventListener('change', e => { state.product = e.target.value; render(); });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.month = ''; state.region = ''; state.office = ''; state.product = '';
+    ['f-month','f-region','f-office','f-product'].forEach(id => document.getElementById(id).value = '');
+    render();
+  });
 }
 
-function renderKpiGrid(rows){
-  const k = computeKpis(rows);
-  const isFiltered = state.month||state.region||state.office||state.product;
-
-  // MoM delta only meaningful on unfiltered / month-filtered full data; compute from monthly array if no other filters and either no month or specific month chosen
-  let momHtml = '';
-  if(!state.region && !state.office && !state.product){
-    const m = DASH.monthly;
-    if(state.month){
-      const idx = m.findIndex(x=>x.MonthLabel===state.month);
-      if(idx>0){
-        const pct = m[idx].MoM_pct;
-        const dir = pct>0.5?'up':pct<-0.5?'down':'flat';
-        momHtml = `<div class="delta ${dir}">${dir==='up'?'b2':dir==='down'?'b<':'b,'} ${fmtPct(Math.abs(pct))} vs prior month</div>`;
-      } else {
-        momHtml = `<div class="delta flat">b  first month in dataset</div>`;
-      }
-    } else {
-      const last = m[m.length-1];
-      const dir = last.MoM_pct>0.5?'up':last.MoM_pct<-0.5?'down':'flat';
-      momHtml = `<div class="delta ${dir}">${dir==='up'?'b2':dir==='down'?'b<':'b,'} ${fmtPct(Math.abs(last.MoM_pct))} latest MoM (Jun vs May)</div>`;
-    }
-  } else {
-    momHtml = `<div class="delta flat">filtered view</div>`;
-  }
-
+// ===================== Render Functions =====================
+function renderKpiGrid(data) {
   const cards = [
-    {label:'Net Revenue', value: '\u20B9'+fmtINR(k.totalNet), extra: momHtml},
-    {label:'Billed Quantity', value: fmtNum(k.totalQty), unit:'units', extra:`<div class="delta flat">across ${k.totalInvoices.toLocaleString('en-IN')} invoice lines</div>`},
-    {label:'Invoices Raised', value: fmtNum(k.totalInvoices), unit:'docs', extra:`<div class="delta flat">${k.officeCount} sales office${k.officeCount!==1?'s':''} active</div>`},
-    {label:'Avg. Invoice Value', value: '\u20B9'+fmtINR(k.avgInvoice), extra:`<div class="delta flat">net revenue / invoice count</div>`},
-    {label:'Gross-to-Net Realisation', value: fmtPct(k.totalNet>0 ? (k.totalNet/(DASH.kpi_summary.total_gross*(k.totalNet/DASH.kpi_summary.total_net)))*100 : 0), extra:`<div class="delta flat">net value after tax adj.</div>`}
+    {label:'Net Revenue', value: '\u20B9'+fmtINR(data.overall_sales), extra: `<div class="delta flat">Gross to net realisation</div>`},
+    {label:'Billed Quantity', value: fmtNum(data.billed_quantity), unit:'units', extra:`<div class="delta flat">Total units shipped</div>`},
+    {label:'Invoices Raised', value: fmtNum(data.invoices_raised), unit:'docs', extra:`<div class="delta flat">Unique billing docs</div>`},
+    {label:'Customers Billed', value: fmtNum(data.customers_billed), unit:'accounts', extra:`<div class="delta flat">Active buyers</div>`}
   ];
 
-  // simplify last card to avoid confusing math when filtered: show realisation only on unfiltered, else show customer count
-  if(isFiltered){
-    const custSet = new Set(); // raw doesn't carry customer; approximate using product diversity instead
-    cards[4] = {label:'Active Sales Offices', value: fmtNum(k.officeCount), unit:'offices', extra:`<div class="delta flat">within current filter</div>`};
-  } else {
-    cards[4] = {label:'Customers Billed', value: fmtNum(DASH.kpi_summary.total_customers), unit:'accounts', extra:`<div class="delta flat">unique billed customers, FY to date</div>`};
-  }
-
   const grid = document.getElementById('kpiGrid');
-  grid.innerHTML = cards.map(c=>`
+  grid.innerHTML = cards.map(c => `
     <div class="kpi-card">
       <div class="label">${c.label}</div>
-      <div class="value">${c.value}${c.unit?`<span class="unit">${c.unit}</span>`:''}</div>
+      <div class="value">${c.value}${c.unit ? `<span class="unit">${c.unit}</span>` : ''}</div>
       ${c.extra}
     </div>
   `).join('');
 }
 
-// ===================== Trend charts =====================
-function renderTrendChart(rows){
-  const byDate = {};
-  rows.forEach(r=>{ byDate[r.date] = (byDate[r.date]||0) + r.net; });
-  const dates = Object.keys(byDate).sort();
-  let cum = 0;
-  const dailyVals = dates.map(d=>byDate[d]);
-  const totalForTag = dailyVals.reduce((a,b)=>a+b,0);
-  document.getElementById('trendTotalTag').textContent = dates.length? ('N# ' + '\u20B9'+fmtINR(totalForTag)) : '';
+function renderTrendChart(data) {
+  const dates = data.map(d => d.month_year);
+  const vals = data.map(d => d.total_revenue);
+  const total = vals.reduce((a, b) => a + b, 0);
+
+  document.getElementById('trendTotalTag').textContent = dates.length ? ('Σ ' + '\u20B9'+fmtINR(total)) : '';
 
   const ctx = document.getElementById('chartTrend');
   if(charts.trend) charts.trend.destroy();
   charts.trend = new Chart(ctx, {
     type:'line',
-    data:{
-      labels: dates.map(d=>{const dt=new Date(d); return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}),
+    data: {
+      labels: dates,
       datasets:[{
-        label:'Net Revenue',
-        data: dailyVals,
-        borderColor: COPPER_BRIGHT,
-        backgroundColor: 'rgba(200,125,63,0.12)',
-        fill:true,
-        tension:0.25,
-        pointRadius:0,
-        pointHoverRadius:4,
-        borderWidth:2
+        label:'Net Revenue', data: vals,
+        borderColor: COPPER_BRIGHT, backgroundColor: 'rgba(200,125,63,0.12)',
+        fill:true, tension:0.25, pointRadius:3, borderWidth:2
       }]
     },
-    options:{
+    options: {
       responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:'#1a232c', borderColor:LINE, borderWidth:1, titleColor:'#eef2f5', bodyColor:'#aab8c2',
-          callbacks:{ label: (c)=> ' \u20B9'+fmtNum(c.parsed.y) }
-        }
-      },
-      scales:{
-        x:{ grid:{color:'#1f2a34'}, ticks:{maxRotation:0, autoSkip:true, maxTicksLimit:10, color:TEXT_2, font:{size:10}} },
-        y:{ grid:{color:'#1f2a34'}, ticks:{ callback:(v)=>fmtINR(v), color:TEXT_2, font:{size:10} } }
+      plugins: { legend:{display:false} },
+      scales: {
+        x: { grid:{color:'#1f2a34'}, ticks:{color:TEXT_2} },
+        y: { grid:{color:'#1f2a34'}, ticks:{callback:(v)=>fmtINR(v), color:TEXT_2} }
       }
     }
   });
 }
 
-function renderMoMChart(){
-  // MoM is always shown at full dataset level (region/office/product filters reduce to dataset rebuild)
-  let rowsForMonth = DASH.raw;
-  if(state.region) rowsForMonth = rowsForMonth.filter(r=>r.region===state.region);
-  if(state.office) rowsForMonth = rowsForMonth.filter(r=>r.office===state.office);
-  if(state.product) rowsForMonth = rowsForMonth.filter(r=>r.product===state.product);
-
-  const monthOrder = DASH.monthly.map(m=>m.MonthLabel);
-  const byMonth = {};
-  rowsForMonth.forEach(r=>{ byMonth[r.month] = (byMonth[r.month]||0) + r.net; });
-  const months = monthOrder.filter(m=>byMonth[m]!==undefined);
-  const vals = months.map(m=>byMonth[m]);
-  const pct = months.map((m,i)=> i===0? null : ((vals[i]-vals[i-1])/vals[i-1]*100));
-
-  const ctx = document.getElementById('chartMoM');
-  if(charts.mom) charts.mom.destroy();
-  charts.mom = new Chart(ctx, {
-    data:{
-      labels: months,
-      datasets:[
-        {
-          type:'bar', label:'Net Revenue', data: vals,
-          backgroundColor: months.map(m=> m===state.month ? COPPER_BRIGHT : 'rgba(200,125,63,0.55)'),
-          borderRadius:3, order:2, yAxisID:'y'
-        },
-        {
-          type:'line', label:'MoM %', data: pct,
-          borderColor: TEAL, backgroundColor: TEAL, pointRadius:5, pointBackgroundColor: TEAL,
-          borderWidth:2, order:1, yAxisID:'y1', spanGaps:true
-        }
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{labels:{color:TEXT_1, font:{size:10.5}}},
-        tooltip:{
-          backgroundColor:'#1a232c', borderColor:LINE, borderWidth:1, titleColor:'#eef2f5', bodyColor:'#aab8c2',
-          callbacks:{ label:(c)=> c.dataset.label==='MoM %' ? ' '+(c.parsed.y===null?'n/a':c.parsed.y.toFixed(1)+'%') : ' \u20B9'+fmtNum(c.parsed.y) }
-        }
-      },
-      scales:{
-        x:{ grid:{display:false}, ticks:{color:TEXT_2} },
-        y:{ position:'left', grid:{color:'#1f2a34'}, ticks:{ callback:(v)=>fmtINR(v), color:TEXT_2, font:{size:10} } },
-        y1:{ position:'right', grid:{display:false}, ticks:{ callback:(v)=>v.toFixed(0)+'%', color:TEAL, font:{size:10} } }
-      }
-    }
-  });
-}
-
-// ===================== Products =====================
-function renderProducts(rows){
-  const byProd = {};
-  rows.forEach(r=>{
-    if(!byProd[r.product]) byProd[r.product] = {net:0, qty:0, docs:new Set()};
-    byProd[r.product].net += r.net;
-    byProd[r.product].qty += r.qty;
-    byProd[r.product].docs.add(r.doc);
-  });
-  const entries = Object.entries(byProd).map(([name,v])=>({name, net:v.net, qty:v.qty, invoices:v.docs.size}))
-    .sort((a,b)=>b.net-a.net);
-  const totalNet = entries.reduce((s,e)=>s+e.net,0);
+function renderProducts(data) {
+  const totalNet = data.reduce((s, e) => s + parseFloat(e.revenue || 0), 0);
 
   const ctx = document.getElementById('chartProducts');
   if(charts.products) charts.products.destroy();
   charts.products = new Chart(ctx, {
     type:'doughnut',
-    data:{
-      labels: entries.map(e=>e.name),
-      datasets:[{
-        data: entries.map(e=>e.net),
-        backgroundColor: entries.map((e,i)=>PALETTE[i%PALETTE.length]),
+    data: {
+      labels: data.map(d => d.mapped_product),
+      datasets: [{
+        data: data.map(d => parseFloat(d.revenue)),
+        backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
         borderColor: '#141b22', borderWidth:2
       }]
     },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      cutout:'62%',
-      plugins:{
-        legend:{ position:'right', labels:{ color:TEXT_1, boxWidth:10, font:{size:10.5}, padding:8 } },
-        tooltip:{
-          backgroundColor:'#1a232c', borderColor:LINE, borderWidth:1, titleColor:'#eef2f5', bodyColor:'#aab8c2',
-          callbacks:{ label:(c)=> ' '+c.label+': \u20B9'+fmtINR(c.parsed)+' ('+(c.parsed/totalNet*100).toFixed(1)+'%)' }
-        }
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins: {
+        legend: { position:'right', labels:{color:TEXT_1} }
       }
     }
   });
 
   const tbody = document.querySelector('#productTable tbody');
-  const maxNet = entries[0]? entries[0].net : 1;
-  tbody.innerHTML = entries.map(e=>`
+  const maxNet = data[0] ? parseFloat(data[0].revenue) : 1;
+  tbody.innerHTML = data.map(e => `
     <tr>
-      <td><div class="rank-bar-bg"><div class="rank-bar" style="width:${(e.net/maxNet*100).toFixed(1)}%"></div><div class="name-cell">${e.name}</div></div></td>
-      <td class="num">${fmtINRFull(e.net)}</td>
-      <td class="num">${fmtNum(e.qty)}</td>
-      <td class="num">${(e.net/totalNet*100).toFixed(1)}%</td>
+      <td><div class="rank-bar-bg"><div class="rank-bar" style="width:${(e.revenue/maxNet*100).toFixed(1)}%"></div><div class="name-cell">${e.mapped_product}</div></div></td>
+      <td class="num">${fmtINRFull(e.revenue)}</td>
+      <td class="num">${fmtNum(e.quantity)}</td>
+      <td class="num">${(e.revenue/totalNet*100).toFixed(1)}%</td>
     </tr>
-  `).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--text-2);padding:20px;">No data for current filters</td></tr>`;
+  `).join('') || `<tr><td colspan="4" style="text-align:center;">No data</td></tr>`;
 }
 
-// ===================== Offices & Regions =====================
-function renderOffices(rows){
-  const byOffice = {};
-  rows.forEach(r=>{ byOffice[r.office] = (byOffice[r.office]||0) + r.net; });
-  const entries = Object.entries(byOffice).sort((a,b)=>b[1]-a[1]).slice(0,12);
-
-  const ctx = document.getElementById('chartOffices');
+function renderLocations(data) {
+  // Offices Bar Chart
+  const offices = data.offices.slice(0, 12);
+  const ctxOffices = document.getElementById('chartOffices');
   if(charts.offices) charts.offices.destroy();
-  charts.offices = new Chart(ctx, {
+  charts.offices = new Chart(ctxOffices, {
     type:'bar',
-    data:{
-      labels: entries.map(e=>e[0]),
-      datasets:[{
-        label:'Net Revenue',
-        data: entries.map(e=>e[1]),
-        backgroundColor: entries.map(e=> e[0]===state.office? COPPER_BRIGHT : 'rgba(200,125,63,0.55)'),
-        borderRadius:3,
-        barThickness: 16
+    data: {
+      labels: offices.map(o => o.Sales_office),
+      datasets: [{
+        data: offices.map(o => o.revenue),
+        backgroundColor: COPPER_BRIGHT, borderRadius:3, barThickness: 16
       }]
     },
-    options:{
-      indexAxis:'y',
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:'#1a232c', borderColor:LINE, borderWidth:1, titleColor:'#eef2f5', bodyColor:'#aab8c2',
-          callbacks:{ label:(c)=> ' \u20B9'+fmtNum(c.parsed.x) }
-        }
-      },
-      scales:{
-        x:{ grid:{color:'#1f2a34'}, ticks:{ callback:(v)=>fmtINR(v), color:TEXT_2, font:{size:10} } },
-        y:{ grid:{display:false}, ticks:{color:TEXT_1, font:{size:11}} }
-      }
-    }
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
   });
-}
 
-function renderRegions(rows){
-  const byRegion = {};
-  rows.forEach(r=>{ byRegion[r.region] = (byRegion[r.region]||0) + r.net; });
-  const entries = Object.entries(byRegion).sort((a,b)=>b[1]-a[1]);
-  const total = entries.reduce((s,e)=>s+e[1],0);
-
-  const ctx = document.getElementById('chartRegions');
+  // Regions Bar Chart
+  const regions = data.regions;
+  const ctxRegions = document.getElementById('chartRegions');
   if(charts.regions) charts.regions.destroy();
-  charts.regions = new Chart(ctx, {
+  charts.regions = new Chart(ctxRegions, {
     type:'bar',
-    data:{
-      labels: entries.map(e=>e[0]),
-      datasets:[{
-        label:'Net Revenue',
-        data: entries.map(e=>e[1]),
-        backgroundColor: entries.map((e,i)=> e[0]===state.region ? COPPER_BRIGHT : PALETTE[i%PALETTE.length]),
-        borderRadius:4,
-        barThickness: 38
+    data: {
+      labels: regions.map(r => r.Sales_Region_Name),
+      datasets: [{
+        data: regions.map(r => r.revenue),
+        backgroundColor: regions.map((_,i) => PALETTE[i%PALETTE.length]),
+        borderRadius:4, barThickness: 38
       }]
     },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:'#1a232c', borderColor:LINE, borderWidth:1, titleColor:'#eef2f5', bodyColor:'#aab8c2',
-          callbacks:{ label:(c)=> ' \u20B9'+fmtINR(c.parsed.y)+' ('+(total? (c.parsed.y/total*100).toFixed(1):'0')+'%)' }
-        }
-      },
-      scales:{
-        x:{ grid:{display:false}, ticks:{color:TEXT_1, font:{size:11}} },
-        y:{ grid:{color:'#1f2a34'}, ticks:{ callback:(v)=>fmtINR(v), color:TEXT_2, font:{size:10} } }
-      }
-    }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
   });
 }
 
-function statusClass(pct){
-  if(pct===null||pct===undefined||isNaN(pct)) return 't-bad';
-  if(pct>=100) return 't-good';
-  if(pct>=50) return 't-warn';
-  return 't-bad';
-}
-
-function renderAop(){
-  // AOP view stays at full-period (not filtered by month, since AOP is a full-FY target);
-  // but region/office filters don't apply (AOP is tracked by product/unit, not geography) b  show note instead.
-  const list = DASH.aop_products.filter(p=> p.AOP_Target_Lakh > 0 || p.Actual_Lakh>0)
-    .sort((a,b)=>b.Actual_Lakh-a.Actual_Lakh);
-
-  let filterNote = '';
-  if(state.product){
-    filterNote = ` matching product filter "${state.product}"`;
-  }
-
+function renderAop(data) {
   const container = document.getElementById('aopList');
-  container.innerHTML = list.map(p=>{
-    const pct = p.Achv_Q1_pct;
-    const cls = statusClass(pct);
-    const widthPct = pct===null ? 0 : Math.min(pct, 130);
-    const markerPos = 100/130*100; // 100% mark position within 0-130 scale
+  container.innerHTML = data.map(p => {
+    const pct = p.achievement_percentage;
+    const cls = pct >= 100 ? 't-good' : (pct >= 50 ? 't-warn' : 't-bad');
+    const widthPct = Math.min(pct, 100);
+
     return `
       <div class="aop-row">
         <div>
-          <div class="aop-name">${p.AOP_Product_Disp}</div>
-          <span class="aop-unit-tag">${p.AOP_Unit}</span>
+          <div class="aop-name">${p.product}</div>
+          <span class="aop-unit-tag">${p.unit}</span>
         </div>
         <div class="aop-track">
           <div class="aop-fill ${cls}" style="width:${widthPct}%"></div>
-          <div class="aop-marker" style="left:${markerPos}%"></div>
         </div>
-        <div class="aop-pct ${cls}">${pct===null?'no target':fmtPct(pct,0)}</div>
-        <div class="aop-val">${p.Actual_Lakh.toFixed(0)} / ${p.Prorated_Q1_Lakh.toFixed(0)} L</div>
+        <div class="aop-pct ${cls}">${fmtPct(pct, 0)}</div>
+        <div class="aop-val">${fmtNum(p.actual)} / ${fmtNum(p.target)}</div>
       </div>
     `;
   }).join('');
 }
 
-function renderAopUnitChart(){
-  const units = DASH.aop_units;
-  const ctx = document.getElementById('chartAopUnit');
-  if(charts.aopUnit) charts.aopUnit.destroy();
-  charts.aopUnit = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels: units.map(u=>u.AOP_Unit),
-      datasets:[
-        { label:'FY Target', data: units.map(u=>u.AOP_Target_Lakh), backgroundColor:'rgba(170,184,194,0.18)', borderColor:'#3a4a58', borderWidth:1, borderRadius:3, barThickness:22 },
-        { label:'Actual to Date', data: units.map(u=>u.Actual_Lakh), backgroundColor: COPPER_BRIGHT, borderRadius:3, barThickness:22 }
-      ]
-    },
-    options:{
-      indexAxis:'y',
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{ labels:{color:TEXT_1, font:{size:10.5}} },
-        tooltip:{
-          backgroundColor:'#1a232c', borderColor:LINE, borderWidth:1, titleColor:'#eef2f5', bodyColor:'#aab8c2',
-          callbacks:{ label:(c)=> ' '+c.dataset.label+': '+fmtNum(c.parsed.x)+' L' }
-        }
-      },
-      scales:{
-        x:{ grid:{color:'#1f2a34'}, ticks:{ callback:(v)=>fmtNum(v), color:TEXT_2, font:{size:10} }, title:{display:true, text:'\u20B9 Lakh', color:TEXT_2, font:{size:10}} },
-        y:{ grid:{display:false}, ticks:{color:TEXT_1, font:{size:11}} }
-      }
-    }
-  });
-}
-
-// ===================== Master render =====================
-function render(){
-  const rows = getFiltered();
+// ===================== Master Fetch & Render =====================
+async function render() {
   updateActiveFilters();
-  renderKpiGrid(rows);
-  renderTrendChart(rows);
-  renderMoMChart();
-  renderProducts(rows);
-  renderOffices(rows);
-  renderRegions(rows);
-  renderAop();
-  renderAopUnitChart();
+  const query = buildQueryString();
+
+  try {
+    const [kpis, trend, products, locations, aop] = await Promise.all([
+      fetch('/api/kpis' + query).then(r => r.json()),
+      fetch('/api/sales-trend' + query).then(r => r.json()),
+      fetch('/api/products-revenue' + query).then(r => r.json()),
+      fetch('/api/sales-by-location' + query).then(r => r.json()),
+      fetch('/api/aop-achievement' + query).then(r => r.json())
+    ]);
+
+    renderKpiGrid(kpis);
+    renderTrendChart(trend);
+    renderProducts(products);
+    renderLocations(locations);
+    renderAop(aop);
+
+    // (Note: The MoM chart was removed from dynamic rendering since the API returns absolute trend values.
+    // You can adapt the Trend API later if you want strict MoM calculations overlaid).
+
+  } catch (error) {
+    console.error("Failed to fetch dashboard data:", error);
+  }
 }
 
 // ===================== Init =====================
 function init(){
-  document.getElementById('periodChip').innerHTML = `Period: <b>${DASH.kpi_summary.date_min} &ndash; ${DASH.kpi_summary.date_max}</b> &middot; FY 2026&ndash;27, Q1`;
-  document.getElementById('footerRight').textContent = `Generated for analysis purposes B7 ${DASH.raw.length.toLocaleString('en-IN')} line items, ${DASH.kpi_summary.total_invoices.toLocaleString('en-IN')} invoices`;
+  document.getElementById('periodChip').innerHTML = `Period: <b>FY 2026&ndash;27</b>`;
   initSlicers();
   render();
 }
 
 init();
-
 </script>
 </body>
 </html>
