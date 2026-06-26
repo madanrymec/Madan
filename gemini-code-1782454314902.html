@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> Sales Performance </title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg-0:#0d1117;
+    --bg-1:#141b22;
+    --bg-2:#1a232c;
+    --bg-3:#212d38;
+    --line:#2a3744;
+    --line-soft:#1f2a34;
+    --copper:#c87d3f;
+    --copper-bright:#e6985a;
+    --copper-dim:#8a5a34;
+    --teal:#3fb8a6;
+    --good:#5ec98f;
+    --warn:#e0a83e;
+    --bad:#d96a5a;
+    --text-0:#eef2f5;
+    --text-1:#aab8c2;
+    --text-2:#6b7b88;
+    --mono:'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+    --sans:'Inter', -apple-system, sans-serif;
+    --disp:'Libre Franklin', 'Inter', sans-serif;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Libre+Franklin:wght@600;700;800;900&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:var(--bg-0);color:var(--text-0);font-family:var(--sans);}
+  body{min-height:100vh;}
+
+  ::selection{background:var(--copper-dim);color:#fff;}
+
+  a{color:var(--copper-bright);}
+
+  /* ---------- Scaffold ---------- */
+  .frame{ max-width:1480px; margin:0 auto; padding:0 28px 60px; }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, var(--bg-1), var(--bg-0));
+    padding:22px 28px 18px; position:sticky; top:0; z-index:50; backdrop-filter:blur(6px);
+  }
+  .topbar-inner{
+    max-width:1480px; margin:0 auto; display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap;
+  }
+  .brand-block{display:flex; align-items:center; gap:14px;}
+  .brand-mark{
+    width:40px;height:40px; border:1.5px solid var(--copper); border-radius:4px; display:flex;align-items:center;justify-content:center;
+    position:relative; background: repeating-linear-gradient(45deg, var(--copper-dim) 0 2px, transparent 2px 7px);
+    background-size:100% 100%; flex-shrink:0;
+  }
+  .brand-mark::after{ content:''; position:absolute; inset:6px; border:1px solid var(--bg-0); background:var(--bg-1); }
+  .brand-mark span{ position:relative; z-index:2; font-family:var(--mono); font-weight:700; font-size:13px; color:var(--copper-bright); }
+  .brand-text h1{ font-family:var(--disp); font-size:20px; font-weight:800; letter-spacing:-0.01em; line-height:1.1; }
+  
+  .period-chip{ font-family:var(--mono); font-size:11.5px; color:var(--text-1); background:var(--bg-2); border:1px solid var(--line); padding:7px 12px; border-radius:3px; }
+  .period-chip b{color:var(--copper-bright); font-weight:600;}
+
+  /* ---------- Slicer bar ---------- */
+  .slicers{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; align-items:center; }
+  .slicer-label{ font-family:var(--mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-2); margin-right:2px; }
+  select.slicer{
+    background:var(--bg-2); border:1px solid var(--line); color:var(--text-0); font-family:var(--sans); font-size:12.5px; font-weight:500;
+    padding:8px 30px 8px 12px; border-radius:3px; appearance:none; cursor:pointer; min-width:140px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0L5 6L10 0' fill='none' stroke='%236b7b88' stroke-width='1.4'/></svg>");
+    background-repeat:no-repeat; background-position:right 12px center; transition:border-color .15s;
+  }
+  select.slicer:hover{border-color:var(--copper-dim);}
+  select.slicer:focus{outline:2px solid var(--copper); outline-offset:1px;}
+
+  #resetBtn{ background:transparent; border:1px solid var(--line); color:var(--text-2); font-family:var(--mono); font-size:11px; padding:8px 13px; border-radius:3px; cursor:pointer; transition:all .15s; }
+  #resetBtn:hover{border-color:var(--bad); color:var(--bad);}
+
+  .active-filters{ font-family:var(--mono); font-size:11px; color:var(--copper-bright); margin-top:10px; min-height:14px; }
+
+  /* ---------- Layouts & Cards ---------- */
+  .section{margin-top:42px;}
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px; border-bottom:1px solid var(--line-soft); padding-bottom:10px; }
+  .section-head h2{ font-family:var(--disp); font-size:15px; font-weight:700; text-transform:uppercase; display:flex; align-items:center; gap:10px; }
+  .section-head h2 .idx{ font-family:var(--mono); color:var(--copper); font-size:13px; }
+  .section-head .note{ font-family:var(--mono); font-size:11px; color:var(--text-2); }
+
+  .kpi-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .kpi-card{ background:var(--bg-1); padding:20px 18px; }
+  .kpi-card .label{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase; color:var(--text-2); margin-bottom:10px; }
+  .kpi-card .value{ font-family:var(--disp); font-size:27px; font-weight:800; }
+  .kpi-card .value .unit{font-size:13px; color:var(--text-2); font-weight:600; margin-left:3px;}
+  .kpi-card .delta{ font-family:var(--mono); font-size:11px; margin-top:9px; color:var(--text-2); }
+
+  .grid-2{display:grid; grid-template-columns:1.4fr 1fr; gap:16px;}
+  .panel{ background:var(--bg-1); border:1px solid var(--line); border-radius:6px; padding:20px; }
+  .panel-title{ font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--text-1); margin-bottom:4px; display:flex; justify-content:space-between; }
+  .panel-sub{ font-family:var(--mono); font-size:10.5px; color:var(--text-2); margin-bottom:14px; }
+  .chart-wrap{position:relative; width:100%;}
+
+  /* ---------- Tables ---------- */
+  table.data-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.data-table th{ text-align:left; font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--text-2); padding:8px 10px; border-bottom:1px solid var(--line); font-weight:500; }
+  table.data-table td{ padding:9px 10px; border-bottom:1px solid var(--line-soft); color:var(--text-1); font-weight:500; }
+  table.data-table th.num, table.data-table td.num{text-align:right;}
+  table.data-table td.num{font-family:var(--mono); color:var(--text-0);}
+  .rank-bar-bg{position:relative;}
+  .rank-bar{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, rgba(200,125,63,0.18), rgba(200,125,63,0.05)); z-index:0; }
+  .name-cell{position:relative; z-index:1;}
+
+  /* ---------- AOP progress bars ---------- */
+  .aop-row{ display:grid; grid-template-columns:170px 1fr 90px 70px; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid var(--line-soft); }
+  .aop-name{font-size:12.5px; font-weight:600; color:var(--text-0);}
+  .aop-unit-tag{font-family:var(--mono); font-size:9.5px; color:var(--text-2); display:block; margin-top:1px;}
+  .aop-track{ position:relative; height:18px; background:var(--bg-3); border-radius:3px; overflow:hidden; }
+  .aop-fill{ position:absolute; left:0; top:0; bottom:0; transition:width .6s; }
+  .aop-fill.t-good{background:linear-gradient(90deg, #3a8f64, var(--good));}
+  .aop-fill.t-warn{background:linear-gradient(90deg, #a5781f, var(--warn));}
+  .aop-fill.t-bad{background:linear-gradient(90deg, #9c4636, var(--bad));}
+  .aop-pct{font-family:var(--mono); font-size:12.5px; font-weight:600; text-align:right;}
+  .aop-pct.t-good{color:var(--good);} .aop-pct.t-warn{color:var(--warn);} .aop-pct.t-bad{color:var(--bad);}
+  .aop-val{font-family:var(--mono); font-size:11px; color:var(--text-2); text-align:right;}
+
+  .footer{ margin-top:50px; padding-top:18px; border-top:1px solid var(--line-soft); font-family:var(--mono); font-size:10.5px; color:var(--text-2); }
+</style>
+</head>
+<body>
+<a href="{{ url_for('home') }}" style="display: none;">Sales Dashboard</a>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-block">
+      <div class="brand-mark"><span> <img src="static/images/kec.jpg" style="height: 8vh; object-fit:contain; opacity:0.8;"> </span></div>
+      <div class="brand-text">
+        <h1>Sales Dashboard</h1>
+        <div class="sub">Performance Analytics</div>
+      </div>
+    </div>
+    <div class="period-chip" id="periodChip">Active Period: <b>Dynamic</b></div>
+  </div>
+  <div class="slicers">
+    <span class="slicer-label">Filter</span>
+    <select class="slicer" id="f-fin-year"><option value="">All Financial Years</option></select>
+    <select class="slicer" id="f-month"><option value="">All Months</option></select>
+    <select class="slicer" id="f-region"><option value="">All Regions</option></select>
+    <select class="slicer" id="f-office"><option value="">All Sales Offices</option></select>
+    <select class="slicer" id="f-product"><option value="">All Products</option></select>
+    <button id="resetBtn">&times; Reset filters</button>
+  </div>
+  <div class="active-filters" id="activeFilters"></div>
+</div>
+
+<div class="frame">
+  <div class="section">
+    <div class="section-head">
+      <h2><span class="idx">01</span> Total Sales &amp; Revenue</h2>
+    </div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2><span class="idx">02</span> Sales Growth Over Time</h2>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Net Revenue Trend <span id="trendTotalTag" style="color:var(--copper-bright); font-family:var(--mono); font-weight:600;"></span></div>
+        <div class="panel-sub">Aggregated invoiced value (&#8377;)</div>
+        <div class="chart-wrap" style="height:300px;"><canvas id="chartTrend"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Month-on-Month Growth</div>
+        <div class="panel-sub">Net revenue &amp; % change vs. prior month</div>
+        <div class="chart-wrap" style="height:300px;"><canvas id="chartMoM"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2><span class="idx">03</span> Top Performing Products</h2>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Revenue Contribution by Product Line</div>
+        <div class="panel-sub">Share of total net revenue, selected filters</div>
+        <div class="chart-wrap" style="height:340px;"><canvas id="chartProducts"></canvas></div>
+      </div>
+      <div class="panel">
+        <table class="data-table" id="productTable">
+          <thead><tr><th>Product</th><th class="num">Net Revenue</th><th class="num">Qty</th><th class="num">Share</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2><span class="idx">04</span> Sales by Sales Office</h2>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Top Sales Offices by Net Revenue</div>
+        <div class="panel-sub">Bar length = revenue, sorted descending</div>
+        <div class="chart-wrap" style="height:380px;"><canvas id="chartOffices"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Revenue by Region</div>
+        <div class="panel-sub">Geographic roll-up of sales offices</div>
+        <div class="chart-wrap" style="height:380px;"><canvas id="chartRegions"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2><span class="idx">05</span> Sales Achieved vs. AOP (Target)</h2>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Achievement by Product / Unit</div>
+        <div class="panel-sub">Bar = actual achievement against target</div>
+        <div id="aopList"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Actual vs Target by Unit</div>
+        <div class="panel-sub">Aggregated performance by business unit</div>
+        <div class="chart-wrap" style="height:430px;"><canvas id="chartAopUnit"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span id="footerLeft">Kirloskar Electric Company Ltd - Generated for Analysis</span>
+  </div>
+</div>
+
+<script>
+// ===================== Helpers =====================
+const fmtINR = (v) => {
+  if (!v || isNaN(v)) return '0';
+  const abs = Math.abs(v);
+  if (abs >= 1e7) return (v/1e7).toFixed(2) + ' Cr';
+  if (abs >= 1e5) return (v/1e5).toFixed(2) + ' L';
+  if (abs >= 1e3) return (v/1e3).toFixed(1) + ' K';
+  return parseFloat(v).toFixed(0);
+};
+const fmtINRFull = (v) => '\u20B9' + Math.round(v || 0).toLocaleString('en-IN');
+const fmtNum = (v) => Math.round(v || 0).toLocaleString('en-IN');
+const fmtPct = (v, d=1) => (!v || isNaN(v)) ? '0%' : v.toFixed(d) + '%';
+
+const COPPER_BRIGHT = '#e6985a';
+const TEAL = '#3fb8a6';
+const TEXT_1 = '#aab8c2';
+const TEXT_2 = '#6b7b88';
+const LINE = '#2a3744';
+const PALETTE = ['#c87d3f','#3fb8a6','#7a9cc6','#e0a83e','#9b7fc4','#5ec98f','#d96a5a','#6b8fae','#c7a76b','#5a8f9c','#a87fae','#8aa86b'];
+
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.color = TEXT_1;
+Chart.defaults.font.size = 11;
+
+// ===================== Filter State =====================
+const state = { fin_year:'', month:'', region:'', office:'', product:'' };
+let charts = {};
+
+function buildQueryString() {
+  const params = new URLSearchParams();
+  if (state.fin_year) params.append('fin_year', state.fin_year);
+  if (state.month) params.append('month', state.month);
+  if (state.region) params.append('region', state.region);
+  if (state.office) params.append('sales_office', state.office);
+  if (state.product) params.append('product', state.product);
+  return '?' + params.toString();
+}
+
+function updateActiveFilters(){
+  const labels = [];
+  if(state.fin_year) labels.push('FY: '+state.fin_year);
+  if(state.month) labels.push('Month: '+state.month);
+  if(state.region) labels.push('Region: '+state.region);
+  if(state.office) labels.push('Office: '+state.office);
+  if(state.product) labels.push('Product: '+state.product);
+
+  const el = document.getElementById('activeFilters');
+  el.textContent = labels.length ? ('Active Filters:  ' + labels.join('  |  ')) : '';
+}
+
+// ===================== Dynamic Slicer Loading =====================
+async function loadFilters() {
+  try {
+    const res = await fetch('/api/filters');
+    const data = await res.json();
+
+    // Populate Dynamic Lists from API
+    if (data.fin_years) fillSelect('f-fin-year', data.fin_years, 'All Financial Years');
+    if (data.regions) fillSelect('f-region', data.regions, 'All Regions');
+    if (data.offices) fillSelect('f-office', data.offices, 'All Sales Offices');
+    
+    // Note: If you add products to your backend /api/filters route in the future, it will automatically populate here:
+    if (data.products && data.products.length > 0) {
+        fillSelect('f-product', data.products, 'All Products');
+    }
+
+    // Standard static months (if backend doesn't provide them)
+    const months = data.months || ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    fillSelect('f-month', months, 'All Months');
+
+  } catch (error) {
+    console.error("Failed to load filters:", error);
+  }
+}
+
+function fillSelect(id, values, defaultLabel) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = `<option value="">${defaultLabel}</option>`; // Reset
+  
+  // Sort alphabetically and append
+  [...new Set(values)].sort().forEach(v => {
+    if (v) {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+function initSlicers(){
+  document.getElementById('f-fin-year').addEventListener('change', e => { state.fin_year = e.target.value; render(); });
+  document.getElementById('f-month').addEventListener('change', e => { state.month = e.target.value; render(); });
+  document.getElementById('f-region').addEventListener('change', e => { state.region = e.target.value; render(); });
+  document.getElementById('f-office').addEventListener('change', e => { state.office = e.target.value; render(); });
+  document.getElementById('f-product').addEventListener('change', e => { state.product = e.target.value; render(); });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.fin_year = ''; state.month = ''; state.region = ''; state.office = ''; state.product = '';
+    ['f-fin-year','f-month','f-region','f-office','f-product'].forEach(id => document.getElementById(id).value = '');
+    render();
+  });
+}
+
+// ===================== Render Functions =====================
+function renderKpiGrid(data) {
+  const cards = [
+    {label:'Net Revenue', value: '\u20B9'+fmtINR(data.overall_sales), extra: 'Gross to net realisation'},
+    {label:'Billed Quantity', value: fmtNum(data.billed_quantity), unit:'units', extra: 'Total units shipped'},
+    {label:'Invoices Raised', value: fmtNum(data.invoices_raised), unit:'docs', extra: 'Unique billing docs'},
+    {label:'Customers Billed', value: fmtNum(data.customers_billed), unit:'accounts', extra: 'Active buyers'}
+  ];
+
+  document.getElementById('kpiGrid').innerHTML = cards.map(c => `
+    <div class="kpi-card">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}${c.unit ? `<span class="unit">${c.unit}</span>` : ''}</div>
+      <div class="delta flat">${c.extra}</div>
+    </div>
+  `).join('');
+}
+
+function renderTrendAndMoMCharts(data) {
+  const dates = data.map(d => d.month_year);
+  const vals = data.map(d => parseFloat(d.total_revenue || 0));
+  const total = vals.reduce((a, b) => a + b, 0);
+
+  // --- 1. Net Revenue Trend ---
+  document.getElementById('trendTotalTag').textContent = dates.length ? ('Σ ' + '\u20B9'+fmtINR(total)) : '';
+  if(charts.trend) charts.trend.destroy();
+  charts.trend = new Chart(document.getElementById('chartTrend'), {
+    type:'line',
+    data: {
+      labels: dates,
+      datasets:[{
+        label:'Net Revenue', data: vals,
+        borderColor: COPPER_BRIGHT, backgroundColor: 'rgba(200,125,63,0.12)',
+        fill:true, tension:0.25, pointRadius:4, borderWidth:2
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, plugins: { legend:{display:false} },
+      scales: { x:{grid:{color:'#1f2a34'}}, y:{grid:{color:'#1f2a34'}, ticks:{callback:v=>fmtINR(v)}} }
+    }
+  });
+
+  // --- 2. Month-on-Month Growth Calculation ---
+  const momPct = vals.map((val, i) => i === 0 || vals[i-1] === 0 ? null : ((val - vals[i-1]) / vals[i-1] * 100));
+  
+  if(charts.mom) charts.mom.destroy();
+  charts.mom = new Chart(document.getElementById('chartMoM'), {
+    data: {
+      labels: dates,
+      datasets:[
+        { type:'bar', label:'Net Revenue', data: vals, backgroundColor: 'rgba(200,125,63,0.55)', borderRadius:3, yAxisID:'y' },
+        { type:'line', label:'MoM %', data: momPct, borderColor: TEAL, backgroundColor: TEAL, borderWidth:2, pointRadius:4, yAxisID:'y1', spanGaps:true }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, plugins: { legend:{labels:{color:TEXT_1}} },
+      scales: {
+        x: { grid:{display:false} },
+        y: { position:'left', grid:{color:'#1f2a34'}, ticks:{callback:v=>fmtINR(v)} },
+        y1: { position:'right', grid:{display:false}, ticks:{callback:v=>v.toFixed(0)+'%', color:TEAL} }
+      }
+    }
+  });
+}
+
+function renderProducts(data) {
+  const totalNet = data.reduce((s, e) => s + parseFloat(e.revenue || 0), 0);
+
+  if(charts.products) charts.products.destroy();
+  charts.products = new Chart(document.getElementById('chartProducts'), {
+    type:'doughnut',
+    data: {
+      labels: data.map(d => d.mapped_product),
+      datasets: [{
+        data: data.map(d => parseFloat(d.revenue)),
+        backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
+        borderColor: '#141b22', borderWidth:2
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, cutout:'62%', plugins: { legend:{position:'right', labels:{color:TEXT_1}} } }
+  });
+
+  const tbody = document.querySelector('#productTable tbody');
+  const maxNet = data[0] ? parseFloat(data[0].revenue) : 1;
+  tbody.innerHTML = data.map(e => `
+    <tr>
+      <td><div class="rank-bar-bg"><div class="rank-bar" style="width:${(e.revenue/maxNet*100).toFixed(1)}%"></div><div class="name-cell">${e.mapped_product}</div></div></td>
+      <td class="num">${fmtINRFull(e.revenue)}</td>
+      <td class="num">${fmtNum(e.quantity)}</td>
+      <td class="num">${(e.revenue/totalNet*100).toFixed(1)}%</td>
+    </tr>
+  `).join('') || `<tr><td colspan="4" style="text-align:center;">No data available</td></tr>`;
+}
+
+function renderLocations(data) {
+  const offices = data.offices.slice(0, 12);
+  if(charts.offices) charts.offices.destroy();
+  charts.offices = new Chart(document.getElementById('chartOffices'), {
+    type:'bar',
+    data: { labels: offices.map(o => o.Sales_office), datasets: [{ data: offices.map(o => o.revenue), backgroundColor: COPPER_BRIGHT, borderRadius:3 }] },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  });
+
+  const regions = data.regions;
+  if(charts.regions) charts.regions.destroy();
+  charts.regions = new Chart(document.getElementById('chartRegions'), {
+    type:'bar',
+    data: { labels: regions.map(r => r.Sales_Region_Name), datasets: [{ data: regions.map(r => r.revenue), backgroundColor: regions.map((_,i) => PALETTE[i%PALETTE.length]), borderRadius:4 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  });
+}
+
+function renderAop(data) {
+  // 1. Render Progress Bars List
+  document.getElementById('aopList').innerHTML = data.map(p => {
+    const pct = p.achievement_percentage;
+    const cls = pct >= 100 ? 't-good' : (pct >= 50 ? 't-warn' : 't-bad');
+    return `
+      <div class="aop-row">
+        <div><div class="aop-name">${p.product}</div><span class="aop-unit-tag">${p.unit}</span></div>
+        <div class="aop-track"><div class="aop-fill ${cls}" style="width:${Math.min(pct, 100)}%"></div></div>
+        <div class="aop-pct ${cls}">${fmtPct(pct, 0)}</div>
+        <div class="aop-val">${fmtNum(p.actual)} / ${fmtNum(p.target)}</div>
+      </div>
+    `;
+  }).join('');
+
+  // 2. Aggregate Data by Unit for Chart
+  const unitMap = {};
+  data.forEach(item => {
+    if(!unitMap[item.unit]) unitMap[item.unit] = { target:0, actual:0 };
+    unitMap[item.unit].target += parseFloat(item.target || 0);
+    unitMap[item.unit].actual += parseFloat(item.actual || 0);
+  });
+  
+  const unitLabels = Object.keys(unitMap);
+  const targets = unitLabels.map(u => unitMap[u].target);
+  const actuals = unitLabels.map(u => unitMap[u].actual);
+
+  if(charts.aopUnit) charts.aopUnit.destroy();
+  charts.aopUnit = new Chart(document.getElementById('chartAopUnit'), {
+    type:'bar',
+    data: {
+      labels: unitLabels,
+      datasets:[
+        { label:'Target', data: targets, backgroundColor:'rgba(170,184,194,0.18)', borderColor:'#3a4a58', borderWidth:1, borderRadius:3 },
+        { label:'Actual', data: actuals, backgroundColor: COPPER_BRIGHT, borderRadius:3 }
+      ]
+    },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins: { legend:{labels:{color:TEXT_1}} }, scales: { x:{grid:{color:'#1f2a34'}}, y:{grid:{display:false}} } }
+  });
+}
+
+// ===================== Master Fetch & Render =====================
+async function render() {
+  updateActiveFilters();
+  const query = buildQueryString();
+
+  try {
+    const [kpis, trend, products, locations, aop] = await Promise.all([
+      fetch('/api/kpis' + query).then(r => r.json()),
+      fetch('/api/sales-trend' + query).then(r => r.json()),
+      fetch('/api/products-revenue' + query).then(r => r.json()),
+      fetch('/api/sales-by-location' + query).then(r => r.json()),
+      fetch('/api/aop-achievement' + query).then(r => r.json())
+    ]);
+
+    renderKpiGrid(kpis);
+    renderTrendAndMoMCharts(trend);
+    renderProducts(products);
+    renderLocations(locations);
+    renderAop(aop);
+  } catch (error) {
+    console.error("Failed to fetch dashboard data:", error);
+  }
+}
+
+// ===================== Initialization =====================
+async function init(){
+  await loadFilters(); // Wait for dropdowns to be populated
+  initSlicers();       // Hook up event listeners
+  render();            // Initial Data Fetch
+}
+
+init();
+</script>
+</body>
+</html>
