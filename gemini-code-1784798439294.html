@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Management Portal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding-bottom: 50px; }
+        
+        .header-card {
+            background: white; padding: 25px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; margin: 30px 0;
+        }
+
+        .logo-box {
+            display: inline-block; margin-top: 15px; padding: 12px 25px;
+            background: #ffffff; border: 2px dashed #0d6efd; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .logo-box:hover { background: #eef5ff; transform: translateY(-2px); }
+        .logo-box img { max-height: 60px; width: auto; }
+
+        .upload-card {
+            background: white; padding: 30px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: none; margin-bottom: 40px;
+        }
+
+        .dashboard-container {
+            background: white; padding: 25px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        /* Status Badges */
+        .badge-uploaded { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.85em; }
+        .badge-na { background: #e9ecef; color: #6c757d; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.85em; }
+
+        /* Eye Icon Action Buttons */
+        .btn-view-doc {
+            color: #0d6efd;
+            background: #eef5ff;
+            border: 1px solid #b6d4fe;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        .btn-view-doc:hover {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .modal-header { background: #0d6efd; color: white; }
+        .modal-header .btn-close { filter: invert(1); }
+        
+        .doc-field-box {
+            background: #f8f9fa; border: 1px solid #e9ecef; padding: 12px; border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- 1. HEADER WITH CLICKABLE LOGO -->
+        <div class="header-card">
+            <h2 class="fw-bold text-dark">Company Document Upload Portal</h2>
+            <p class="text-secondary mb-2">Click the logo below to enter machine serial number to upload, view, re-upload, or delete documents.</p>
+            
+            <div class="logo-box" onclick="openVerificationModal()">
+                <img src="static/images/img.png" alt="Company Logo" onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/337/337946.png';">
+                <div class="mt-2 text-primary fw-semibold small"><i class="fa-solid fa-pen-to-square me-1"></i> Manage Documents</div>
+            </div>
+        </div>
+
+        <!-- 2. UPLOAD / VIEW / RE-UPLOAD / DELETE SECTION -->
+        <div class="upload-card" id="uploadSection">
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+                <h4 class="fw-bold text-primary mb-0"><i class="fa-solid fa-cloud-arrow-up me-2"></i>Document Management</h4>
+                <button class="btn btn-sm btn-outline-secondary" onclick="closeUploadSection()"><i class="fa-solid fa-xmark me-1"></i> Close</button>
+            </div>
+
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-secondary">Serial Number</label>
+                        <input type="text" id="uploadSerialNo" name="serial_number" class="form-control bg-light" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-secondary">Invoice Number</label>
+                        <input type="text" id="uploadInvoiceNo" class="form-control bg-light" disabled>
+                    </div>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-3 fs-6 text-uppercase">Attach, View, Re-Upload, or Delete Documents</h5>
+                
+                <div class="row g-3">
+                    <!-- 1. Test Certificate -->
+                    <div class="col-md-4">
+                        <div class="doc-field-box">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small fw-bold mb-0">1. Test Certificate</label>
+                                <div id="status_test_certificate"></div>
+                            </div>
+                            <input type="file" class="form-control form-control-sm mb-2" name="test_certificate" title="Choose file to upload or re-upload">
+                            <div id="delete_btn_test_certificate"></div>
+                        </div>
+                    </div>
+
+                    <!-- 2. User Manual -->
+                    <div class="col-md-4">
+                        <div class="doc-field-box">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small fw-bold mb-0">2. User Manual</label>
+                                <div id="status_user_manual"></div>
+                            </div>
+                            <input type="file" class="form-control form-control-sm mb-2" name="user_manual" title="Choose file to upload or re-upload">
+                            <div id="delete_btn_user_manual"></div>
+                        </div>
+                    </div>
+
+                    <!-- 3. GI Tag Photo -->
+                    <div class="col-md-4">
+                        <div class="doc-field-box">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small fw-bold mb-0">3. GI Tag Photo</label>
+                                <div id="status_gi_tag_photo"></div>
+                            </div>
+                            <input type="file" class="form-control form-control-sm mb-2" name="gi_tag_photo" title="Choose file to upload or re-upload">
+                            <div id="delete_btn_gi_tag_photo"></div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Warranty Card -->
+                    <div class="col-md-4">
+                        <div class="doc-field-box">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small fw-bold mb-0">4. Warranty Card</label>
+                                <div id="status_warranty_card"></div>
+                            </div>
+                            <input type="file" class="form-control form-control-sm mb-2" name="warranty_card" title="Choose file to upload or re-upload">
+                            <div id="delete_btn_warranty_card"></div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Drawing Sheet -->
+                    <div class="col-md-4">
+                        <div class="doc-field-box">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small fw-bold mb-0">5. Drawing Sheet</label>
+                                <div id="status_drawing_sheet"></div>
+                            </div>
+                            <input type="file" class="form-control form-control-sm mb-2" name="drawing_sheet" title="Choose file to upload or re-upload">
+                            <div id="delete_btn_drawing_sheet"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-end">
+                    <button type="submit" id="saveBtn" class="btn btn-success px-4 py-2 fw-semibold">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 3. DASHBOARD SUMMARY TABLE (With View Eye Icons) -->
+        <div class="dashboard-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold text-dark mb-0">Documents Upload Status Dashboard</h4>
+                
+                <form class="d-flex gap-2" method="GET" action="/company">
+                    <input type="text" name="search" class="form-control form-control-sm" style="width: 250px;" placeholder="Search Serial or Invoice #" value="{{ search_query }}">
+                    <button type="submit" class="btn btn-sm btn-primary">Search</button>
+                    {% if search_query %}
+                        <a href="/company" class="btn btn-sm btn-secondary">Clear</a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <p class="text-muted small">Total Records: <strong>{{ total_records }}</strong> (Uploaded records sorted to top)</p>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-primary text-uppercase small">
+                        <tr>
+                            <th>Serial #</th>
+                            <th>Invoice #</th>
+                            <th>Test Cert</th>
+                            <th>User Manual</th>
+                            <th>GI Tag Photo</th>
+                            <th>Warranty Card</th>
+                            <th>Drawing Sheet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in machines %}
+                        <tr>
+                            <td class="fw-bold text-primary">{{ row.serial_number }}</td>
+                            <td>{{ row.invoice_number }}</td>
+                            
+                            <!-- Test Certificate -->
+                            <td>
+                                {% if row.test_certificate %}
+                                    <span class="badge-uploaded">Uploaded</span>
+                                    <a href="/view/{{ row.test_certificate }}" target="_blank" class="btn-view-doc ms-1" title="View Document in New Window">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="badge-na">NA</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- User Manual -->
+                            <td>
+                                {% if row.user_manual %}
+                                    <span class="badge-uploaded">Uploaded</span>
+                                    <a href="/view/{{ row.user_manual }}" target="_blank" class="btn-view-doc ms-1" title="View Document in New Window">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="badge-na">NA</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- GI Tag Photo -->
+                            <td>
+                                {% if row.gi_tag_photo %}
+                                    <span class="badge-uploaded">Uploaded</span>
+                                    <a href="/view/{{ row.gi_tag_photo }}" target="_blank" class="btn-view-doc ms-1" title="View Document in New Window">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="badge-na">NA</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Warranty Card -->
+                            <td>
+                                {% if row.warranty_card %}
+                                    <span class="badge-uploaded">Uploaded</span>
+                                    <a href="/view/{{ row.warranty_card }}" target="_blank" class="btn-view-doc ms-1" title="View Document in New Window">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="badge-na">NA</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Drawing Sheet -->
+                            <td>
+                                {% if row.drawing_sheet %}
+                                    <span class="badge-uploaded">Uploaded</span>
+                                    <a href="/view/{{ row.drawing_sheet }}" target="_blank" class="btn-view-doc ms-1" title="View Document in New Window">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="badge-na">NA</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No records found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <a href="/company?page={{ page - 1 }}&search={{ search_query }}" class="btn btn-sm btn-outline-primary {% if page <= 1 %}disabled{% endif %}">&laquo; Previous</a>
+                <span class="small text-muted">Page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong></span>
+                <a href="/company?page={{ page + 1 }}&search={{ search_query }}" class="btn btn-sm btn-outline-primary {% if page >= total_pages %}disabled{% endif %}">Next &raquo;</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 4. SERIAL VERIFICATION MODAL -->
+    <div class="modal fade" id="snModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold"><i class="fa-solid fa-magnifying-glass me-2"></i>Enter Machine Serial Number</h5>
+                    <button type="button" class="btn-close" onclick="closeModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="serialInput" class="form-label fw-bold text-secondary small">Serial Number</label>
+                        <input type="text" class="form-control" id="serialInput" placeholder="e.g. SN-98765">
+                        <div id="errorMsg" class="text-danger small mt-2 d-none">Please enter a valid serial number.</div>
+                    </div>
+                    <button type="button" class="btn btn-success w-100 py-2 fw-semibold" onclick="verifyAndFetchMachine()">
+                        Verify Machine Record
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let bsModal;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            bsModal = new bootstrap.Modal(document.getElementById('snModal'));
+        });
+
+        function openVerificationModal() {
+            document.getElementById('serialInput').value = '';
+            document.getElementById('errorMsg').classList.add('d-none');
+            bsModal.show();
+        }
+
+        function closeModal() {
+            if (bsModal) bsModal.hide();
+        }
+
+        function closeUploadSection() {
+            document.getElementById('uploadSection').style.display = 'none';
+        }
+
+        async function verifyAndFetchMachine() {
+            const serial = document.getElementById('serialInput').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (!serial) {
+                errorMsg.innerText = "Please enter a valid serial number.";
+                errorMsg.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/get-machine-details?serial_number=${encodeURIComponent(serial)}`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    errorMsg.classList.add('d-none');
+                    bsModal.hide();
+
+                    document.getElementById('uploadSection').style.display = 'block';
+                    document.getElementById('uploadSerialNo').value = result.data.serial_number;
+                    document.getElementById('uploadInvoiceNo').value = result.data.invoice_number;
+
+                    const docs = ['test_certificate', 'user_manual', 'gi_tag_photo', 'warranty_card', 'drawing_sheet'];
+                    docs.forEach(doc => {
+                        const statusDiv = document.getElementById(`status_${doc}`);
+                        const deleteBtnDiv = document.getElementById(`delete_btn_${doc}`);
+
+                        if (result.data[doc]) {
+                            // Show Uploaded Badge + View Eye Icon
+                            statusDiv.innerHTML = `
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="badge-uploaded">Uploaded</span>
+                                    <a href="/view/${result.data[doc]}" target="_blank" class="btn-view-doc" title="View Document in New Window">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                </div>
+                            `;
+                            deleteBtnDiv.innerHTML = `
+                                <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="deleteDocument('${result.data.serial_number}', '${doc}')">
+                                    <i class="fa-solid fa-trash me-1"></i> Delete File
+                                </button>
+                            `;
+                        } else {
+                            statusDiv.innerHTML = `<span class="badge-na">NA</span>`;
+                            deleteBtnDiv.innerHTML = '';
+                        }
+                    });
+
+                    document.getElementById('uploadSection').scrollIntoView({ behavior: 'smooth' });
+
+                } else {
+                    errorMsg.innerText = result.message || "Serial number not found.";
+                    errorMsg.classList.remove('d-none');
+                }
+            } catch (err) {
+                errorMsg.innerText = "Server communication error.";
+                errorMsg.classList.remove('d-none');
+            }
+        }
+
+        // Delete single file action
+        async function deleteDocument(serialNumber, docField) {
+            if (!confirm(`Are you sure you want to delete this ${docField.replace('_', ' ')}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/delete-document', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serial_number: serialNumber, doc_field: docField })
+                });
+                const result = await response.json();
+                alert(result.message);
+
+                if (result.status === 'success') {
+                    verifyAndFetchMachine();
+                }
+            } catch (err) {
+                alert("Error deleting file.");
+            }
+        }
+
+        // Submit Upload / Re-upload Form
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const saveBtn = document.getElementById('saveBtn');
+
+            let hasFile = false;
+            for (let [key, value] of formData.entries()) {
+                if (value instanceof File && value.name !== "") {
+                    hasFile = true;
+                    break;
+                }
+            }
+
+            if (!hasFile) {
+                alert("Please select at least one file to upload or replace.");
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerText = "Saving...";
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                alert(data.message);
+
+                if (data.status === 'success') {
+                    location.reload();
+                }
+            } catch (err) {
+                alert("An error occurred during upload.");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "Save Changes";
+            }
+        });
+    </script>
+</body>
+</html>
