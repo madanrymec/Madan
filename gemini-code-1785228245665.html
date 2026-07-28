@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Candidate Pipeline — Talent Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#151b2c;
+    --navy:#1c2b4a;
+    --canvas:#f3f2ee;
+    --panel:#ffffff;
+    --line:#e2ded3;
+    --line-soft:#ebe8df;
+    --teal:#0f6b5c;
+    --teal-deep:#0a4d42;
+    --teal-tint:#e7f1ee;
+    --amber:#b8862f;
+    --amber-tint:#faf1e0;
+    --plum:#6b4c8a;
+    --plum-tint:#efe9f5;
+    --muted:#767a86;
+    --danger:#a8432f;
+    --danger-tint:#f8e9e5;
+    --slate-tint:#eceef2;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(20,20,20,0.04), 0 8px 24px -12px rgba(20,20,20,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--canvas);
+    background-image:
+      radial-gradient(1200px 400px at 100% -10%, rgba(15,107,92,0.06), transparent 60%),
+      radial-gradient(800px 400px at -10% 10%, rgba(184,134,47,0.05), transparent 60%);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .shell{ max-width:1350px; margin:0 auto; padding:48px 32px 96px; }
+
+  /* ---------- Header ---------- */
+  .masthead{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    margin-bottom:28px; padding-bottom:28px; border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--teal-deep); display:flex; align-items:center; gap:8px; margin-bottom:10px;
+  }
+  .eyebrow::before{ content:""; width:7px;height:7px; background:var(--teal); border-radius:50%; display:inline-block; }
+  h1{
+    font-family:'Fraunces', serif; font-weight:500; font-size:36px; line-height:1.1; margin:0;
+    letter-spacing:-0.01em; color:var(--navy);
+  }
+  .back-link{
+    font-size:12.5px; color:var(--muted); text-decoration:none; display:inline-flex; align-items:center; gap:6px; margin-bottom:14px;
+  }
+  .back-link:hover{ color:var(--teal-deep); }
+
+  .jobcode-select{ min-width:280px; }
+  .jobcode-select label{
+    font-size:11px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:#565b68;
+    display:block; margin-bottom:8px;
+  }
+  select#jobCodeFilter{
+    width:100%; font-family:'JetBrains Mono', monospace; font-size:14px; font-weight:600; color:var(--navy);
+    background:#fff; border:1px solid var(--line); border-radius:9px; padding:12px 32px 12px 14px;
+    appearance:none; -webkit-appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23767a86' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 13px center;
+  }
+  select#jobCodeFilter:focus{ outline:none; border-color:var(--teal); box-shadow:0 0 0 3.5px rgba(15,107,92,0.12); }
+
+  /* ---------- Stat row ---------- */
+  .stats{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:28px; }
+  .stat{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .stat .n{ font-family:'Fraunces', serif; font-size:28px; color:var(--navy); font-weight:500; line-height:1; margin-bottom:6px; }
+  .stat .l{ font-size:11.5px; color:var(--muted); }
+
+  /* ---------- Table panel ---------- */
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); overflow:hidden;
+  }
+  .panel-head{
+    padding:20px 26px; border-bottom:1px solid var(--line-soft);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  .panel-title{ font-family:'Fraunces', serif; font-weight:500; font-size:19px; color:var(--navy); }
+  .panel-note{ font-size:12px; color:var(--muted); }
+  .legend{ display:flex; gap:14px; font-size:11.5px; color:var(--muted); flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .legend i{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+  .table-scroll{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; min-width:1000px; }
+  thead th{
+    text-align:left; font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+    color:#767a86; padding:12px 18px; border-bottom:1px solid var(--line-soft); background:#fbfaf7;
+    white-space:nowrap;
+  }
+  thead th.stage-col{ text-align:center; }
+  tbody td{ padding:16px 18px; border-bottom:1px solid var(--line-soft); font-size:13.5px; vertical-align:top; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:#fbfaf8; }
+  td.stage-col{ text-align:center; }
+
+  .job-id-cell{ font-family:'JetBrains Mono', monospace; font-weight:600; color:var(--teal-deep); font-size: 13px; }
+  .candidate-name{ font-weight:600; color:var(--ink); }
+  .candidate-role{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .applied-date{ color:#565b68; }
+
+  .btn-ghost{
+    display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--teal-deep);
+    background:var(--teal-tint); border:1px solid rgba(15,107,92,0.18); padding:7px 12px; border-radius:8px;
+    cursor:pointer; text-decoration:none; transition:background .15s ease; white-space:nowrap;
+  }
+  .btn-ghost:hover{ background:#dcefe9; }
+  .btn-ghost svg{ width:13px; height:13px; }
+
+  .badge{
+    display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:5px 10px; border-radius:20px;
+    white-space:nowrap;
+  }
+  .badge::before{ content:""; width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .badge.not-scheduled{ background:var(--slate-tint); color:#565b68; }
+  .badge.not-scheduled::before{ background:#9aa0ac; }
+  .badge.scheduled{ background:var(--amber-tint); color:var(--amber); }
+  .badge.scheduled::before{ background:var(--amber); }
+  .badge.completed{ background:var(--teal-tint); color:var(--teal-deep); }
+  .badge.completed::before{ background:var(--teal); }
+  .badge.selected{ background:#e4f2e9; color:#256b3f; }
+  .badge.selected::before{ background:#2f9e5c; }
+  .badge.hold{ background:var(--amber-tint); color:var(--amber); }
+  .badge.hold::before{ background:var(--amber); }
+  .badge.rejected{ background:var(--danger-tint); color:var(--danger); }
+  .badge.rejected::before{ background:var(--danger); }
+  .badge.pending{ background:var(--plum-tint); color:var(--plum); }
+  .badge.pending::before{ background:var(--plum); }
+
+  .stage-cell{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .stage-date{ font-size:10.5px; color:var(--muted); }
+  .stage-interviewer{ font-size:11px; color:#40454f; }
+  .stage-interviewer .muted{ color:#b0b3ba; font-style:italic; }
+
+  .feedback-btn{
+    background:var(--navy); color:#fff; border:none; font-size:11.5px; font-weight:600; padding:6px 11px;
+    border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+  }
+  .feedback-btn.secondary{ background:transparent; color:var(--navy); border:1px solid var(--line); }
+  .feedback-btn:hover{ opacity:0.92; }
+
+  .final-outcome{ text-align:center; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(21,27,44,0.55); backdrop-filter:blur(2px);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:24px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{
+    background:var(--panel); border-radius:16px; max-width:640px; width:100%; max-height:88vh; overflow:auto;
+    box-shadow:0 24px 60px -12px rgba(0,0,0,0.35);
+  }
+  .modal.wide{ max-width:820px; }
+  .modal-head{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    padding:22px 26px; border-bottom:1px solid var(--line-soft); position:sticky; top:0; background:var(--panel); z-index:2;
+  }
+  .modal-title{ font-family:'Fraunces', serif; font-size:20px; color:var(--navy); font-weight:500; }
+  .stage-pill{
+    display:inline-block; font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;
+    padding:3px 9px; border-radius:6px; margin-left:10px; vertical-align:middle;
+  }
+  .stage-pill.hr{ background:var(--plum-tint); color:var(--plum); }
+  .stage-pill.tech{ background:var(--teal-tint); color:var(--teal-deep); }
+  .modal-sub{ font-size:12.5px; color:var(--muted); margin-top:4px; }
+  .modal-close{
+    border:none; background:var(--slate-tint); width:30px; height:30px; border-radius:50%; cursor:pointer;
+    color:var(--ink); font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .modal-close:hover{ background:#e0e3e8; }
+  .modal-body{ padding:22px 26px 28px; }
+
+  .pdf-frame{ width:100%; height:70vh; border:1px solid var(--line); border-radius:10px; background:#f3f2ee; }
+
+  .ff-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px 18px; margin-bottom:18px; }
+  .ff-field{ display:flex; flex-direction:column; gap:7px; }
+  .ff-field.span-2{ grid-column:span 2; }
+  .ff-field label{
+    font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#565b68;
+  }
+  .ff-field input, .ff-field select, .ff-field textarea{
+    font-family:'Inter', sans-serif; font-size:14px; color:var(--ink); background:#fbfaf7;
+    border:1px solid var(--line); border-radius:9px; padding:10px 12px;
+  }
+  /* Specific styling for Date pickers */
+  .ff-field input[type="date"], .ff-field input[type="datetime-local"] {
+      cursor: pointer;
+  }
+  .ff-field textarea{ min-height:90px; resize:vertical; line-height:1.5; }
+  .ff-field input:focus, .ff-field select:focus, .ff-field textarea:focus{
+    outline:none; border-color:var(--teal); background:#fff; box-shadow:0 0 0 3.5px rgba(15,107,92,0.12);
+  }
+
+  .rating-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .rating-row .rl{ font-size:13px; color:#40454f; font-weight:500; }
+  .stars{ display:flex; gap:4px; }
+  .star{ width:22px; height:22px; cursor:pointer; color:#d9d5c7; }
+  .star.filled{ color:var(--amber); }
+
+  .rec-options{ display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .rec-opt{
+    flex:1; min-width:120px; text-align:center; padding:10px 8px; border-radius:9px; border:1.5px solid var(--line);
+    font-size:12.5px; font-weight:600; cursor:pointer; color:#565b68; background:#fbfaf7; transition:all .15s ease;
+  }
+  .rec-opt.sel-strongly.active{ background:#e4f2e9; border-color:#2f9e5c; color:#256b3f; }
+  .rec-opt.sel-recommend.active{ background:var(--teal-tint); border-color:var(--teal); color:var(--teal-deep); }
+  .rec-opt.sel-hold.active{ background:var(--amber-tint); border-color:var(--amber); color:var(--amber); }
+  .rec-opt.sel-reject.active{ background:var(--danger-tint); border-color:var(--danger); color:var(--danger); }
+
+  .modal-footer{ display:flex; justify-content:flex-end; gap:10px; margin-top:6px; }
+  .btn-cancel{
+    background:transparent; border:1px solid var(--line); color:#565b68; padding:11px 18px; border-radius:9px;
+    font-size:13.5px; font-weight:600; cursor:pointer;
+  }
+  .btn-save{
+    background:linear-gradient(180deg, var(--teal) 0%, var(--teal-deep) 100%); color:#fff; border:none;
+    padding:11px 22px; border-radius:9px; font-size:13.5px; font-weight:600; cursor:pointer;
+    box-shadow:0 6px 16px -6px rgba(10,77,66,0.5);
+  }
+
+  .fb-summary-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line-soft); font-size:13px; }
+  .fb-summary-row:last-of-type{ border-bottom:none; }
+  .fb-summary-row .k{ color:var(--muted); }
+  .fb-summary-row .v{ font-weight:600; color:var(--ink); }
+  .fb-comment-box{
+    background:#fbfaf7; border:1px solid var(--line-soft); border-radius:10px; padding:14px 16px; font-size:13.5px;
+    line-height:1.6; color:#33383f; margin-top:14px;
+  }
+
+  @media (max-width: 1100px){
+    .stats{ grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <a href="/" class="back-link">&larr; Back to requisition form</a>
+
+  <div class="masthead">
+    <div>
+      <div class="eyebrow">Talent Operations • Candidate Pipeline</div>
+      <h1>Resumes &amp; Interview Tracking</h1>
+    </div>
+    <div class="jobcode-select">
+      <label>Filter by Job Code</label>
+      <select id="jobCodeFilter"></select>
+    </div>
+  </div>
+
+  <div class="stats" id="statsRow"></div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Applicants</div>
+      <div class="legend">
+        <span><i style="background:#9aa0ac;"></i>Not scheduled</span>
+        <span><i style="background:var(--amber);"></i>Scheduled</span>
+        <span><i style="background:var(--teal);"></i>Completed</span>
+      </div>
+    </div>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <!-- Added Job ID Column here -->
+          <th>Job ID</th>
+          <th>Candidate</th>
+          <th>Applied</th>
+          <th>Resume</th>
+          <th class="stage-col">HR Interview</th>
+          <th class="stage-col">Technical Interview</th>
+          <th class="stage-col">Final Outcome</th>
+        </tr>
+      </thead>
+      <tbody id="candidateRows"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- PDF Modal -->
+<div class="modal-overlay" id="pdfOverlay">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="pdfModalName">Resume</div>
+        <div class="modal-sub" id="pdfModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('pdfOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback & Schedule Modal -->
+<div class="modal-overlay" id="fbOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="fbModalTitle">Interview Feedback</div>
+        <div class="modal-sub" id="fbModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('fbOverlay')">✕</button>
+    </div>
+    <div class="modal-body" id="fbModalBody"></div>
+  </div>
+</div>
+
+<script src="resumes_data.js"></script>
+<script>
+/* ---------------- Mock data ---------------- */
+const jobCodes = {
+  "BLR-ENG-MGR-482": { department: "Engineering", position: "Manager", location: "Bengaluru" },
+  "MYS-HR-SAS-217": { department: "Human Resources", position: "Senior Associate", location: "Mysuru" }
+};
+
+const STAGES = ['hr', 'tech'];
+const stageLabel = { hr: 'HR', tech: 'Technical' };
+
+// Note: Ensure dates in DB map correctly to standard format if manipulating in real-time
+let candidates = [
+  {
+    id: 1, jobCode: "BLR-ENG-MGR-482", name: "Priya Sharma", role: "Senior Software Engineer",
+    appliedOn: "2026-07-12", resumeFile: "resume_priya_sharma.pdf",
+    hr: {
+      status: "completed", interviewer: "Meera Pillai", interviewDate: null,
+      feedback: { date: "2026-07-18", round: "HR Screening", interviewer: "Meera Pillai",
+        technical: 4, communication: 5, problemSolving: 4, cultureFit: 5,
+        recommendation: "strongly", comments: "Clear about compensation expectations and notice period. Strong communicator, genuinely enthusiastic about the team's mission." }
+    },
+    tech: {
+      status: "completed", interviewer: "Karthik Nair", interviewDate: null,
+      feedback: { date: "2026-07-22", round: "Technical — Round 2", interviewer: "Karthik Nair",
+        technical: 5, communication: 4, problemSolving: 5, cultureFit: 4,
+        recommendation: "strongly", comments: "Excellent grasp of distributed systems trade-offs. Walked through a real production incident with clear ownership. Would be a strong technical anchor for the team." }
+    }
+  },
+  {
+    id: 2, jobCode: "BLR-ENG-MGR-482", name: "Arjun Mehta", role: "Engineering Manager",
+    appliedOn: "2026-07-14", resumeFile: "resume_arjun_mehta.pdf",
+    hr: {
+      status: "completed", interviewer: "Meera Pillai", interviewDate: null,
+      feedback: { date: "2026-07-20", round: "HR Screening", interviewer: "Meera Pillai",
+        technical: 3, communication: 4, problemSolving: 4, cultureFit: 4,
+        recommendation: "recommend", comments: "Notice period is 60 days, open to negotiating. Salary expectation is within band. Comes across as measured and collaborative." }
+    },
+    tech: {
+      status: "scheduled", interviewer: "Deepa Iyer", interviewDate: "2026-07-30T15:00",
+      feedback: null
+    }
+  }
+];
+
+/* ---------------- Rendering ---------------- */
+const statusMeta = {
+  "not-scheduled": { label: "Not Scheduled", cls: "not-scheduled" },
+  "scheduled": { label: "Scheduled", cls: "scheduled" },
+  "completed": { label: "Completed", cls: "completed" },
+};
+
+const recMeta = {
+  strongly: { label: "Strong Yes", cls: "selected" },
+  recommend: { label: "Yes", cls: "selected" },
+  hold: { label: "Hold", cls: "hold" },
+  reject: { label: "No", cls: "rejected" },
+};
+
+function populateJobCodeFilter(){
+  const sel = document.getElementById('jobCodeFilter');
+  sel.innerHTML = '<option value="all">All Job Codes</option>' +
+    Object.keys(jobCodes).map(code =>
+      `<option value="${code}">${code} — ${jobCodes[code].position}, ${jobCodes[code].department}</option>`
+    ).join('');
+  sel.addEventListener('change', render);
+}
+
+function currentFilter(){ return document.getElementById('jobCodeFilter').value; }
+
+function finalOutcome(c){
+  const hrDone = c.hr.status === 'completed' && c.hr.feedback;
+  const techDone = c.tech.status === 'completed' && c.tech.feedback;
+
+  if(hrDone && c.hr.feedback.recommendation === 'reject') return { label: 'Rejected', cls: 'rejected' };
+  if(techDone && c.tech.feedback.recommendation === 'reject') return { label: 'Rejected', cls: 'rejected' };
+
+  if(hrDone && techDone){
+    const both = [c.hr.feedback.recommendation, c.tech.feedback.recommendation];
+    if(both.includes('hold')) return { label: 'On Hold', cls: 'hold' };
+    return { label: 'Selected', cls: 'selected' };
+  }
+  if(hrDone || techDone) return { label: 'In Progress', cls: 'pending' };
+  return { label: 'Pending', cls: 'pending' };
+}
+
+function stageCellHtml(c, stage){
+  const s = c[stage];
+  const sMeta = statusMeta[s.status];
+  let html = `<div class="stage-cell">`;
+  html += `<span class="badge ${sMeta.cls}">${sMeta.label}</span>`;
+  if(s.status === 'scheduled' && s.interviewDate){
+    // Formats datetime nicely
+    const dt = new Date(s.interviewDate);
+    html += `<div class="stage-date">${dt.toLocaleString([], {dateStyle: 'medium', timeStyle: 'short'})}</div>`;
+  }
+  html += `<div class="stage-interviewer">${s.interviewer ? s.interviewer : '<span class="muted">Unassigned</span>'}</div>`;
+
+  if(s.feedback){
+    const rMeta = recMeta[s.feedback.recommendation];
+    html += `<span class="badge ${rMeta.cls}">${rMeta.label}</span>`;
+    html += `<button class="feedback-btn secondary" onclick="openFeedback(${c.id}, '${stage}')">View feedback</button>`;
+  } else if(s.status === 'not-scheduled') {
+    html += `<button class="feedback-btn secondary" onclick="openFeedback(${c.id}, '${stage}')">Schedule &amp; add feedback</button>`;
+  } else {
+    html += `<button class="feedback-btn" onclick="openFeedback(${c.id}, '${stage}')">Add feedback</button>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function render(){
+  const filter = currentFilter();
+  const rows = candidates.filter(c => filter === 'all' || c.jobCode === filter);
+
+  const total = rows.length;
+  const hrDone = rows.filter(c => c.hr.status === 'completed').length;
+  const techDone = rows.filter(c => c.tech.status === 'completed').length;
+  const selected = rows.filter(c => finalOutcome(c).label === 'Selected').length;
+  const pending = rows.filter(c => c.hr.status !== 'completed' || c.tech.status !== 'completed').length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">Total applicants</div></div>
+    <div class="stat"><div class="n">${hrDone}</div><div class="l">HR interviews completed</div></div>
+    <div class="stat"><div class="n">${techDone}</div><div class="l">Technical interviews completed</div></div>
+    <div class="stat"><div class="n">${selected}</div><div class="l">Selected</div></div>
+    <div class="stat"><div class="n">${pending}</div><div class="l">Awaiting a stage</div></div>
+  `;
+
+  document.getElementById('candidateRows').innerHTML = rows.map(c => {
+    const outcome = finalOutcome(c);
+    return `
+      <tr>
+        <td class="job-id-cell">${c.jobCode}</td>
+        <td>
+          <div class="candidate-name">${c.name}</div>
+          <div class="candidate-role">${c.role}</div>
+        </td>
+        <td><span class="applied-date">${new Date(c.appliedOn).toLocaleDateString([], {dateStyle:'medium'})}</span></td>
+        <td>
+          <button class="btn-ghost" onclick="openResume(${c.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            View PDF
+          </button>
+        </td>
+        <td class="stage-col">${stageCellHtml(c, 'hr')}</td>
+        <td class="stage-col">${stageCellHtml(c, 'tech')}</td>
+        <td class="final-outcome"><span class="badge ${outcome.cls}">${outcome.label}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/* ---------------- Resume modal ---------------- */
+function openResume(id){
+  const c = candidates.find(x => x.id === id);
+  // Assuming window.RESUME_DATA is loaded from resumes_data.js
+  const b64 = window.RESUME_DATA ? window.RESUME_DATA[c.resumeFile] : ''; 
+  document.getElementById('pdfModalName').textContent = `${c.name} — Resume`;
+  document.getElementById('pdfModalSub').textContent = `${c.role} • Applied ${c.appliedOn} • ${c.jobCode}`;
+  document.getElementById('pdfFrame').src = `data:application/pdf;base64,${b64}`;
+  document.getElementById('pdfOverlay').classList.add('open');
+}
+
+/* ---------------- Feedback modal ---------------- */
+function openFeedback(id, stage){
+  const c = candidates.find(x => x.id === id);
+  const s = c[stage];
+  const pillHtml = `<span class="stage-pill ${stage}">${stageLabel[stage]}</span>`;
+
+  document.getElementById('fbModalTitle').innerHTML = (s.feedback ? 'Interview Feedback' : 'Schedule / Add Feedback') + pillHtml;
+  document.getElementById('fbModalSub').textContent = `${c.name} • ${c.jobCode}`;
+
+  const body = document.getElementById('fbModalBody');
+
+  if(s.feedback){
+    const rMeta = recMeta[s.feedback.recommendation];
+    body.innerHTML = `
+      <div class="fb-summary-row"><span class="k">Interview date</span><span class="v">${new Date(s.feedback.date).toLocaleDateString([], {dateStyle:'medium'})}</span></div>
+      <div class="fb-summary-row"><span class="k">Round</span><span class="v">${s.feedback.round}</span></div>
+      <div class="fb-summary-row"><span class="k">Interviewer</span><span class="v">${s.feedback.interviewer}</span></div>
+      <div class="fb-summary-row"><span class="k">Technical skills</span><span class="v">${'★'.repeat(s.feedback.technical)}${'☆'.repeat(5-s.feedback.technical)}</span></div>
+      <div class="fb-summary-row"><span class="k">Communication</span><span class="v">${'★'.repeat(s.feedback.communication)}${'☆'.repeat(5-s.feedback.communication)}</span></div>
+      <div class="fb-summary-row"><span class="k">Problem solving</span><span class="v">${'★'.repeat(s.feedback.problemSolving)}${'☆'.repeat(5-s.feedback.problemSolving)}</span></div>
+      <div class="fb-summary-row"><span class="k">Culture fit</span><span class="v">${'★'.repeat(s.feedback.cultureFit)}${'☆'.repeat(5-s.feedback.cultureFit)}</span></div>
+      <div class="fb-summary-row"><span class="k">Recommendation</span><span class="v"><span class="badge ${rMeta.cls}">${rMeta.label}</span></span></div>
+      <div class="fb-comment-box">${s.feedback.comments}</div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('fbOverlay')">Close</button>
+        <button class="btn-save" onclick="editFeedback(${c.id}, '${stage}')">Edit feedback</button>
+      </div>
+    `;
+  } else {
+    renderFeedbackForm(c, stage, {});
+  }
+
+  document.getElementById('fbOverlay').classList.add('open');
+}
+
+function editFeedback(id, stage){
+  const c = candidates.find(x => x.id === id);
+  renderFeedbackForm(c, stage, c[stage].feedback || {});
+}
+
+function renderFeedbackForm(c, stage, existing){
+  const body = document.getElementById('fbModalBody');
+  const s = c[stage];
+  const defaultRound = stage === 'hr' ? 'HR Screening' : 'Technical — Round 1';
+  const ratingFields = [
+    { key: 'technical', label: stage === 'hr' ? 'Role fit' : 'Technical skills' },
+    { key: 'communication', label: 'Communication' },
+    { key: 'problemSolving', label: 'Problem solving' },
+    { key: 'cultureFit', label: 'Culture fit' },
+  ];
+
+  // Updated Date Picker: Using HTML5 date/time inputs for calendars
+  body.innerHTML = `
+    <div class="ff-grid">
+      <div class="ff-field">
+        <label>Interview Date / Schedule</label>
+        <!-- Using datetime-local calendar picker -->
+        <input type="datetime-local" id="ffDate" value="${existing.date || s.interviewDate || ''}">
+      </div>
+      <div class="ff-field">
+        <label>Round</label>
+        <input type="text" id="ffRound" value="${existing.round || defaultRound}" placeholder="e.g., Technical — Round 1">
+      </div>
+      <div class="ff-field span-2">
+        <label>Interviewer name</label>
+        <input type="text" id="ffInterviewer" value="${existing.interviewer || s.interviewer || ''}" placeholder="Enter name">
+      </div>
+    </div>
+
+    <div id="ratingBlock"></div>
+
+    <label style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#565b68;display:block;margin-bottom:10px;">Overall recommendation</label>
+    <div class="rec-options" id="recOptions">
+      <div class="rec-opt sel-strongly" data-val="strongly">Strongly Recommend</div>
+      <div class="rec-opt sel-recommend" data-val="recommend">Recommend</div>
+      <div class="rec-opt sel-hold" data-val="hold">Hold</div>
+      <div class="rec-opt sel-reject" data-val="reject">Do Not Recommend</div>
+    </div>
+
+    <div class="ff-field span-2" style="margin-bottom:6px;">
+      <label>Comments</label>
+      <textarea id="ffComments" placeholder="Summarize strengths, gaps, and reasoning behind the recommendation...">${existing.comments || ''}</textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('fbOverlay')">Cancel</button>
+      <button class="btn-save" style="background:#565b68;" onclick="saveSchedule(${c.id}, '${stage}')">Just Schedule</button>
+      <button class="btn-save" onclick="saveFeedback(${c.id}, '${stage}')">Save feedback</button>
+    </div>
+  `;
+
+  const ratingBlock = document.getElementById('ratingBlock');
+  ratingBlock.innerHTML = ratingFields.map(f => `
+    <div class="rating-row" data-key="${f.key}">
+      <span class="rl">${f.label}</span>
+      <div class="stars">
+        ${[1,2,3,4,5].map(n => `<svg class="star ${ (existing[f.key]||0) >= n ? 'filled':'' }" data-val="${n}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  ratingBlock.querySelectorAll('.rating-row').forEach(row => {
+    row.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', () => {
+        const val = parseInt(star.dataset.val);
+        row.querySelectorAll('.star').forEach(s2 => { s2.classList.toggle('filled', parseInt(s2.dataset.val) <= val); });
+        row.dataset.rating = val;
+      });
+    });
+    if(row.dataset.rating === undefined){
+      row.dataset.rating = row.querySelectorAll('.star.filled').length;
+    }
+  });
+
+  const recOptions = document.querySelectorAll('#recOptions .rec-opt');
+  recOptions.forEach(opt => {
+    if(existing.recommendation === opt.dataset.val) opt.classList.add('active');
+    opt.addEventListener('click', () => {
+      recOptions.forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+      document.getElementById('recOptions').dataset.selected = opt.dataset.val;
+    });
+  });
+  if(existing.recommendation) document.getElementById('recOptions').dataset.selected = existing.recommendation;
+}
+
+// Allows just scheduling the interview without filling feedback
+function saveSchedule(id, stage){
+  const c = candidates.find(x => x.id === id);
+  c[stage].interviewDate = document.getElementById('ffDate').value;
+  c[stage].interviewer = document.getElementById('ffInterviewer').value || 'Unassigned';
+  c[stage].status = 'scheduled';
+  
+  closeModal('fbOverlay');
+  render();
+}
+
+function saveFeedback(id, stage){
+  const c = candidates.find(x => x.id === id);
+  const ratingBlock = document.getElementById('ratingBlock');
+  const getRating = key => parseInt(ratingBlock.querySelector(`.rating-row[data-key="${key}"]`).dataset.rating || 0);
+
+  const recommendation = document.getElementById('recOptions').dataset.selected;
+  if(!recommendation){
+    alert('Please select an overall recommendation before saving.');
+    return;
+  }
+
+  const interviewer = document.getElementById('ffInterviewer').value || c[stage].interviewer || 'Unassigned';
+
+  c[stage].feedback = {
+    date: document.getElementById('ffDate').value || new Date().toISOString().split('T')[0],
+    round: document.getElementById('ffRound').value || (stage === 'hr' ? 'HR Screening' : 'Technical Interview'),
+    interviewer,
+    technical: getRating('technical'),
+    communication: getRating('communication'),
+    problemSolving: getRating('problemSolving'),
+    cultureFit: getRating('cultureFit'),
+    recommendation,
+    comments: document.getElementById('ffComments').value,
+  };
+  c[stage].status = 'completed';
+  c[stage].interviewer = interviewer;
+
+  closeModal('fbOverlay');
+  render();
+}
+
+/* ---------------- Modal helpers ---------------- */
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+  if(id === 'pdfOverlay') document.getElementById('pdfFrame').src = '';
+}
+
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', (e) => { if(e.target === ov) closeModal(ov.id); });
+});
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){ document.querySelectorAll('.modal-overlay.open').forEach(ov => closeModal(ov.id)); }
+});
+
+/* ---------------- Init ---------------- */
+populateJobCodeFilter();
+render();
+</script>
+</body>
+</html>
