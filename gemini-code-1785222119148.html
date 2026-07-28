@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Requisition — Talent Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#151b2c;
+    --navy:#1c2b4a;
+    --canvas:#f3f2ee;
+    --panel:#ffffff;
+    --line:#e2ded3;
+    --line-soft:#ebe8df;
+    --teal:#0f6b5c;
+    --teal-deep:#0a4d42;
+    --amber:#b8862f;
+    --muted:#767a86;
+    --danger:#a8432f;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(20,20,20,0.04), 0 8px 24px -12px rgba(20,20,20,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--canvas);
+    background-image:
+      radial-gradient(1200px 400px at 100% -10%, rgba(15,107,92,0.06), transparent 60%),
+      radial-gradient(800px 400px at -10% 10%, rgba(184,134,47,0.05), transparent 60%);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:rgba(15,107,92,0.18);}
+
+  .shell{
+    max-width:1180px;
+    margin:0 auto;
+    padding:48px 32px 96px;
+  }
+
+  /* ---------- Header ---------- */
+  .masthead{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    margin-bottom:40px;
+    padding-bottom:28px;
+    border-bottom:1px solid var(--line);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--teal-deep);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;
+    background:var(--teal);
+    border-radius:50%;
+    display:inline-block;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-optical-sizing:auto;
+    font-weight:500;
+    font-size:38px;
+    line-height:1.1;
+    margin:0;
+    letter-spacing:-0.01em;
+    color:var(--navy);
+  }
+  .masthead-meta{
+    text-align:right;
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.6;
+  }
+  .masthead-meta b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Grid: stepper | form | preview ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:200px minmax(0,1fr) 300px;
+    gap:36px;
+    align-items:start;
+  }
+
+  /* ---------- Stepper (left rail) ---------- */
+  .stepper{
+    position:sticky;
+    top:32px;
+    display:flex;
+    flex-direction:column;
+    gap:0;
+  }
+  .step{
+    position:relative;
+    padding:0 0 34px 28px;
+    border-left:2px solid var(--line);
+  }
+  .step:last-child{ border-left:2px solid transparent; padding-bottom:0;}
+  .step::before{
+    content:attr(data-n);
+    position:absolute;
+    left:-13px; top:-2px;
+    width:24px; height:24px;
+    border-radius:50%;
+    background:var(--panel);
+    border:2px solid var(--line);
+    color:var(--muted);
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .25s ease;
+  }
+  .step.active::before{
+    background:var(--teal);
+    border-color:var(--teal);
+    color:#fff;
+  }
+  .step.active{ border-left-color:var(--teal); }
+  .step.done::before{
+    background:var(--navy);
+    border-color:var(--navy);
+    color:#fff;
+    content:"✓";
+  }
+  .step-label{
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:3px;
+  }
+  .step-sub{
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .step.active .step-label{ color:var(--teal-deep); }
+
+  /* ---------- Form panels ---------- */
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    margin-bottom:28px;
+    overflow:hidden;
+  }
+  .panel-head{
+    padding:22px 28px 18px;
+    border-bottom:1px solid var(--line-soft);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+  }
+  .panel-title{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:20px;
+    color:var(--navy);
+  }
+  .panel-note{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .panel-body{
+    padding:24px 28px 28px;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:20px 22px;
+  }
+  .field{ display:flex; flex-direction:column; gap:8px; }
+  .field.span-2{ grid-column:span 2; }
+  .field.span-3{ grid-column:span 3; }
+
+  label{
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.07em;
+    text-transform:uppercase;
+    color:#565b68;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  label .req{ color:var(--danger); font-weight:700; }
+  label .hint{
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:0;
+    color:var(--muted);
+    font-size:10.5px;
+  }
+
+  input, select, textarea{
+    width:100%;
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    background:#fbfaf7;
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:11px 13px;
+    transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  textarea{ resize:vertical; min-height:88px; font-family:'Inter', sans-serif; line-height:1.5;}
+  input::placeholder, textarea::placeholder{ color:#a3a6ad; }
+  select{ appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23767a86' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 13px center;
+    padding-right:32px;
+    cursor:pointer;
+  }
+  input:hover, select:hover, textarea:hover{ border-color:#cfcabb; }
+  input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color:var(--teal);
+    background:#ffffff;
+    box-shadow:0 0 0 3.5px rgba(15,107,92,0.12);
+  }
+
+  .num-stepper{
+    display:flex;
+    align-items:stretch;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:#fbfaf7;
+    overflow:hidden;
+  }
+  .num-stepper input{
+    border:none; background:transparent; text-align:center; padding:11px 6px;
+  }
+  .num-stepper button{
+    width:38px; border:none; background:transparent; color:var(--teal-deep);
+    font-size:16px; cursor:pointer; font-weight:600;
+  }
+  .num-stepper button:hover{ background:#eef2ef; }
+  .num-stepper button:first-child{ border-right:1px solid var(--line); }
+  .num-stepper button:last-child{ border-left:1px solid var(--line); }
+
+  /* ---------- Submit bar ---------- */
+  .submit-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    padding:6px 4px 0;
+  }
+  .submit-note{ font-size:12.5px; color:var(--muted); max-width:340px; line-height:1.5;}
+  .generate-btn{
+    background:linear-gradient(180deg, var(--teal) 0%, var(--teal-deep) 100%);
+    color:#fdfdfb;
+    border:none;
+    padding:15px 30px;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    cursor:pointer;
+    box-shadow:0 6px 16px -6px rgba(10,77,66,0.55);
+    display:flex; align-items:center; gap:10px;
+    transition:transform .12s ease, box-shadow .12s ease;
+    white-space:nowrap;
+  }
+  .generate-btn:hover{ transform:translateY(-1px); box-shadow:0 10px 20px -6px rgba(10,77,66,0.6); }
+  .generate-btn:active{ transform:translateY(0); }
+  .generate-btn svg{ width:15px; height:15px; }
+
+  /* ---------- Right: live job-code preview ---------- */
+  .preview{
+    position:sticky;
+    top:32px;
+    background:var(--navy);
+    border-radius:var(--radius);
+    padding:24px 22px 22px;
+    color:#e8ebf1;
+    box-shadow:var(--shadow);
+    background-image:radial-gradient(500px 240px at 100% 0%, rgba(255,255,255,0.06), transparent 60%);
+  }
+  .preview-eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:#9fb0c8;
+    margin-bottom:12px;
+  }
+  .preview-code{
+    font-family:'JetBrains Mono', monospace;
+    font-size:20px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    color:#fff;
+    padding:14px 14px;
+    background:rgba(255,255,255,0.06);
+    border:1px dashed rgba(255,255,255,0.25);
+    border-radius:9px;
+    margin-bottom:18px;
+    word-break:break-all;
+    min-height:24px;
+    text-align: center;
+  }
+  .preview-code .blank{ color:#5c6a84; }
+  .preview-rows{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+  .preview-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12.5px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.09);
+  }
+  .preview-row:last-child{ border-bottom:none; padding-bottom:0;}
+  .preview-row span:first-child{ color:#8f9ab0; }
+  .preview-row span:last-child{ color:#fff; font-weight:500; text-align:right; max-width:150px;}
+  .preview-fill{
+    height:5px; border-radius:4px; background:rgba(255,255,255,0.08); overflow:hidden; margin-bottom:8px;
+  }
+  .preview-fill i{
+    display:block; height:100%; width:0%; background:linear-gradient(90deg,#0f6b5c,#3aa88f);
+    transition:width .3s ease;
+  }
+  .preview-fill-label{ font-size:11px; color:#8f9ab0; display:flex; justify-content:space-between; }
+
+  /* ---------- Summary Table Base ---------- */
+  .summary-section { margin-top: 60px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { padding: 14px 20px; text-align: left; border-bottom: 1px solid var(--line-soft); }
+  th { background: #fbfaf7; color: var(--navy); font-weight: 600; letter-spacing: 0.02em; }
+  tbody tr:hover { background: #fdfdfb; }
+  .code-highlight { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--teal-deep); }
+
+  @media (max-width: 980px){
+    .grid{ grid-template-columns:1fr; }
+    .stepper{ display:none; }
+    .preview{ position:static; order:-1; }
+    .panel-body{ grid-template-columns:1fr 1fr; }
+    .field.span-3{ grid-column:span 2; }
+  }
+  @media (max-width: 620px){
+    .panel-body{ grid-template-columns:1fr; }
+    .field.span-2, .field.span-3{ grid-column:span 1; }
+    .masthead{ flex-direction:column; align-items:flex-start; }
+    .masthead-meta{ text-align:left; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="masthead">
+    <div>
+      <div class="eyebrow">Talent Operations • Requisition Intake</div>
+      <h1>Open a new position</h1>
+    </div>
+    <div class="masthead-meta">
+      Drafted by <b>HR Business Partner</b><br>
+      <span id="today"></span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Stepper -->
+    <div class="stepper" id="stepper">
+      <div class="step active" data-n="1" data-target="panel-1">
+        <div class="step-label">Primary Information</div>
+        <div class="step-sub">Where &amp; what</div>
+      </div>
+      <div class="step" data-n="2" data-target="panel-2">
+        <div class="step-label">Hiring Details</div>
+        <div class="step-sub">Why &amp; how many</div>
+      </div>
+      <div class="step" data-n="3" data-target="panel-3">
+        <div class="step-label">Candidate Requirements</div>
+        <div class="step-sub">Who we're looking for</div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div>
+      <form id="generatorForm">
+        <!-- Panel 1 -->
+        <section class="panel" id="panel-1">
+          <div class="panel-head">
+            <div class="panel-title">Primary Information</div>
+            <div class="panel-note">Step 1 of 3</div>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Location <span class="req">*</span></label>
+              <select id="location" required>
+                <option value="" selected disabled>Select location</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Department <span class="req">*</span></label>
+              <select id="department" required>
+                <option value="" selected disabled>Select department</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Position <span class="req">*</span></label>
+              <select id="position" required>
+                <option value="" selected disabled>Select position</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel 2 -->
+        <section class="panel" id="panel-2">
+          <div class="panel-head">
+            <div class="panel-title">Hiring Details</div>
+            <div class="panel-note">Step 2 of 3</div>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Employee Category <span class="req">*</span></label>
+              <select id="category" required>
+                <option value="" selected disabled>Select category</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Vacancy Raised Due To <span class="req">*</span></label>
+              <select id="reason" required>
+                <option value="" selected disabled>Select reason</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Resources Required <span class="req">*</span></label>
+              <div class="num-stepper">
+                <button type="button" id="dec">–</button>
+                <input type="text" id="numResources" value="1" inputmode="numeric" required>
+                <button type="button" id="inc">+</button>
+              </div>
+            </div>
+            <div class="field span-3">
+              <label>Name of Hiring Manager <span class="req">*</span></label>
+              <input type="text" id="hiringManager" placeholder="e.g., Anita Rao" required>
+            </div>
+            <div class="field span-3">
+              <label>Justification for Hiring <span class="req">*</span></label>
+              <textarea id="justification" placeholder="Why is this role needed? Explain business impact, workload, or gap being filled." style="min-height:64px;" required></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel 3 -->
+        <section class="panel" id="panel-3">
+          <div class="panel-head">
+            <div class="panel-title">Candidate Requirements</div>
+            <div class="panel-note">Step 3 of 3</div>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Educational Requirements</label>
+              <input type="text" id="education" placeholder="e.g., B.Tech / MBA" required>
+            </div>
+            <div class="field">
+              <label>Experience Range (years)</label>
+              <input type="text" id="experience" placeholder="e.g., 3–5 years" required>
+            </div>
+            <div class="field">
+              <label>Age Group <span class="hint">optional</span></label>
+              <input type="text" id="ageGroup" placeholder="e.g., 25–35" required>
+            </div>
+            <div class="field">
+              <label>Relevant Industry Type</label>
+              <input type="text" id="industry" placeholder="e.g., IT, Manufacturing" required>
+            </div>
+            <div class="field">
+              <label>Approximate CTC Range</label>
+              <input type="text" id="ctc" placeholder="e.g., 3–4 LPA" required>
+            </div>
+            <div class="field">
+              <label>Behavioral Attributes</label>
+              <input type="text" id="behavioral" placeholder="e.g., Communication, ownership" required>
+            </div>
+            <div class="field span-3">
+              <label>Job Description <span class="req">*</span></label>
+              <textarea id="jobDescription" placeholder="Brief job description — key responsibilities, reporting line, deliverables..." required></textarea>
+            </div>
+          </div>
+        </section>
+
+        <div class="submit-bar">
+          <div class="submit-note">Job code and requisition ID are generated automatically once required fields are complete. You can still edit details afterward.</div>
+          <button type="submit" class="generate-btn" id="generateBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z"/></svg>
+            Generate Job Code
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Live preview -->
+    <div class="preview">
+      <div class="preview-eyebrow">Generated Job Code</div>
+      <div class="preview-code" id="previewCode"><span class="blank">— — —</span></div>
+
+      <div class="preview-fill-label"><span>Completion</span><span id="pct">0%</span></div>
+      <div class="preview-fill"><i id="fillBar"></i></div>
+
+      <div class="preview-rows" style="margin-top:16px;">
+        <div class="preview-row"><span>Location</span><span id="pLoc">—</span></div>
+        <div class="preview-row"><span>Department</span><span id="pDept">—</span></div>
+        <div class="preview-row"><span>Position</span><span id="pPos">—</span></div>
+        <div class="preview-row"><span>Category</span><span id="pCat">—</span></div>
+        <div class="preview-row"><span>Openings</span><span id="pCount">1</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Table styled as a panel -->
+  <div class="summary-section">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Generation Summary</div>
+        <div class="panel-note">Recent job codes created</div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Job Description</th>
+              <th>Year</th>
+              <th>Generated Code</th>
+            </tr>
+          </thead>
+          <tbody id="summaryTableBody">
+            <!-- Dynamic rows populate here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('today').textContent = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+
+  // Load backend data securely
+  document.addEventListener("DOMContentLoaded", () => {
+      loadDropdowns();
+      loadSummary();
+  });
+
+  async function loadDropdowns() {
+      try {
+          const response = await fetch('/api/dropdowns');
+          const data = await response.json();
+
+          populateSelect('location', data.locations, 'location_id', 'location');
+          populateSelect('department', data.departments, 'dept_id', 'department');
+          populateSelect('position', data.positions, 'position_id', 'position');
+          populateSelect('category', data.categories, 'category_id', 'category');
+          populateSelect('reason', data.reasons, 'reason_id', 'reason');
+      } catch (error) {
+          console.error("Error loading dropdowns:", error);
+      }
+  }
+
+  function populateSelect(elementId, items, idField, nameField) {
+      const select = document.getElementById(elementId);
+      items.forEach(item => {
+          const option = document.createElement('option');
+          option.value = item[idField];
+          option.textContent = item[nameField];
+          select.appendChild(option);
+      });
+  }
+
+  // Stepper scroll-spy
+  const steps = document.querySelectorAll('.step');
+  const panels = ['panel-1','panel-2','panel-3'].map(id => document.getElementById(id));
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const idx = panels.indexOf(entry.target);
+      if(entry.isIntersecting){
+        steps.forEach((s,i) => {
+          s.classList.remove('active');
+          if(i < idx) s.classList.add('done'); else s.classList.remove('done');
+          if(i === idx) s.classList.add('active');
+        });
+      }
+    });
+  }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+
+  panels.forEach(p => io.observe(p));
+
+  steps.forEach(step => {
+    step.style.cursor = 'pointer';
+    step.addEventListener('click', () => {
+      document.getElementById(step.dataset.target).scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
+
+  // Number stepper logic
+  const countInput = document.getElementById('numResources');
+  document.getElementById('inc').addEventListener('click', () => {
+    countInput.value = Math.max(1, (parseInt(countInput.value)||1) + 1);
+    updatePreview();
+  });
+  document.getElementById('dec').addEventListener('click', () => {
+    countInput.value = Math.max(1, (parseInt(countInput.value)||1) - 1);
+    updatePreview();
+  });
+  countInput.addEventListener('input', updatePreview);
+
+  // Live preview tracking
+  const locationEl = document.getElementById('location');
+  const deptEl = document.getElementById('department');
+  const posEl = document.getElementById('position');
+  const catEl = document.getElementById('category');
+
+  function updatePreview(){
+    const locText = locationEl.options[locationEl.selectedIndex]?.text || '';
+    const deptText = deptEl.options[deptEl.selectedIndex]?.text || '';
+    const posText = posEl.options[posEl.selectedIndex]?.text || '';
+    const catText = catEl.options[catEl.selectedIndex]?.text || '';
+    
+    document.getElementById('pLoc').textContent = locText.includes('Select') ? '—' : locText;
+    document.getElementById('pDept').textContent = deptText.includes('Select') ? '—' : deptText;
+    document.getElementById('pPos').textContent = posText.includes('Select') ? '—' : posText;
+    document.getElementById('pCat').textContent = catText.includes('Select') ? '—' : catText;
+    document.getElementById('pCount').textContent = countInput.value || '1';
+
+    // Form completion percentage (calculates across all required fields)
+    const requiredInputs = document.querySelectorAll('#generatorForm [required]');
+    let filledCount = 0;
+    requiredInputs.forEach(input => { if(input.value.trim() !== '') filledCount++; });
+    
+    const pct = Math.round((filledCount / requiredInputs.length) * 100);
+    document.getElementById('fillBar').style.width = pct + '%';
+    document.getElementById('pct').textContent = pct + '%';
+  }
+
+  // Trigger form completion tracking when interacting
+  document.getElementById('generatorForm').addEventListener('input', updatePreview);
+  document.getElementById('generatorForm').addEventListener('change', updatePreview);
+
+  // Submit and Generate Code
+  document.getElementById('generatorForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const payload = {
+          location_id: locationEl.value,
+          location_name: locationEl.options[locationEl.selectedIndex].text,
+          dept_id: deptEl.value,
+          department_name: deptEl.options[deptEl.selectedIndex].text,
+          position_id: posEl.value,
+          position_name: posEl.options[posEl.selectedIndex].text,
+          job_description: document.getElementById('jobDescription').value,
+          category_name: catEl.options[catEl.selectedIndex].text,
+          reason_name: document.getElementById('reason').options[document.getElementById('reason').selectedIndex].text,
+          num_resources: document.getElementById('numResources').value,
+          hiring_manager: document.getElementById('hiringManager').value,
+          justification: document.getElementById('justification').value,
+          education: document.getElementById('education').value,
+          experience: document.getElementById('experience').value,
+          age_group: document.getElementById('ageGroup').value,
+          industry: document.getElementById('industry').value,
+          ctc: document.getElementById('ctc').value,
+          behavioral: document.getElementById('behavioral').value
+      };
+
+      try {
+          const response = await fetch('/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+
+          const data = await response.json();
+
+          // Push strictly generated backend code to preview window
+          document.getElementById('previewCode').innerHTML = `<span style="color:#2dd4bf">${data.generated_code}</span>`;
+
+          // Button styling animation
+          const btn = document.getElementById('generateBtn');
+          const original = btn.innerHTML;
+          btn.innerHTML = 'Job Code Generated ✓';
+          btn.style.background = 'linear-gradient(180deg,#12805e,#0a4d42)';
+          setTimeout(() => { 
+            btn.innerHTML = original; 
+            btn.style.background = 'linear-gradient(180deg, var(--teal) 0%, var(--teal-deep) 100%)';
+            document.getElementById('generatorForm').reset();
+            document.getElementById('previewCode').innerHTML = '<span class="blank">— — —</span>';
+            updatePreview();
+          }, 2500);
+
+          loadSummary();
+      } catch (error) {
+          console.error("Error generating code:", error);
+      }
+  });
+
+  // Table loading logic
+  async function loadSummary() {
+      try {
+          const response = await fetch('/api/summary');
+          const data = await response.json();
+
+          const tbody = document.getElementById('summaryTableBody');
+          tbody.innerHTML = ''; 
+
+          data.forEach(row => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                  <td>${row.location}</td>
+                  <td>${row.department}</td>
+                  <td>${row.position}</td>
+                  <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${row.job_description}</td>
+                  <td>${row.year}</td>
+                  <td><span class="code-highlight">${row.generated_code}</span></td>
+              `;
+              tbody.appendChild(tr);
+          });
+      } catch (error) {
+          console.error("Error loading summary:", error);
+      }
+  }
+</script>
+</body>
+</html>
