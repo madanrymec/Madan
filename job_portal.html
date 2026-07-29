@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -215,7 +215,7 @@
     transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
   }
   textarea{ resize:vertical; min-height:88px; font-family:'Inter', sans-serif; line-height:1.5;}
-  input::placeholder, textarea::placeholder{ color:#a9ac b3; color:#a3a6ad; }
+  input::placeholder, textarea::placeholder{ color:#a3a6ad; }
   select{ appearance:none; -webkit-appearance:none;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23767a86' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat:no-repeat;
@@ -230,7 +230,6 @@
     background:#ffffff;
     box-shadow:0 0 0 3.5px rgba(15,107,92,0.12);
   }
-  select:invalid{ color:#a3a6ad; }
 
   .num-stepper{
     display:flex;
@@ -311,6 +310,7 @@
     margin-bottom:18px;
     word-break:break-all;
     min-height:24px;
+    text-align: center;
   }
   .preview-code .blank{ color:#5c6a84; }
   .preview-rows{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
@@ -329,6 +329,14 @@
     transition:width .3s ease;
   }
   .preview-fill-label{ font-size:11px; color:#8f9ab0; display:flex; justify-content:space-between; }
+
+  /* ---------- Summary Table Base ---------- */
+  .summary-section { margin-top: 60px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { padding: 14px 20px; text-align: left; border-bottom: 1px solid var(--line-soft); }
+  th { background: #fbfaf7; color: var(--navy); font-weight: 600; letter-spacing: 0.02em; }
+  tbody tr:hover { background: #fdfdfb; }
+  .code-highlight { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--teal-deep); }
 
   @media (max-width: 980px){
     .grid{ grid-template-columns:1fr; }
@@ -379,151 +387,124 @@
 
     <!-- Form -->
     <div>
-
-      <!-- Panel 1 -->
-      <section class="panel" id="panel-1">
-        <div class="panel-head">
-          <div class="panel-title">Primary Information</div>
-          <div class="panel-note">Step 1 of 3</div>
-        </div>
-        <div class="panel-body">
-          <div class="field">
-            <label>Location <span class="req">*</span></label>
-            <select id="location">
-              <option value="" selected disabled>Select location</option>
-              <option>Bengaluru</option>
-              <option>Mysuru</option>
-              <option>Hyderabad</option>
-              <option>Pune</option>
-              <option>Remote</option>
-            </select>
+      <form id="generatorForm">
+        <!-- Panel 1 -->
+        <section class="panel" id="panel-1">
+          <div class="panel-head">
+            <div class="panel-title">Primary Information</div>
+            <div class="panel-note">Step 1 of 3</div>
           </div>
-          <div class="field">
-            <label>Department <span class="req">*</span></label>
-            <select id="department">
-              <option value="" selected disabled>Select department</option>
-              <option>Engineering</option>
-              <option>Sales</option>
-              <option>Finance</option>
-              <option>Operations</option>
-              <option>Human Resources</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Position <span class="req">*</span></label>
-            <select id="position">
-              <option value="" selected disabled>Select position</option>
-              <option>Associate</option>
-              <option>Senior Associate</option>
-              <option>Team Lead</option>
-              <option>Manager</option>
-              <option>Senior Manager</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <!-- Panel 2 -->
-      <section class="panel" id="panel-2">
-        <div class="panel-head">
-          <div class="panel-title">Hiring Details</div>
-          <div class="panel-note">Step 2 of 3</div>
-        </div>
-        <div class="panel-body">
-          <div class="field">
-            <label>Employee Category <span class="req">*</span></label>
-            <select id="category">
-              <option value="" selected disabled>Select category</option>
-              <option>Permanent</option>
-              <option>Contractual</option>
-              <option>Intern</option>
-              <option>Consultant</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Vacancy Raised Due To <span class="req">*</span></label>
-            <select>
-              <option value="" selected disabled>Select reason</option>
-              <option>Backfill</option>
-              <option>New Headcount</option>
-              <option>Attrition</option>
-              <option>Project Ramp-up</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Resources Required <span class="req">*</span></label>
-            <div class="num-stepper">
-              <button type="button" id="dec">–</button>
-              <input type="text" id="count" value="1" inputmode="numeric">
-              <button type="button" id="inc">+</button>
+          <div class="panel-body">
+            <div class="field">
+              <label>Location <span class="req">*</span></label>
+              <select id="location" required>
+                <option value="" selected disabled>Select location</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Department <span class="req">*</span></label>
+              <select id="department" required>
+                <option value="" selected disabled>Select department</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Position <span class="req">*</span></label>
+              <select id="position" required>
+                <option value="" selected disabled>Select position</option>
+              </select>
             </div>
           </div>
-          <div class="field span-2">
-            <label>Name of Hiring Manager <span class="req">*</span></label>
-            <input type="text" placeholder="e.g., Anita Rao">
-          </div>
-          <div class="field">
-            <label>Target Onboarding <span class="hint">optional</span></label>
-            <input type="date">
-          </div>
-          <div class="field span-3">
-            <label>Justification for Hiring <span class="req">*</span></label>
-            <textarea placeholder="Why is this role needed? Explain business impact, workload, or gap being filled." style="min-height:64px;"></textarea>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Panel 3 -->
-      <section class="panel" id="panel-3">
-        <div class="panel-head">
-          <div class="panel-title">Candidate Requirements</div>
-          <div class="panel-note">Step 3 of 3</div>
-        </div>
-        <div class="panel-body">
-          <div class="field">
-            <label>Educational Requirements</label>
-            <input type="text" placeholder="e.g., B.Tech / MBA">
+        <!-- Panel 2 -->
+        <section class="panel" id="panel-2">
+          <div class="panel-head">
+            <div class="panel-title">Hiring Details</div>
+            <div class="panel-note">Step 2 of 3</div>
           </div>
-          <div class="field">
-            <label>Experience Range (years)</label>
-            <input type="text" placeholder="e.g., 3–5 years">
+          <div class="panel-body">
+            <div class="field">
+              <label>Employee Category <span class="req">*</span></label>
+              <select id="category" required>
+                <option value="" selected disabled>Select category</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Vacancy Raised Due To <span class="req">*</span></label>
+              <select id="reason" required>
+                <option value="" selected disabled>Select reason</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Resources Required <span class="req">*</span></label>
+              <div class="num-stepper">
+                <button type="button" id="dec">–</button>
+                <input type="text" id="numResources" value="1" inputmode="numeric" required>
+                <button type="button" id="inc">+</button>
+              </div>
+            </div>
+            <div class="field span-3">
+              <label>Name of Hiring Manager <span class="req">*</span></label>
+              <input type="text" id="hiringManager" placeholder="e.g., Anita Rao" required>
+            </div>
+            <div class="field span-3">
+              <label>Justification for Hiring <span class="req">*</span></label>
+              <textarea id="justification" placeholder="Why is this role needed? Explain business impact, workload, or gap being filled." style="min-height:64px;" required></textarea>
+            </div>
           </div>
-          <div class="field">
-            <label>Age Group <span class="hint">optional</span></label>
-            <input type="text" placeholder="e.g., 25–35">
-          </div>
-          <div class="field">
-            <label>Relevant Industry Type</label>
-            <input type="text" placeholder="e.g., IT, Manufacturing">
-          </div>
-          <div class="field">
-            <label>Approximate CTC Range</label>
-            <input type="text" placeholder="e.g., 3–4 LPA">
-          </div>
-          <div class="field">
-            <label>Behavioral Attributes</label>
-            <input type="text" placeholder="e.g., Communication, ownership">
-          </div>
-          <div class="field span-3">
-            <label>Job Description <span class="req">*</span></label>
-            <textarea placeholder="Brief job description — key responsibilities, reporting line, deliverables..."></textarea>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <div class="submit-bar">
-        <div class="submit-note">Job code and requisition ID are generated automatically once required fields are complete. You can still edit details afterward.</div>
-        <button class="generate-btn" id="generateBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z"/></svg>
-          Generate Job Code
-        </button>
-      </div>
+        <!-- Panel 3 -->
+        <section class="panel" id="panel-3">
+          <div class="panel-head">
+            <div class="panel-title">Candidate Requirements</div>
+            <div class="panel-note">Step 3 of 3</div>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Educational Requirements</label>
+              <input type="text" id="education" placeholder="e.g., B.Tech / MBA" required>
+            </div>
+            <div class="field">
+              <label>Experience Range (years)</label>
+              <input type="text" id="experience" placeholder="e.g., 3–5 years" required>
+            </div>
+            <div class="field">
+              <label>Age Group <span class="hint">optional</span></label>
+              <input type="text" id="ageGroup" placeholder="e.g., 25–35" required>
+            </div>
+            <div class="field">
+              <label>Relevant Industry Type</label>
+              <input type="text" id="industry" placeholder="e.g., IT, Manufacturing" required>
+            </div>
+            <div class="field">
+              <label>Approximate CTC Range</label>
+              <input type="text" id="ctc" placeholder="e.g., 3–4 LPA" required>
+            </div>
+            <div class="field">
+              <label>Behavioral Attributes</label>
+              <input type="text" id="behavioral" placeholder="e.g., Communication, ownership" required>
+            </div>
+            <div class="field span-3">
+              <label>Job Description <span class="req">*</span></label>
+              <textarea id="jobDescription" placeholder="Brief job description — key responsibilities, reporting line, deliverables..." required></textarea>
+            </div>
+          </div>
+        </section>
 
+        <div class="submit-bar">
+          <div class="submit-note">Job code and requisition ID are generated automatically once required fields are complete. You can still edit details afterward.</div>
+          <button type="submit" class="generate-btn" id="generateBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z"/></svg>
+            Generate Job Code
+          </button>
+        </div>
+      </form>
     </div>
 
     <!-- Live preview -->
     <div class="preview">
-      <div class="preview-eyebrow">Live Job Code Preview</div>
+      <div class="preview-eyebrow">Generated Job Code</div>
       <div class="preview-code" id="previewCode"><span class="blank">— — —</span></div>
 
       <div class="preview-fill-label"><span>Completion</span><span id="pct">0%</span></div>
@@ -537,12 +518,69 @@
         <div class="preview-row"><span>Openings</span><span id="pCount">1</span></div>
       </div>
     </div>
+  </div>
 
+  <!-- Summary Table styled as a panel -->
+  <div class="summary-section">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Generation Summary</div>
+        <div class="panel-note">Recent job codes created</div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Department</th>
+              <th>Position</th>
+<!--              <th>Job Description</th>-->
+              <th>Year</th>
+              <th>Generated Code</th>
+            </tr>
+          </thead>
+          <tbody id="summaryTableBody">
+            <!-- Dynamic rows populate here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
   document.getElementById('today').textContent = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+
+  // Load backend data securely
+  document.addEventListener("DOMContentLoaded", () => {
+      loadDropdowns();
+      loadSummary();
+  });
+
+  async function loadDropdowns() {
+      try {
+          const response = await fetch('/api/dropdowns');
+          const data = await response.json();
+
+          populateSelect('location', data.locations, 'location_id', 'location');
+          populateSelect('department', data.departments, 'dept_id', 'department');
+          populateSelect('position', data.positions, 'position_id', 'position');
+          populateSelect('category', data.categories, 'category_id', 'category');
+          populateSelect('reason', data.reasons, 'reason_id', 'reason');
+      } catch (error) {
+          console.error("Error loading dropdowns:", error);
+      }
+  }
+
+  function populateSelect(elementId, items, idField, nameField) {
+      const select = document.getElementById(elementId);
+      items.forEach(item => {
+          const option = document.createElement('option');
+          option.value = item[idField];
+          option.textContent = item[nameField];
+          select.appendChild(option);
+      });
+  }
 
   // Stepper scroll-spy
   const steps = document.querySelectorAll('.step');
@@ -570,8 +608,8 @@
     });
   });
 
-  // Number stepper
-  const countInput = document.getElementById('count');
+  // Number stepper logic
+  const countInput = document.getElementById('numResources');
   document.getElementById('inc').addEventListener('click', () => {
     countInput.value = Math.max(1, (parseInt(countInput.value)||1) + 1);
     updatePreview();
@@ -582,63 +620,119 @@
   });
   countInput.addEventListener('input', updatePreview);
 
-  // Live preview logic
+  // Live preview tracking
   const locationEl = document.getElementById('location');
   const deptEl = document.getElementById('department');
   const posEl = document.getElementById('position');
   const catEl = document.getElementById('category');
 
-  const codeMap = {
-    location: { Bengaluru:'BLR', Mysuru:'MYS', Hyderabad:'HYD', Pune:'PUN', Remote:'RMT' },
-    department: { Engineering:'ENG', Sales:'SLS', Finance:'FIN', Operations:'OPS', 'Human Resources':'HR' },
-    position: { Associate:'ASC', 'Senior Associate':'SAS', 'Team Lead':'TL', Manager:'MGR', 'Senior Manager':'SMG' }
-  };
-
-  function abbrev(map, value){ return value ? (map[value] || value.slice(0,3).toUpperCase()) : null; }
-
   function updatePreview(){
-    const loc = locationEl.value, dept = deptEl.value, pos = posEl.value, cat = catEl.value;
-    const count = countInput.value || '1';
+    const locText = locationEl.options[locationEl.selectedIndex]?.text || '';
+    const deptText = deptEl.options[deptEl.selectedIndex]?.text || '';
+    const posText = posEl.options[posEl.selectedIndex]?.text || '';
+    const catText = catEl.options[catEl.selectedIndex]?.text || '';
 
-    document.getElementById('pLoc').textContent = loc || '—';
-    document.getElementById('pDept').textContent = dept || '—';
-    document.getElementById('pPos').textContent = pos || '—';
-    document.getElementById('pCat').textContent = cat || '—';
-    document.getElementById('pCount').textContent = count;
+    document.getElementById('pLoc').textContent = locText.includes('Select') ? '—' : locText;
+    document.getElementById('pDept').textContent = deptText.includes('Select') ? '—' : deptText;
+    document.getElementById('pPos').textContent = posText.includes('Select') ? '—' : posText;
+    document.getElementById('pCat').textContent = catText.includes('Select') ? '—' : catText;
+    document.getElementById('pCount').textContent = countInput.value || '1';
 
-    const parts = [abbrev(codeMap.location, loc), abbrev(codeMap.department, dept), abbrev(codeMap.position, pos)].filter(Boolean);
-    const codeEl = document.getElementById('previewCode');
+    // Form completion percentage (calculates across all required fields)
+    const requiredInputs = document.querySelectorAll('#generatorForm [required]');
+    let filledCount = 0;
+    requiredInputs.forEach(input => { if(input.value.trim() !== '') filledCount++; });
 
-    if(parts.length === 0){
-      codeEl.innerHTML = '<span class="blank">— — —</span>';
-    } else {
-      const code = parts.join('-') + '-' + String(Math.floor(Math.random()*900)+100);
-      codeEl.textContent = code;
-    }
-
-    // completion estimate across the three visible dropdowns
-    const total = 4;
-    const filled = [loc, dept, pos, cat].filter(Boolean).length;
-    const pct = Math.round((filled/total)*100);
+    const pct = Math.round((filledCount / requiredInputs.length) * 100);
     document.getElementById('fillBar').style.width = pct + '%';
     document.getElementById('pct').textContent = pct + '%';
   }
 
-  [locationEl, deptEl, posEl, catEl].forEach(el => el.addEventListener('change', updatePreview));
+  // Trigger form completion tracking when interacting
+  document.getElementById('generatorForm').addEventListener('input', updatePreview);
+  document.getElementById('generatorForm').addEventListener('change', updatePreview);
 
-  document.getElementById('generateBtn').addEventListener('click', () => {
-    updatePreview();
-    const btn = document.getElementById('generateBtn');
-    const original = btn.innerHTML;
-    btn.innerHTML = 'Job Code Generated ✓';
-    btn.style.background = 'linear-gradient(180deg,#12805e,#0a4d42)';
-    setTimeout(() => { btn.innerHTML = original; }, 1800);
+  // Submit and Generate Code
+  document.getElementById('generatorForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const payload = {
+          location_id: locationEl.value,
+          location_name: locationEl.options[locationEl.selectedIndex].text,
+          dept_id: deptEl.value,
+          department_name: deptEl.options[deptEl.selectedIndex].text,
+          position_id: posEl.value,
+          position_name: posEl.options[posEl.selectedIndex].text,
+          job_description: document.getElementById('jobDescription').value,
+          category_name: catEl.options[catEl.selectedIndex].text,
+          reason_name: document.getElementById('reason').options[document.getElementById('reason').selectedIndex].text,
+          num_resources: document.getElementById('numResources').value,
+          hiring_manager: document.getElementById('hiringManager').value,
+          justification: document.getElementById('justification').value,
+          education: document.getElementById('education').value,
+          experience: document.getElementById('experience').value,
+          age_group: document.getElementById('ageGroup').value,
+          industry: document.getElementById('industry').value,
+          ctc: document.getElementById('ctc').value,
+          behavioral: document.getElementById('behavioral').value
+      };
+
+      try {
+          const response = await fetch('/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+
+          const data = await response.json();
+
+          // Push strictly generated backend code to preview window
+          document.getElementById('previewCode').innerHTML = `<span style="color:#2dd4bf">${data.generated_code}</span>`;
+
+          // Button styling animation
+          const btn = document.getElementById('generateBtn');
+          const original = btn.innerHTML;
+          btn.innerHTML = 'Job Code Generated ✓';
+          btn.style.background = 'linear-gradient(180deg,#12805e,#0a4d42)';
+          setTimeout(() => {
+            btn.innerHTML = original;
+            btn.style.background = 'linear-gradient(180deg, var(--teal) 0%, var(--teal-deep) 100%)';
+            document.getElementById('generatorForm').reset();
+            document.getElementById('previewCode').innerHTML = '<span class="blank">— — —</span>';
+            updatePreview();
+          }, 2500);
+
+          loadSummary();
+      } catch (error) {
+          console.error("Error generating code:", error);
+      }
   });
 
-  updatePreview();
+  // Table loading logic
+  async function loadSummary() {
+      try {
+          const response = await fetch('/api/summary');
+          const data = await response.json();
+
+          const tbody = document.getElementById('summaryTableBody');
+          tbody.innerHTML = '';
+
+          data.forEach(row => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                  <td>${row.location}</td>
+                  <td>${row.department}</td>
+                  <td>${row.position}</td>
+<!--                  <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${row.job_description}</td>-->
+                  <td>${row.year}</td>
+                  <td><span class="code-highlight">${row.generated_code}</span></td>
+              `;
+              tbody.appendChild(tr);
+          });
+      } catch (error) {
+          console.error("Error loading summary:", error);
+      }
+  }
 </script>
 </body>
 </html>
-
-
-
