@@ -1,0 +1,288 @@
+Here are the targeted updates to fulfill your new requirements.
+
+### 1. Updated Python Backend (`app.py`)
+
+I have updated the `/api/candidates` route to send a flat list of candidates (which makes rendering the stacked first column easier) and updated `/api/sync_emails` to parse the actual **Email Date** and fetch only the **recent 2 emails**.
+
+Make sure you import `email.utils` at the top of your `app.py` file.
+
+```python
+import os
+import imaplib
+import email
+import email.utils # NEW IMPORT REQUIRED FOR DATE PARSING
+from email.header import decode_header
+from werkzeug.utils import secure_filename
+import PyPDF2
+import datetime
+
+# ... [Keep your other configurations and extract_name_from_pdf function] ...
+
+@app.route('/api/candidates', methods=['GET'])
+def get_candidates():
+    """Fetch candidates with Job details attached for the flat table layout."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as c:
+            # Fetch Job details from summary to map location and role
+            c.execute("SELECT generated_code, location, position FROM summary")
+            job_details = {row['generated_code']: row for row in c.fetchall()}
+
+            c.execute("SELECT * FROM candidate_mast")
+            cands = c.fetchall()
+
+            candidates = []
+            for cand in cands:
+                jcode = cand['job_code']
+                cand_obj = {
+                    "id": cand['candidate_id'],
+                    "jobCode": jcode,
+                    "location": job_details.get(jcode, {}).get('location', 'Unknown'),
+                    "role": job_details.get(jcode, {}).get('position', 'Unknown'),
+                    "name": cand['candidate_name'],
+                    "appliedOn": cand['applied_date'].strftime('%Y-%m-%d') if cand['applied_date'] else None,
+                    "resumeFile": cand['resume_path'],
+                    "hr": {"status": "not-scheduled", "interviewer": None, "interviewDate": None, "feedback": None},
+                    "tech": {"status": "not-scheduled", "interviewer": None, "interviewDate": None, "feedback": None}
+                }
+
+                # Fetch interview stages
+                c.execute("SELECT * FROM candidate_interviews WHERE candidate_id = %s", (cand['candidate_id'],))
+                interviews = c.fetchall()
+
+                for iv in interviews:
+                    stage = iv['stage_type']
+                    if stage in cand_obj:
+                        cand_obj[stage]['status'] = iv['stage_status']
+                        cand_obj[stage]['interviewer'] = iv['interviewer_name']
+                        cand_obj[stage]['interviewDate'] = iv['interview_date'].strftime('%Y-%m-%dT%H:%M') if iv['interview_date'] else None
+
+                        if iv['stage_status'] == 'completed':
+                            c.execute("SELECT * FROM interview_feedback WHERE interview_id = %s", (iv['interview_id'],))
+                            fb = c.fetchone()
+                            if fb:
+                                cand_obj[stage]['feedback'] = {
+                                    "date": fb['feedback_date'].strftime('%Y-%m-%d') if fb['feedback_date'] else None,
+                                    "round": fb['round_name'],
+                                    "interviewer": iv['interviewer_name'],
+                                    "technical": fb['technical_score'],
+                                    "communication": fb['communication_score'],
+                                    "problemSolving": fb['problem_solving_score'],
+                                    "cultureFit": fb['culture_fit_score'],
+                                    "recommendation": fb['recommendation'],
+                                    "comments": fb['comments']
+                                }
+                
+                candidates.append(cand_obj)
+    finally:
+        conn.close()
+        
+    return jsonify(candidates)
+
+@app.route('/api/sync_emails', methods=['POST'])
+def sync_emails():
+    """Read recent 2 emails, extract resumes, use Email Date, and save to database."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as c:
+            c.execute("SELECT generated_code, position FROM summary")
+            valid_jobs = {row['generated_code']: row['position'] for row in c.fetchall()}
+
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+        mail.login(EMAIL_ACCOUNT, EMAIL_APP_PASSWORD)
+        mail.select("inbox")
+
+        # Search for ALL emails to get the most recent
+        status, messages = mail.search(None, 'ALL')
+        email_ids = messages[0].split()
+        
+        # Take only the last 2 emails
+        recent_ids = email_ids[-2:] if len(email_ids) >= 2 else email_ids
+        
+        added_count = 0
+
+        for e_id in recent_ids:
+            res, msg_data = mail.fetch(e_id, '(RFC822)')
+            for response_part in msg_data:
+                if isinstance(response_part, tuple):
+                    msg = email.message_from_bytes(response_part[1])
+                    
+                    # 1. Decode Subject
+                    subject, encoding = decode_header(msg["Subject"])[0]
+                    if isinstance(subject, bytes):
+                        subject = subject.decode(encoding if encoding else 'utf-8')
+                    
+                    # 2. Extract and format the Email Received Date
+                    date_tuple = email.utils.parsedate_tz(msg['Date'])
+                    if date_tuple:
+                        # Convert to timestamp then to datetime date
+                        email_date = datetime.datetime.fromtimestamp(email.utils.mktime_tz(date_tuple)).date()
+                    else:
+                        email_date = datetime.date.today()
+                    
+                    # 3. Check for Job ID Match
+                    matched_job = None
+                    for jcode in valid_jobs.keys():
+                        if jcode in subject:
+                            matched_job = jcode
+                            break
+                    
+                    if not matched_job:
+                        continue 
+
+                    # 4. Extract PDF Attachment
+                    for part in msg.walk():
+                        if part.get_content_maintype() == 'multipart': continue
+                        if part.get('Content-Disposition') is None: continue
+                        
+                        filename = part.get_filename()
+                        if filename and filename.lower().endswith('.pdf'):
+                            filename = secure_filename(filename)
+                            timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                            unique_filename = f"email_{timestamp}_{filename}"
+                            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                            
+                            with open(filepath, 'wb') as f:
+                                f.write(part.get_payload(decode=True))
+                                
+                            db_path = f"/{filepath}"
+                            extracted_name = extract_name_from_pdf(filepath)
+                            
+                            with conn.cursor() as c:
+                                c.execute('''INSERT INTO candidate_mast 
+                                             (job_code, candidate_name, candidate_role, applied_date, resume_path) 
+                                             VALUES (%s, %s, %s, %s, %s)''', 
+                                          (matched_job, extracted_name, valid_jobs[matched_job], email_date, db_path))
+                            conn.commit()
+                            added_count += 1
+                            
+        mail.logout()
+        return jsonify({"status": "success", "message": f"Successfully synced and added {added_count} candidates."})
+    except Exception as e:
+        print(e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        conn.close()
+
+```
+
+---
+
+### 2. Updated Frontend Logic (`candidate_pipeline.html`)
+
+Update your `<thead>` and the `renderTable()` javascript function inside your HTML file. I have adjusted the first column to stack the **Job ID**, **Role**, and **Location** precisely as requested.
+
+**Update the Table HTML Header:**
+
+```html
+<table id="pipelineTable">
+  <thead>
+    <tr>
+      <th>Job Details</th>
+      <th>Candidate</th>
+      <th>Applied</th>
+      <th>Resume</th>
+      <th class="stage-col">HR Interview</th>
+      <th class="stage-col">Technical Interview</th>
+      <th class="stage-col">Final Outcome</th>
+    </tr>
+  </thead>
+  <tbody id="candidateRows"></tbody>
+</table>
+
+```
+
+**Update the Javascript Section:**
+Replace the `groupedCandidates` logic with this flatter, cleaner rendering function:
+
+```javascript
+/* ---------------- Application State ---------------- */
+let candidates = []; // Reverted back to flat array
+const statusMeta = { "not-scheduled": { label: "Not Scheduled", cls: "not-scheduled" }, "scheduled": { label: "Scheduled", cls: "scheduled" }, "completed": { label: "Completed", cls: "completed" } };
+
+/* ---------------- API & Data Fetching ---------------- */
+async function loadCandidates() {
+    try {
+        const response = await fetch('/api/candidates');
+        candidates = await response.json();
+        populateJobCodeDropdown();
+        renderTable();
+    } catch (error) {
+        console.error("Error loading candidates:", error);
+    }
+}
+
+function populateJobCodeDropdown() {
+    const sel = document.getElementById('manualJobCode');
+    
+    // Get unique job objects for the dropdown
+    const uniqueJobs = Array.from(new Map(candidates.map(c => [c.jobCode, c])).values());
+    
+    sel.innerHTML = '<option value="" disabled selected>Select Job to link candidate...</option>' + 
+        uniqueJobs.map(j => `<option value="${j.jobCode}">${j.jobCode} - ${j.role} (${j.location})</option>`).join('');
+        
+    // Update top Filter dropdown
+    const filterSel = document.getElementById('jobCodeFilter');
+    filterSel.innerHTML = '<option value="all">All Job Codes</option>' + 
+        uniqueJobs.map(j => `<option value="${j.jobCode}">${j.jobCode}</option>`).join('');
+    filterSel.addEventListener('change', renderTable);
+}
+
+function currentFilter(){ return document.getElementById('jobCodeFilter').value; }
+
+/* ---------------- Rendering Logic ---------------- */
+// ... [Keep finalOutcome() and stageCellHtml() exactly as they were] ...
+
+function renderTable(){
+  let totalCands = 0, hrDone = 0, techDone = 0, selCount = 0, pendCount = 0;
+  
+  const filter = currentFilter();
+  const rows = candidates.filter(c => filter === 'all' || c.jobCode === filter);
+  
+  let html = rows.map(c => {
+      totalCands++;
+      if(c.hr.status === 'completed') hrDone++;
+      if(c.tech.status === 'completed') techDone++;
+      
+      const outcome = finalOutcome(c);
+      if(outcome.label === 'Selected') selCount++;
+      if(c.hr.status !== 'completed' || c.tech.status !== 'completed') pendCount++;
+
+      const appliedStr = c.appliedOn ? new Date(c.appliedOn).toLocaleDateString([], {dateStyle:'medium'}) : '—';
+      
+      return `
+      <tr>
+        <!-- FIRST COLUMN: Job ID, Role, Location Stacked -->
+        <td>
+          <div class="job-id-cell" style="margin-bottom: 4px; font-size:14px;">${c.jobCode}</div>
+          <div class="candidate-role" style="font-weight: 500; color: #40454f;">${c.role}</div>
+          <div class="candidate-role">${c.location}</div>
+        </td>
+        
+        <td>
+          <div class="candidate-name">${c.name}</div>
+        </td>
+        <td><span class="applied-date">${appliedStr}</span></td>
+        <td>
+          <button class="btn-ghost" onclick="openResume('${c.resumeFile}', '${c.name}')">View PDF</button>
+        </td>
+        <td class="stage-col">${stageCellHtml(c, 'hr')}</td>
+        <td class="stage-col">${stageCellHtml(c, 'tech')}</td>
+        <td style="text-align:center;"><span class="badge ${outcome.cls}">${outcome.label}</span></td>
+      </tr>
+      `;
+  }).join('');
+
+  document.getElementById('candidateRows').innerHTML = html;
+
+  // Update Top Stats
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><div class="n">${totalCands}</div><div class="l">Total applicants</div></div>
+    <div class="stat"><div class="n">${hrDone}</div><div class="l">HR interviews completed</div></div>
+    <div class="stat"><div class="n">${techDone}</div><div class="l">Technical interviews completed</div></div>
+    <div class="stat"><div class="n">${selCount}</div><div class="l">Selected</div></div>
+    <div class="stat"><div class="n">${pendCount}</div><div class="l">Awaiting a stage</div></div>
+  `;
+}
+
+```
