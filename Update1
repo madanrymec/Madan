@@ -1,0 +1,611 @@
+Here are the complete updates to integrate the location/role grouping under the Job ID, manual candidate entry, and the automated email resume parser.
+
+### Prerequisites for Email Parsing
+
+You will need to install **PyPDF2** to allow Python to read text from the PDFs to guess the candidate's name.
+Run this in your terminal:
+
+```bash
+pip install PyPDF2
+
+```
+
+---
+
+### 1. Updated Python Backend (`app.py`)
+
+Add these imports at the top, configure your email credentials (I used Outlook's IMAP server as a default for enterprise emails; change to `imap.gmail.com` if using Gmail Workspace), and replace your `/api/candidates` route with the updated grouped logic.
+
+```python
+import os
+import imaplib
+import email
+from email.header import decode_header
+from werkzeug.utils import secure_filename
+import PyPDF2
+
+# --- File Upload Configuration ---
+UPLOAD_FOLDER = 'static/uploads/resumes'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# --- Email Automation Configuration ---
+EMAIL_ACCOUNT = "madan.hs@kec.com"
+EMAIL_APP_PASSWORD = "your_app_password_here"
+IMAP_SERVER = "outlook.office365.com" # Change to 'imap.gmail.com' if using Google Workspace
+
+def extract_name_from_pdf(filepath):
+    """Attempts to extract the candidate's name from the first line of the PDF."""
+    try:
+        with open(filepath, 'rb') as f:
+            reader = PyPDF2.PdfReader(f)
+            text = reader.pages[0].extract_text()
+            if text:
+                lines = text.split('\n')
+                # Usually the first non-empty line of a resume is the name
+                for line in lines:
+                    if line.strip():
+                        return line.strip()[:50]
+    except Exception as e:
+        print(f"PDF extraction error: {e}")
+    return "Unknown Candidate"
+
+
+@app.route('/api/candidates', methods=['GET'])
+def get_candidates():
+    """Fetch candidates grouped by Job ID, attaching Location and Role."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as c:
+            # Fetch Job details from summary to map location and role
+            c.execute("SELECT generated_code, location, position FROM summary")
+            job_details = {row['generated_code']: row for row in c.fetchall()}
+
+            c.execute("SELECT * FROM candidate_mast")
+            cands = c.fetchall()
+
+            groups = {}
+            for cand in cands:
+                jcode = cand['job_code']
+                if jcode not in groups:
+                    groups[jcode] = {
+                        "jobCode": jcode,
+                        "location": job_details.get(jcode, {}).get('location', 'Unknown'),
+                        "role": job_details.get(jcode, {}).get('position', 'Unknown'),
+                        "candidates": []
+                    }
+
+                cand_obj = {
+                    "id": cand['candidate_id'],
+                    "name": cand['candidate_name'],
+                    "role": cand['candidate_role'],
+                    "appliedOn": cand['applied_date'].strftime('%Y-%m-%d') if cand['applied_date'] else None,
+                    "resumeFile": cand['resume_path'],
+                    "hr": {"status": "not-scheduled", "interviewer": None, "interviewDate": None, "feedback": None},
+                    "tech": {"status": "not-scheduled", "interviewer": None, "interviewDate": None, "feedback": None}
+                }
+
+                # Fetch interview stages
+                c.execute("SELECT * FROM candidate_interviews WHERE candidate_id = %s", (cand['candidate_id'],))
+                interviews = c.fetchall()
+
+                for iv in interviews:
+                    stage = iv['stage_type']
+                    if stage in cand_obj:
+                        cand_obj[stage]['status'] = iv['stage_status']
+                        cand_obj[stage]['interviewer'] = iv['interviewer_name']
+                        cand_obj[stage]['interviewDate'] = iv['interview_date'].strftime('%Y-%m-%dT%H:%M') if iv['interview_date'] else None
+
+                        if iv['stage_status'] == 'completed':
+                            c.execute("SELECT * FROM interview_feedback WHERE interview_id = %s", (iv['interview_id'],))
+                            fb = c.fetchone()
+                            if fb:
+                                cand_obj[stage]['feedback'] = {
+                                    "date": fb['feedback_date'].strftime('%Y-%m-%d') if fb['feedback_date'] else None,
+                                    "round": fb['round_name'],
+                                    "interviewer": iv['interviewer_name'],
+                                    "technical": fb['technical_score'],
+                                    "communication": fb['communication_score'],
+                                    "problemSolving": fb['problem_solving_score'],
+                                    "cultureFit": fb['culture_fit_score'],
+                                    "recommendation": fb['recommendation'],
+                                    "comments": fb['comments']
+                                }
+                
+                groups[jcode]['candidates'].append(cand_obj)
+                
+            grouped_data = list(groups.values())
+    finally:
+        conn.close()
+        
+    return jsonify(grouped_data)
+
+
+@app.route('/api/add_candidate', methods=['POST'])
+def add_candidate():
+    """Manually add a candidate and upload their resume."""
+    if 'resume' not in request.files:
+        return jsonify({"error": "No resume file uploaded"}), 400
+        
+    file = request.files['resume']
+    job_code = request.form.get('job_code')
+    candidate_name = request.form.get('candidate_name')
+    
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if file and file.filename.endswith('.pdf'):
+        filename = secure_filename(file.filename)
+        # Create unique filename
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        unique_filename = f"manual_{timestamp}_{filename}" 
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(filepath)
+        db_path = f"/{filepath}" 
+        
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as c:
+                # Get role from summary for consistency
+                c.execute("SELECT position FROM summary WHERE generated_code=%s", (job_code,))
+                role_row = c.fetchone()
+                role = role_row['position'] if role_row else 'Candidate'
+                
+                c.execute('''INSERT INTO candidate_mast (job_code, candidate_name, candidate_role, applied_date, resume_path) 
+                             VALUES (%s, %s, %s, %s, %s)''', 
+                          (job_code, candidate_name, role, datetime.date.today(), db_path))
+            conn.commit()
+        finally:
+            conn.close()
+            
+        return jsonify({"status": "success", "message": "Candidate added successfully"})
+        
+    return jsonify({"error": "Invalid file format. Please upload a PDF."}), 400
+
+
+@app.route('/api/sync_emails', methods=['POST'])
+def sync_emails():
+    """Read unread emails, extract resumes, map by Job ID subject, and save to database."""
+    conn = get_db_connection()
+    try:
+        # 1. Fetch valid job codes to check against email subjects
+        with conn.cursor() as c:
+            c.execute("SELECT generated_code, position FROM summary")
+            valid_jobs = {row['generated_code']: row['position'] for row in c.fetchall()}
+
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+        mail.login(EMAIL_ACCOUNT, EMAIL_APP_PASSWORD)
+        mail.select("inbox")
+
+        # Search for UNSEEN emails
+        status, messages = mail.search(None, '(UNSEEN)')
+        email_ids = messages[0].split()
+        
+        added_count = 0
+
+        for e_id in email_ids:
+            res, msg_data = mail.fetch(e_id, '(RFC822)')
+            for response_part in msg_data:
+                if isinstance(response_part, tuple):
+                    msg = email.message_from_bytes(response_part[1])
+                    
+                    # Decode subject
+                    subject, encoding = decode_header(msg["Subject"])[0]
+                    if isinstance(subject, bytes):
+                        subject = subject.decode(encoding if encoding else 'utf-8')
+                    
+                    # Check if any valid Job ID is in the subject
+                    matched_job = None
+                    for jcode in valid_jobs.keys():
+                        if jcode in subject:
+                            matched_job = jcode
+                            break
+                    
+                    if not matched_job:
+                        continue # Skip emails not related to a specific Job ID
+
+                    # Extract attachment
+                    for part in msg.walk():
+                        if part.get_content_maintype() == 'multipart': continue
+                        if part.get('Content-Disposition') is None: continue
+                        
+                        filename = part.get_filename()
+                        if filename and filename.lower().endswith('.pdf'):
+                            filename = secure_filename(filename)
+                            timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                            unique_filename = f"email_{timestamp}_{filename}"
+                            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                            
+                            # Save PDF
+                            with open(filepath, 'wb') as f:
+                                f.write(part.get_payload(decode=True))
+                                
+                            db_path = f"/{filepath}"
+                            
+                            # Extract name from PDF or fallback to sender's name
+                            extracted_name = extract_name_from_pdf(filepath)
+                            
+                            # Insert into DB
+                            with conn.cursor() as c:
+                                c.execute('''INSERT INTO candidate_mast 
+                                             (job_code, candidate_name, candidate_role, applied_date, resume_path) 
+                                             VALUES (%s, %s, %s, %s, %s)''', 
+                                          (matched_job, extracted_name, valid_jobs[matched_job], datetime.date.today(), db_path))
+                            conn.commit()
+                            added_count += 1
+                            
+        mail.logout()
+        return jsonify({"status": "success", "message": f"Successfully synced and added {added_count} candidates."})
+    except Exception as e:
+        print(e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        conn.close()
+
+```
+
+---
+
+### 2. Updated Frontend (`candidate_pipeline.html`)
+
+This includes the structural table changes (grouping by Job ID), the manual **"Add Candidate"** form and modal, and the **"Sync Emails"** action button.
+
+*(Replace the corresponding sections in your existing HTML file, or replace the whole file).*
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Candidate Pipeline — Talent Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* [KEEP ALL YOUR EXISTING CSS STYLES HERE] */
+  :root{ --ink:#151b2c; --navy:#1c2b4a; --canvas:#f3f2ee; --panel:#ffffff; --line:#e2ded3; --line-soft:#ebe8df; --teal:#0f6b5c; --teal-deep:#0a4d42; --teal-tint:#e7f1ee; --amber:#b8862f; --amber-tint:#faf1e0; --plum:#6b4c8a; --plum-tint:#efe9f5; --muted:#767a86; --danger:#a8432f; --danger-tint:#f8e9e5; --slate-tint:#eceef2; --radius:14px; --shadow: 0 1px 2px rgba(20,20,20,0.04), 0 8px 24px -12px rgba(20,20,20,0.12); }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{ background:var(--canvas); color:var(--ink); font-family:'Inter', sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh; }
+  .shell{ max-width:1350px; margin:0 auto; padding:48px 32px 96px; }
+
+  /* New Group Header Row Styling */
+  .job-group-header {
+      background-color: #eef2f5 !important;
+      border-top: 2px solid var(--navy);
+  }
+  .job-group-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--navy);
+  }
+  .job-group-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 15px;
+      font-family: 'Inter', sans-serif;
+  }
+  
+  /* Action Buttons in Header */
+  .header-actions { display: flex; gap: 12px; margin-top: 15px; }
+  .btn-primary {
+      background: linear-gradient(180deg, var(--teal) 0%, var(--teal-deep) 100%); color: #fff;
+      border: none; padding: 10px 18px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px -4px rgba(10,77,66,0.5);
+  }
+  .btn-outline {
+      background: transparent; color: var(--navy); border: 1px solid var(--line);
+      padding: 10px 18px; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  
+  /* Standardizing all previous CSS... */
+  /* Ensure you keep the modal overlay, table, and badge CSS from previous responses */
+  .masthead{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:28px; padding-bottom:28px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .eyebrow{ font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--teal-deep); display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .eyebrow::before{ content:""; width:7px;height:7px; background:var(--teal); border-radius:50%; display:inline-block; }
+  h1{ font-family:'Fraunces', serif; font-weight:500; font-size:36px; line-height:1.1; margin:0; letter-spacing:-0.01em; color:var(--navy); }
+  .back-link{ font-size:12.5px; color:var(--muted); text-decoration:none; display:inline-flex; align-items:center; gap:6px; margin-bottom:14px; }
+  .stats{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:28px; }
+  .stat{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow); }
+  .stat .n{ font-family:'Fraunces', serif; font-size:28px; color:var(--navy); font-weight:500; line-height:1; margin-bottom:6px; }
+  .stat .l{ font-size:11.5px; color:var(--muted); }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .panel-head{ padding:20px 26px; border-bottom:1px solid var(--line-soft); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .panel-title{ font-family:'Fraunces', serif; font-weight:500; font-size:19px; color:var(--navy); }
+  table{ width:100%; border-collapse:collapse; min-width:1000px; }
+  thead th{ text-align:left; font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#767a86; padding:12px 18px; border-bottom:1px solid var(--line-soft); background:#fbfaf7; }
+  tbody td{ padding:16px 18px; border-bottom:1px solid var(--line-soft); font-size:13.5px; vertical-align:top; }
+  .candidate-name{ font-weight:600; color:var(--ink); }
+  .btn-ghost{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--teal-deep); background:var(--teal-tint); border:1px solid rgba(15,107,92,0.18); padding:7px 12px; border-radius:8px; cursor:pointer; }
+  .badge{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:5px 10px; border-radius:20px; }
+  .badge::before{ content:""; width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .badge.not-scheduled{ background:var(--slate-tint); color:#565b68; } .badge.not-scheduled::before{ background:#9aa0ac; }
+  .badge.scheduled{ background:var(--amber-tint); color:var(--amber); } .badge.scheduled::before{ background:var(--amber); }
+  .badge.completed{ background:var(--teal-tint); color:var(--teal-deep); } .badge.completed::before{ background:var(--teal); }
+  .badge.selected{ background:#e4f2e9; color:#256b3f; } .badge.selected::before{ background:#2f9e5c; }
+  .badge.hold{ background:var(--amber-tint); color:var(--amber); } .badge.hold::before{ background:var(--amber); }
+  .badge.rejected{ background:var(--danger-tint); color:var(--danger); } .badge.rejected::before{ background:var(--danger); }
+  .badge.pending{ background:var(--plum-tint); color:var(--plum); } .badge.pending::before{ background:var(--plum); }
+  .stage-cell{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .feedback-btn{ background:var(--navy); color:#fff; border:none; font-size:11.5px; font-weight:600; padding:6px 11px; border-radius:7px; cursor:pointer; }
+  .feedback-btn.secondary{ background:transparent; color:var(--navy); border:1px solid var(--line); }
+  
+  /* Modals */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(21,27,44,0.55); display:none; align-items:center; justify-content:center; z-index:100; padding:24px; }
+  .modal-overlay.open{ display:flex; }
+  .modal{ background:var(--panel); border-radius:16px; max-width:640px; width:100%; max-height:88vh; overflow:auto; }
+  .modal.wide{ max-width:820px; }
+  .modal-head{ display:flex; justify-content:space-between; padding:22px 26px; border-bottom:1px solid var(--line-soft); position:sticky; top:0; background:var(--panel); z-index:2; }
+  .modal-title{ font-family:'Fraunces', serif; font-size:20px; color:var(--navy); font-weight:500; }
+  .modal-close{ border:none; background:var(--slate-tint); width:30px; height:30px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .modal-body{ padding:22px 26px 28px; }
+  .pdf-frame{ width:100%; height:70vh; border:1px solid var(--line); border-radius:10px; background:#f3f2ee; }
+  
+  /* Forms in modals */
+  .ff-field{ display:flex; flex-direction:column; gap:7px; margin-bottom: 15px;}
+  .ff-field label{ font-size:11px; font-weight:600; text-transform:uppercase; color:#565b68; }
+  .ff-field input, .ff-field select{ font-size:14px; background:#fbfaf7; border:1px solid var(--line); border-radius:9px; padding:10px 12px; width: 100%; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <a href="/" class="back-link">&larr; Back to requisition form</a>
+
+  <div class="masthead">
+    <div>
+      <div class="eyebrow">Talent Operations • Candidate Pipeline</div>
+      <h1>Resumes &amp; Interview Tracking</h1>
+      
+      <!-- Action Buttons -->
+      <div class="header-actions">
+          <button class="btn-primary" onclick="openAddCandidateModal()">+ Add Candidate</button>
+          <button class="btn-outline" id="syncEmailBtn" onclick="syncEmails()">Sync Email Resumes ↻</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats" id="statsRow"></div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Applicants by Job ID</div>
+      <div class="legend">
+        <span><i style="background:#9aa0ac;"></i>Not scheduled</span>
+        <span><i style="background:var(--amber);"></i>Scheduled</span>
+        <span><i style="background:var(--teal);"></i>Completed</span>
+      </div>
+    </div>
+    <div class="table-scroll">
+    <table id="pipelineTable">
+      <thead>
+        <tr>
+          <th>Candidate</th>
+          <th>Applied</th>
+          <th>Resume</th>
+          <th class="stage-col">HR Interview</th>
+          <th class="stage-col">Technical Interview</th>
+          <th class="stage-col">Final Outcome</th>
+        </tr>
+      </thead>
+      <!-- Dynamic job groups load here -->
+      <tbody id="candidateRows"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Candidate Modal -->
+<div class="modal-overlay" id="addCandidateOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Add Candidate Manually</div>
+      <button class="modal-close" onclick="closeModal('addCandidateOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="addCandidateForm">
+        <div class="ff-field">
+            <label>Select Job ID / Role</label>
+            <select id="manualJobCode" required></select>
+        </div>
+        <div class="ff-field">
+            <label>Candidate Full Name</label>
+            <input type="text" id="manualCandidateName" placeholder="e.g. Rahul Sharma" required>
+        </div>
+        <div class="ff-field">
+            <label>Upload Resume (PDF only)</label>
+            <input type="file" id="manualResume" accept="application/pdf" required>
+        </div>
+        
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+            <button type="button" class="btn-outline" onclick="closeModal('addCandidateOverlay')">Cancel</button>
+            <button type="submit" class="btn-primary">Save Candidate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- PDF Modal -->
+<div class="modal-overlay" id="pdfOverlay">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="pdfModalName">Resume</div>
+        <div class="modal-sub" id="pdfModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('pdfOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- Application State ---------------- */
+let groupedCandidates = [];
+const statusMeta = { "not-scheduled": { label: "Not Scheduled", cls: "not-scheduled" }, "scheduled": { label: "Scheduled", cls: "scheduled" }, "completed": { label: "Completed", cls: "completed" } };
+
+/* ---------------- API & Data Fetching ---------------- */
+async function loadCandidates() {
+    try {
+        const response = await fetch('/api/candidates');
+        groupedCandidates = await response.json();
+        populateJobCodeDropdown();
+        renderTable();
+    } catch (error) {
+        console.error("Error loading candidates:", error);
+    }
+}
+
+function populateJobCodeDropdown() {
+    const sel = document.getElementById('manualJobCode');
+    sel.innerHTML = '<option value="" disabled selected>Select Job to link candidate...</option>' + 
+        groupedCandidates.map(g => `<option value="${g.jobCode}">${g.jobCode} - ${g.role} (${g.location})</option>`).join('');
+}
+
+/* ---------------- Manual Entry & Sync ---------------- */
+function openAddCandidateModal() {
+    document.getElementById('addCandidateForm').reset();
+    document.getElementById('addCandidateOverlay').classList.add('open');
+}
+
+document.getElementById('addCandidateForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('job_code', document.getElementById('manualJobCode').value);
+    formData.append('candidate_name', document.getElementById('manualCandidateName').value);
+    formData.append('resume', document.getElementById('manualResume').files[0]);
+
+    try {
+        const response = await fetch('/api/add_candidate', { method: 'POST', body: formData });
+        const result = await response.json();
+        if (result.status === 'success') {
+            closeModal('addCandidateOverlay');
+            loadCandidates();
+        } else { alert(result.error); }
+    } catch (error) { console.error("Error:", error); }
+});
+
+async function syncEmails() {
+    const btn = document.getElementById('syncEmailBtn');
+    btn.textContent = 'Syncing...';
+    try {
+        const response = await fetch('/api/sync_emails', { method: 'POST' });
+        const result = await response.json();
+        alert(result.message);
+        loadCandidates();
+    } catch (error) {
+        console.error("Sync error:", error);
+        alert("Failed to sync emails.");
+    }
+    btn.textContent = 'Sync Email Resumes ↻';
+}
+
+
+/* ---------------- Rendering Logic ---------------- */
+function finalOutcome(c){
+  const hrDone = c.hr.status === 'completed';
+  const techDone = c.tech.status === 'completed';
+  if(hrDone && c.hr.feedback?.recommendation === 'reject') return { label: 'Rejected', cls: 'rejected' };
+  if(techDone && c.tech.feedback?.recommendation === 'reject') return { label: 'Rejected', cls: 'rejected' };
+  if(hrDone && techDone){
+    const both = [c.hr.feedback?.recommendation, c.tech.feedback?.recommendation];
+    if(both.includes('hold')) return { label: 'On Hold', cls: 'hold' };
+    return { label: 'Selected', cls: 'selected' };
+  }
+  if(hrDone || techDone) return { label: 'In Progress', cls: 'pending' };
+  return { label: 'Pending', cls: 'pending' };
+}
+
+function stageCellHtml(c, stage){
+  const s = c[stage] || {status: 'not-scheduled'};
+  const sMeta = statusMeta[s.status] || statusMeta['not-scheduled'];
+  
+  let html = `<div class="stage-cell">`;
+  html += `<span class="badge ${sMeta.cls}">${sMeta.label}</span>`;
+  
+  if(s.status === 'scheduled' && s.interviewDate){
+    const dt = new Date(s.interviewDate);
+    html += `<div class="stage-date">${dt.toLocaleString([], {dateStyle: 'medium', timeStyle: 'short'})}</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderTable(){
+  let totalCands = 0, hrDone = 0, techDone = 0, selCount = 0, pendCount = 0;
+  let html = "";
+
+  groupedCandidates.forEach(group => {
+      // Create Sub-Table Header for Job ID
+      html += `
+        <tr class="job-group-header">
+            <td colspan="6">
+                <span class="job-group-title">Job ID: ${group.jobCode}</span>
+                <span class="job-group-meta">Role: ${group.role} | Location: ${group.location}</span>
+            </td>
+        </tr>
+      `;
+
+      group.candidates.forEach(c => {
+          totalCands++;
+          if(c.hr.status === 'completed') hrDone++;
+          if(c.tech.status === 'completed') techDone++;
+          
+          const outcome = finalOutcome(c);
+          if(outcome.label === 'Selected') selCount++;
+          if(c.hr.status !== 'completed' || c.tech.status !== 'completed') pendCount++;
+
+          const appliedStr = c.appliedOn ? new Date(c.appliedOn).toLocaleDateString([], {dateStyle:'medium'}) : '—';
+          
+          html += `
+          <tr>
+            <td>
+              <div class="candidate-name">${c.name}</div>
+            </td>
+            <td><span class="applied-date">${appliedStr}</span></td>
+            <td>
+              <button class="btn-ghost" onclick="openResume('${c.resumeFile}', '${c.name}')">View PDF</button>
+            </td>
+            <td class="stage-col">${stageCellHtml(c, 'hr')}</td>
+            <td class="stage-col">${stageCellHtml(c, 'tech')}</td>
+            <td style="text-align:center;"><span class="badge ${outcome.cls}">${outcome.label}</span></td>
+          </tr>
+          `;
+      });
+  });
+
+  document.getElementById('candidateRows').innerHTML = html;
+
+  // Update Top Stats
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><div class="n">${totalCands}</div><div class="l">Total applicants</div></div>
+    <div class="stat"><div class="n">${hrDone}</div><div class="l">HR interviews completed</div></div>
+    <div class="stat"><div class="n">${techDone}</div><div class="l">Technical interviews completed</div></div>
+    <div class="stat"><div class="n">${selCount}</div><div class="l">Selected</div></div>
+    <div class="stat"><div class="n">${pendCount}</div><div class="l">Awaiting a stage</div></div>
+  `;
+}
+
+function openResume(filepath, name){
+  if (!filepath || filepath === 'None') { alert("No resume file available."); return; }
+  document.getElementById('pdfModalName').textContent = `${name} — Resume`;
+  document.getElementById('pdfFrame').src = filepath; 
+  document.getElementById('pdfOverlay').classList.add('open');
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+  if(id === 'pdfOverlay') document.getElementById('pdfFrame').src = '';
+}
+
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', (e) => { if(e.target === ov) closeModal(ov.id); });
+});
+
+document.addEventListener("DOMContentLoaded", loadCandidates);
+</script>
+</body>
+</html>
