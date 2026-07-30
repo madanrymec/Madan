@@ -1,0 +1,300 @@
+Here is the complete solution for adding the **Candidate Email** field, generating dynamic **4-Stage Email Templates** (along with their rejection counterparts), and building a **Preview & Edit Modal** so you can review and tweak the email before sending it out.
+
+### 1. Database Update (`summary` & `candidate_mast`)
+
+Ensure you add a `candidate_email` column to your `candidate_mast` table so that we can save and retrieve the candidate's email address:
+
+```sql
+ALTER TABLE candidate_mast ADD COLUMN candidate_email VARCHAR(255) AFTER candidate_name;
+
+```
+
+---
+
+### 2. Python Backend (`app.py`)
+
+We need a helper function to generate the email bodies, an API endpoint to **preview** the email, and an API endpoint to **send** the email using Python's standard `smtplib` library.
+
+```python
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def get_email_template(template_type, cand_name, role, hr_date=None, tech_date=None):
+    """Returns Default Email Subject and Body for the 4 stages + rejection."""
+    templates = {
+        "hr_schedule": {
+            "subject": f"Interview Invitation: HR Screening for {role}",
+            "body": f"""Dear {cand_name},
+
+Thank you for applying for the {role} position. We were impressed with your profile and would like to invite you for an HR Screening round.
+
+Scheduled Date & Time: {hr_date or 'To be confirmed'}
+Mode: Online / In-Person (Details to follow)
+
+Please reply to this email to confirm your availability.
+
+Best regards,
+Recruitment Team"""
+        },
+        "hr_select": {
+            "subject": f"Update on your application for {role} - HR Screening Cleared",
+            "body": f"""Dear {cand_name},
+
+We are pleased to inform you that you have successfully cleared the HR Screening round for the {role} position!
+
+Our team will reach out to you shortly with the schedule for your Technical Interview round.
+
+Best regards,
+Recruitment Team"""
+        },
+        "tech_schedule": {
+            "subject": f"Interview Invitation: Technical Round for {role}",
+            "body": f"""Dear {cand_name},
+
+Congratulations on clearing the initial screening! We would like to invite you for the Technical Interview round for the {role} position.
+
+Scheduled Date & Time: {tech_date or 'To be confirmed'}
+Mode: Online / In-Person (Details to follow)
+
+Please confirm your availability by replying to this email.
+
+Best regards,
+Recruitment Team"""
+        },
+        "tech_select": {
+            "subject": f"Congratulations! Offer / Selection for {role}",
+            "body": f"""Dear {cand_name},
+
+We are thrilled to inform you that you have cleared the Technical Interview and have been selected for the {role} position!
+
+Our HR team will get in touch with you shortly regarding the next steps and documentation.
+
+Welcome aboard!
+
+Best regards,
+Recruitment Team"""
+        },
+        "reject": {
+            "subject": f"Update on your application for {role}",
+            "body": f"""Dear {cand_name},
+
+Thank you for giving us the opportunity to consider your application for the {role} position.
+
+After careful consideration, we have decided to move forward with other candidates whose qualifications more closely match our current requirements. We appreciate your time and wish you the very best in your career endeavors.
+
+Best regards,
+Recruitment Team"""
+        }
+    }
+    return templates.get(template_type, {"subject": "", "body": ""})
+
+
+@app.route('/api/email/preview', methods=['POST'])
+def preview_email():
+    """Generates the email subject and body for frontend editing."""
+    data = request.json
+    template_type = data.get('template_type') # hr_schedule, hr_select, tech_schedule, tech_select, reject
+    cand_name = data.get('candidate_name', 'Candidate')
+    role = data.get('role', 'Position')
+    date_str = data.get('schedule_date', '')
+
+    template = get_email_template(
+        template_type, 
+        cand_name, 
+        role, 
+        hr_date=date_str if 'hr' in template_type else None,
+        tech_date=date_str if 'tech' in template_type else None
+    )
+
+    # Get logged-in user's email as the 'From' address
+    from_email = "recruitment@company.com" # Fallback
+    if 'emp_id' in session:
+        conn = get_user_db_connection()
+        try:
+            with conn.cursor() as c:
+                c.execute("SELECT emp_email FROM user_mast WHERE emp_id = %s", (session['emp_id'],))
+                res = c.fetchone()
+                if res and res.get('emp_email'):
+                    from_email = res['emp_email']
+        finally:
+            conn.close()
+
+    return jsonify({
+        "from_email": from_email,
+        "subject": template["subject"],
+        "body": template["body"]
+    })
+
+
+@app.route('/api/email/send', methods=['POST'])
+def send_email():
+    """Sends the edited email to the candidate."""
+    data = request.json
+    to_email = data.get('to_email')
+    from_email = data.get('from_email')
+    subject = data.get('subject')
+    body = data.get('body')
+
+    if not to_email:
+        return jsonify({"status": "error", "message": "Candidate email is required."}), 400
+
+    try:
+        # --- SMTP Configuration ---
+        # Update these with your real SMTP server settings
+        SMTP_SERVER = "smtp.gmail.com"
+        SMTP_PORT = 587
+        SMTP_USER = "your_email_account@gmail.com"
+        SMTP_PASSWORD = "your_app_password"
+
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+
+        return jsonify({"status": "success", "message": "Email sent successfully!"})
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return jsonify({"status": "error", "message": f"Failed to send email: {str(e)}"}), 500
+
+```
+
+---
+
+### 3. Frontend HTML Modal (`candidate_pipeline.html`)
+
+Add this new **Email Preview & Edit Modal** anywhere inside your `<body>` tag:
+
+```html
+<!-- Email Preview & Edit Modal -->
+<div class="modal-overlay" id="emailOverlay" style="display: none;">
+  <div class="modal-card" style="max-width: 600px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+    <h3 style="margin-bottom: 15px; color: #333;">Preview & Edit Email</h3>
+    
+    <div style="margin-bottom: 12px;">
+      <label class="form-label">From:</label>
+      <input type="text" id="emailFrom" class="form-control" readonly style="background-color: #e9ecef;">
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label class="form-label">To (Candidate Email):</label>
+      <input type="email" id="emailTo" class="form-control" placeholder="candidate@example.com" required>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label class="form-label">Subject:</label>
+      <input type="text" id="emailSubject" class="form-control" required>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <label class="form-label">Body:</label>
+      <textarea id="emailBody" class="form-control" rows="10" style="font-family: inherit; line-height: 1.4;" required></textarea>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button class="btn" style="background-color: #6c757d;" onclick="closeEmailModal()">Cancel</button>
+      <button class="btn" id="sendEmailBtn" onclick="sendFinalEmail()">Send Email</button>
+    </div>
+  </div>
+</div>
+
+```
+
+---
+
+### 4. Frontend JavaScript Functions
+
+Add these functions to your script block. When you click **"Schedule"** or **"Add Feedback"**, you can now trigger `openEmailPreview(...)` to load the template, let the user edit it, and send it out.
+
+```javascript
+/* ---------------- Email Preview & Send Logic ---------------- */
+
+async function openEmailPreview(candidateId, templateType, scheduleDate = "") {
+  const c = getCandidateById(candidateId);
+  if (!c) return;
+
+  try {
+    const response = await fetch('/api/email/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template_type: templateType,
+        candidate_name: c.name,
+        role: c.role,
+        schedule_date: scheduleDate
+      })
+    });
+
+    const data = await response.json();
+
+    // Populate Modal Fields
+    document.getElementById('emailFrom').value = data.from_email;
+    document.getElementById('emailTo').value = c.email || ""; // Pre-fill if email exists
+    document.getElementById('emailSubject').value = data.subject;
+    document.getElementById('emailBody').value = data.body;
+
+    // Show Modal
+    document.getElementById('emailOverlay').style.display = 'block';
+
+  } catch (error) {
+    console.error("Error generating email preview:", error);
+    alert("Could not load email template.");
+  }
+}
+
+function closeEmailModal() {
+  document.getElementById('emailOverlay').style.display = 'none';
+}
+
+async function sendFinalEmail() {
+  const btn = document.getElementById('sendEmailBtn');
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+
+  const payload = {
+    from_email: document.getElementById('emailFrom').value,
+    to_email: document.getElementById('emailTo').value,
+    subject: document.getElementById('emailSubject').value,
+    body: document.getElementById('emailBody').value
+  };
+
+  try {
+    const response = await fetch('/api/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (result.status === "success") {
+      alert("Email sent successfully!");
+      closeEmailModal();
+    } else {
+      alert("Error: " + result.message);
+    }
+  } catch (error) {
+    console.error("Error sending email:", error);
+    alert("An error occurred while sending the email.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Send Email";
+  }
+}
+
+```
+
+### How to use this in your Workflow:
+
+You can call `openEmailPreview(candidateId, templateType)` directly from your existing buttons or inside your Feedback modal:
+
+* **HR Schedule:** `openEmailPreview(id, 'hr_schedule', '2026-08-05 10:00 AM')`
+* **HR Cleared:** `openEmailPreview(id, 'hr_select')`
+* **Tech Schedule:** `openEmailPreview(id, 'tech_schedule', '2026-08-10 02:00 PM')`
+* **Tech Selected:** `openEmailPreview(id, 'tech_select')`
+* **Rejection (Any Round):** `openEmailPreview(id, 'reject')`
