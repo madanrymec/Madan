@@ -1,0 +1,978 @@
+
+BACKEND
+@app.route('/collection_report')
+def collection_report():
+    today = datetime.now().strftime('%Y-%m-%d')
+    return render_template('collection_report.html', username=session.get('username', 'User'), selected_date=today)
+
+
+@app.route('/api/collection/value')
+def get_collection_value():
+    selected_date = request.args.get('date')
+    if not selected_date:
+        return jsonify({"error": "Date is required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        query = """
+            SELECT SUM(Balance)  AS total_value 
+            FROM collections_set 
+            WHERE AS_ON_Date = %s AND Special_Transaction IN('COLLECTABLE DUE','COLLECTABLE NOT DUE','RETENTION NOT DUE','LC PMT DUE','LC PMT NOT DUE')
+        """
+        cursor.execute(query, (selected_date,))
+        result = cursor.fetchone()
+
+        total_value = result['total_value'] if result['total_value'] else 0
+
+        return jsonify({
+            "total_value": float(total_value)
+        })
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/collected/value')
+def get_collected_value():
+    selected_date = request.args.get('date')
+    if not selected_date:
+        return jsonify({"error": "Date is required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        query = """
+            SELECT SUM(SAP_COLL_AMT)  AS total_value 
+            FROM collections_data 
+            WHERE Posting_Date = %s 
+        """
+        cursor.execute(query, (selected_date,))
+        result = cursor.fetchone()
+
+        total_value = result['total_value'] if result['total_value'] else 0
+
+        return jsonify({
+            "collected_value": float(total_value)
+        })
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/collections/branches')
+def get_branches_value():
+    selected_date = request.args.get('date')
+    if not selected_date:
+        return jsonify({"error": "Date is required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        query = """
+            SELECT 
+                Description, 
+                SUM(Balance) / 100000 AS total_value 
+            FROM collections_set 
+            WHERE AS_ON_Date = %s 
+            AND Special_Transaction IN (
+                'COLLECTABLE DUE', 
+                'COLLECTABLE NOT DUE', 
+                'RETENTION NOT DUE', 
+                'LC PMT DUE', 
+                'LC PMT NOT DUE'
+            )
+            GROUP BY Description
+            ORDER BY total_value DESC
+        """
+
+        cursor.execute(query, (selected_date,))
+        results = cursor.fetchall()
+        ordered_labels = []
+        ordered_values = []
+
+        for row in results:
+            ordered_labels.append(row['Description'])
+            val = row['total_value']
+            ordered_values.append(float(val) if val is not None else 0.0)
+
+        return jsonify({
+            "labels": ordered_labels,
+            "values": ordered_values
+        })
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/collections/branches-list')
+def get_branches_list():
+    selected_date = request.args.get('date')
+    if not selected_date:
+        return jsonify({"error": "Date is required"}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        query = "SELECT DISTINCT Coll_BR_DESC FROM collections_data WHERE SAP_COLL_AMT > 0 AND  Posting_Date = %s ORDER BY Coll_BR_DESC"
+        cursor.execute(query, (selected_date,))
+        branches = [row['Coll_BR_DESC'] for row in cursor.fetchall()]
+        return jsonify(branches)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/collections/mapped-details')
+def get_mapped_collection_details():
+    selected_date = request.args.get('date')
+    selected_branch = request.args.get('branch')
+
+    if not selected_date:
+        return jsonify({"error": "Date is required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        branch_clause_set = ""
+        branch_clause_data = ""
+        params_set = [selected_date]
+        params_data = [selected_date]
+
+        if selected_branch and selected_branch != 'All':
+            branch_clause_set = "AND Description = %s "
+            branch_clause_data = "AND Coll_BR_DESC = %s "
+            params_set.append(selected_branch)
+            params_data.append(selected_branch)
+
+        # 1. Fetch Outstanding - Grouped by Customer AND Profit Center
+        cursor.execute(f"""
+            SELECT Name1, Profit_Center, Description as branch, SUM(Balance) AS outstanding 
+            FROM collections_set 
+            WHERE AS_ON_Date = %s {branch_clause_set}
+            AND Special_Transaction IN ('COLLECTABLE DUE', 'COLLECTABLE NOT DUE', 'RETENTION NOT DUE', 'LC PMT DUE', 'LC PMT NOT DUE', 'PMT_ADVANCE','RETENTION DUE' ) 
+            GROUP BY Name1, Profit_Center, Description
+        """, tuple(params_set))
+        outstanding_rows = cursor.fetchall()
+
+        # 2. Fetch Collected
+        cursor.execute(f"""
+            SELECT 
+                Cust_Name, 
+                PROFIT_CENTRE_1,
+                SUM(SAP_COLL_AMT) AS collected
+            FROM collections_data 
+            WHERE  SAP_COLL_AMT > 0 AND Posting_Date = %s {branch_clause_data}
+            GROUP BY Cust_Name, PROFIT_CENTRE_1
+        """, tuple(params_data))
+        collected_rows = cursor.fetchall()
+
+        collection_map = {}
+        for c in collected_rows:
+            key = (c['Cust_Name'], c['PROFIT_CENTRE_1'])
+            collection_map[key] = float(c['collected'] or 0)
+
+        merged_results = []
+
+        for row in outstanding_rows:
+            name = row['Name1']
+            pc = row['Profit_Center']
+            out_val = float(row['outstanding'] or 0)
+
+            key = (name, pc)
+            col_amt = collection_map.get(key, 0.0)
+
+            if col_amt > 0:
+                merged_results.append({
+                    "branch": row['branch'],
+                    "customer": name,
+                    "PROFIT_CENTRE_1": pc,
+                    "outstanding": out_val,
+                    "collected": col_amt,
+                    "balance": out_val - col_amt
+                })
+
+        merged_results.sort(key=lambda x: x['branch'], reverse=True)
+
+        return jsonify(merged_results)
+
+    except Exception as e:
+        print(f"Backend Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/export/collections_excel')
+def export_collections_excel():
+    date_str = request.args.get('date')
+    if not date_str:
+        return "Please select a date", 400
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return "Invalid date format. Use YYYY-MM-DD", 400
+    if selected_date == datetime.today().date():
+        fetch_date = selected_date - timedelta(days=1)
+    else:
+        fetch_date = selected_date
+
+    try:
+        with engine.connect() as conn:
+
+            query_coll = text("SELECT * FROM collections_data WHERE DATE(AS_ON_Date) = :dt")
+            df_coll = pd.read_sql(query_coll, conn, params={"dt": fetch_date})
+
+            query_out = text("SELECT * FROM collections_set WHERE DATE(As_on_date) = :dt")
+            df_out = pd.read_sql(query_out, conn, params={"dt": fetch_date})
+
+        if df_coll.empty and df_out.empty:
+            return f"No  records found for {selected_date}", 404
+
+        if not df_coll.empty and 'AS_ON_Date' in df_coll.columns:
+            df_coll['AS_ON_Date'] = pd.to_datetime(df_coll['AS_ON_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        if not df_coll.empty and 'Document_Date' in df_coll.columns:
+            df_coll['Document_Date'] = pd.to_datetime(df_coll['Document_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        if not df_coll.empty and 'Posting_Date' in df_coll.columns:
+            df_coll['Posting_Date'] = pd.to_datetime(df_coll['Posting_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        if not df_coll.empty and 'Invoice_Date' in df_coll.columns:
+            df_coll['Invoice_Date'] = pd.to_datetime(df_coll['Invoice_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        if not df_out.empty and 'AS_ON_Date' in df_out.columns:
+            df_out['AS_ON_Date'] = pd.to_datetime(df_out['AS_ON_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        if not df_out.empty and 'Invoice_Date' in df_out.columns:
+            df_out['Invoice_Date'] = pd.to_datetime(df_out['Invoice_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        if not df_out.empty and 'Baseline_Payment_Dte' in df_out.columns:
+            df_out['Baseline_Payment_Dte'] = pd.to_datetime(df_out['Baseline_Payment_Dte'],
+                                                            errors='coerce').dt.strftime('%d-%m-%Y')
+
+        if not df_out.empty and 'Purchase_order_date' in df_out.columns:
+            df_out['Purchase_order_date'] = pd.to_datetime(df_out['Purchase_order_date'], errors='coerce').dt.strftime(
+                '%d-%m-%Y')
+
+        if not df_out.empty and 'Posting_Date' in df_out.columns:
+            df_out['Posting_Date'] = pd.to_datetime(df_out['Posting_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        output = io.BytesIO()
+
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_out.to_excel(writer, index=False, sheet_name='OUTSTANDING')
+            df_coll.to_excel(writer, index=False, sheet_name='COLLECTION')
+
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f"ZCM_Report_{selected_date}.xlsx"
+        )
+
+    except Exception as e:
+        print(f"Combined Export Error: {e}")
+        return f"Database Error: {str(e)}", 500
+
+Frontend
+
+
+{% block content %}
+<body style="margin: 0px; font-family: Arial, Helvetica, sans-serif; background-color: #f4f7f6;">
+<div id="chartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:white; width:90%; height:85%; position:relative; border-radius:12px; padding:20px; display:flex; flex-direction:column;">
+        <span onclick="closeModal()" style="position:absolute; top:10px; right:20px; font-size:40px; cursor:pointer; color:#333; z-index:10001;">×</span>
+        <h3 id="modalTitle" style="text-align:center; margin-bottom:15px;"></h3>
+        <div style="flex-grow:1; position:relative;">
+            <canvas id="modalCanvas"></canvas>
+        </div>
+    </div>
+</div>
+ <header>
+        <div class="header" style="background-color: #3a5b94; width: 100%; display: flex; align-items: center; color: white; padding: 0px; box-sizing: border-box; position: relative;">
+            <p class="user-info">Welcome, {{ username }}!</p>
+            <h3 style="margin: 0; position: absolute; left: 50%; transform: translateX(-50%); font-size: 1.17em; font-weight: bold;">DIGITAL DASHBOARD</h3>
+            <div style="display: flex; align-items: center; margin-left: auto;">
+                <h2 id="comp-name">KIRLOSKAR ELECTRIC COMPANY</h2>
+                <img id="logo" src="{{ url_for('static', filename='images/KEC_LOGO.jpg') }}" alt="Company Logo">
+            </div>
+        </div>
+    </header>
+    <div id="loader-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center;">
+        <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3a5b94; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+    </div>
+
+    <div class="exit-bar" style="background-color: #3e5172; padding: 1px 10px; display: flex; justify-content: flex-end;">
+        <a href="#" onclick="history.back(); return false;" title="Go Back" style="margin-left: 20px;">
+            <img id="back" src="{{ url_for('static', filename='images/back.png') }}" alt="Go Back">
+        </a>
+        <a href="{{ url_for('logout') }}" title="Logout" style="margin-left: 20px;">
+            <img id="logout" src="{{ url_for('static', filename='images/logout.png') }}" alt="Logout">
+        </a>
+    </div>
+    <div class="main-container1">
+        <div class="sidebar">
+     <a href="javascript:void(0)" class="dropdown-btn">
+                Billing <span style="float:right;">▼</span>
+            </a>
+            <div class="dropdown-container">
+		 <a href="{{ url_for('ytd_dashboard') }}" class="sub-link">YTD</a>
+		 <a href="{{ url_for('quarterly_dashboard') }}" class="sub-link">QTD</a>
+		<a href="{{ url_for('home') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('daily_dashboard') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">
+                Order Book <span style="float:right;">▼</span>
+            </a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_ytd_dashboard') }}" class="sub-link">YTD</a>
+                 <a href="{{url_for('quarterly_order_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('order_mtd') }}" class="sub-link">MTD</a>
+		<a href="{{ url_for('order_daily') }}" class="sub-link">Daily</a>
+            </div>
+
+    <a href="javascript:void(0)" class="dropdown-btn">
+         Comparison <span style="float:right;">▼</span>
+    </a>
+    <div class="dropdown-container">
+        <a href="{{url_for('order_data_compare') }}" class="sub-link">Orders Comparison</a>
+        <a href="{{ url_for('data_compare') }}" class="sub-link">Billing Comparison</a>
+    </div>
+         <a href="{{ url_for('pending_orders_page') }}">Pending Orders</a>
+             <a href="{{ url_for('fg_report') }}">FG Report</a>
+
+           <a href="javascript:void(0)" class="dropdown-btn">
+         Finance <span style="float:right;">▼</span>
+    </a>
+    <div class="dropdown-container">
+        <a href="{{url_for('collection_report') }}" class="sub-link">Collections</a>
+         <a href="{{url_for('mis_report')}}" class="sub-link">MIS</a>
+    </div>
+            </div>
+
+         <div class="content" style="padding: 20px; overflow: auto;">
+            <div class="content1" >
+    <h2 id="header2">
+       Collection Report
+    </h2>
+    <button onclick="downloadCombinedStock()" id="excelbutton" title="Download Excel">
+    <img src="{{ url_for('static', filename='images/img.png') }}" alt="Go Back" id="excel">
+</button>
+    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+        <div id="datepick" >
+            <label for="selected_date" style="font-weight: bold; font-size: 1vw; margin: 0;">Select Date:</label>
+            <input type="date" id="selected_date" value="{{ selected_date }}"
+                   style="border: 1px solid #ddd; padding: 4px 8px; border-radius: 4px; font-family: Arial, sans-serif; display: none;">
+            <input type="text" id="my-date-picker" placeholder="" oninput="loadDate(this.value)">
+            <button id="apply_date" onclick="refreshDashboard()">
+                Apply
+            </button>
+        </div>
+    </div>
+</div>
+  <div>
+<div class="div11"style="text-align: center; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); height: 6vh; width: 14vw; margin-bottom: 10px;">
+        <h2 style="font-size: 3vh; padding: 1.5vh;" id="kpiHeading">KPI</h2>
+</div>
+    <div style="display: flex; gap: 5px; margin-bottom: 10px; width: 100%; justify-content: flex-start;">
+        <div class="div33">
+    <h4>Total OutStanding Value</h4>
+    <div id="kpi-value" style="font-size: 3vh; font-weight: bold; color: #000; padding: 0 5px; ">
+        ₹ 0
+    </div>
+    </div>
+        <div class="div33">
+     <h4>Total Collected Value</h4>
+    <div id="coll-value" style="font-size: 3vh; font-weight: bold; color: #000; padding: 0 5px; ">
+        ₹ 0
+    </div>
+     </div>
+    </div>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; width: 100%; justify-content: center;">
+        <div class="content-box" id="PWSV" style=" width: 99.5%; cursor: pointer;" onclick="openModal('stock', 'Branch Wise OutStanding Value')">
+             <h4>Branch Wise OutStanding Value</h4>
+             <div style="height:90%;"><canvas id="stockChart"></canvas></div>
+        </div>
+
+       <div class="content-box" style="width: 100%;">
+    <div class="filter-container" style="padding: 10px; display: flex; gap: 10px; align-items: center; background: #f8f9fa; border-bottom: 1px solid #ddd;">
+        <label for="branch-select" style="font-weight: bold; font-size: 12px;">Branch:</label>
+        <select id="branch-select" style="padding: 5px; font-size: 12px; border-radius: 4px; border: 1px solid #ccc; min-width: 150px;">
+            <option value="All">Select All</option>
+        </select>
+        <button onclick="handleApplyFilter()" style="padding: 5px 15px; background: #3a5b94; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+            Apply
+        </button>
+    </div>
+
+    <h4 style="position: sticky; top: 0; background: white; padding: 10px 0; margin-top: 0;">Collection Details</h4>
+    <table id="credit-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <thead style="position: sticky; top: 38px; z-index: 1;">
+            <tr style="background: #3a5b94; color: white;">
+                <th style="padding: 8px; text-align: left;">Branch</th>
+                <th style="padding: 8px; text-align: left;">Customer</th>
+                <th>Profit Centre</th>
+                <th>Outstanding</th>
+                <th>Collected</th>
+                <th>Balance</th>
+            </tr>
+        </thead>
+        <tbody id="credit-table-body"></tbody>
+    </table>
+</div>
+        <div class="content-box" id="PWFG" style="width: 99.5%; display: none;">
+            <h4>Product Wise FG Stock Aging Value</h4>
+            <div style="height: 80%;"><canvas id="agingChart"></canvas></div>
+        </div>
+    </div>
+    </div>
+    </div>
+    <style>
+
+     .user-info{
+      margin: 0;
+      padding-left: 20px
+     }
+    #PWFG{height: 60vh;}
+     #comp-name{font-size: 12px; margin: 0 10px 0 0; font-weight: bold;}
+        #logo {height: 60px;}
+       .parent21 {
+    display: grid;
+    grid-template-columns: repeat(2, 0fr);
+    grid-template-rows: repeat(2, 0fr);
+    gap: 4px;
+    width: 100%;
+}
+#back,#logout,#excel {
+ height: 3vh; vertical-align: middle;
+}
+
+.div66 {
+    grid-column: span 2 / span 2;
+}
+.content-box {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    padding: 15px;
+    box-sizing: border-box;
+}
+
+.content-box h4 { margin-top: 0; text-align: center; }
+
+/* Handle mobile/small tablets */
+@media (max-width: 1100px) {
+    .content-box {
+        width: 100% !important; /* Stack columns on smaller screens */
+    }
+}
+
+#header2 {
+margin: 0; box-shadow: 0 6px 15px rgba(0,0,0,0.08); text-align: center; padding: 8px 60px; background: white; border-radius: 8px;
+
+}
+.content1{
+display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; height: 7vh;
+}
+#datepick{
+background: white; border: 1px solid #ccc; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px;"
+}
+#apply_date {background: #3a5b94; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;}
+.div33{background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; height: 20vh; width: 12vw; display: flex; flex-direction: column; justify-content: space-evenly;}
+.div33>h4 {margin: 5px 10px;}
+#excelbutton{background: #27c94c; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold;    position: fixed;bottom: 10px;right: 20px;z-index: 999;}
+ #pptbutton{cursor: pointer; padding: 8px; color: white; border: none; border-radius: 4px;  font-weight: bold; margin-left: 20px; display: flex; align-items: center; background: #f37102;position: fixed;bottom: 60px; right: 20px;z-index: 999;}
+ #dwldImg{height: 3vh;}
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+  flatpickr("#my-date-picker", {
+    dateFormat: "d/m/Y", // This forces DD/MM/YYYY
+  });
+</script>
+<style>
+     @media only screen and (max-height:565px) {
+                /*For md:*/
+                .header{
+                    height: 25px;
+                 }
+                 .user-info {
+                    padding-left: 10px;
+                    font-size:10px;
+                    }
+                 #comp-name{font-size: 6px;}
+                   #logo{height: 25px;}
+
+                    #back,#logout,#excel {
+                     height: 3vh; vertical-align: middle;
+                    }
+                    #header2 {
+margin: 0; box-shadow: 0 6px 15px rgba(0,0,0,0.08); text-align: center; padding: 3px 20px; background: white; border-radius: 8px; font-size: 15px;
+
+}
+.content1{
+display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; height: 7vh;
+}
+#datepick{
+background: white; border: 1px solid #ccc; padding: 3px 6px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px;
+}
+#apply_date {background: #3a5b94; color: white; border: none; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;}
+#my-date-picker{font-size: 8px;}
+.div33{background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; height: 30vh; width: 15vw;}
+.div33 h4{font-size: 10px;}
+#PWSV{height: 100vh;}
+#PWFG{height: 100vh;}
+.sidebar a, .dropdown-button{
+font-size: 7px;
+}
+.sub-link{font-size: 8px !important;}
+#modalCanvas{height: 60% !important;}
+}
+</style>
+<script>
+let modalChartInstance = null;
+let stockChartInstance = null;
+let agingChartInstance = null;
+Chart.register(ChartDataLabels);
+let charts = {};
+
+function showLoader() { document.getElementById('loader-overlay').style.display = 'flex'; }
+function hideLoader() { document.getElementById('loader-overlay').style.display = 'none'; }
+function downloadCombinedStock() {
+    const dateInput = document.getElementById('selected_date').value;
+    if (!dateInput) {
+        alert("Please select a date first.");
+        return;
+    }
+    window.location.href = `/api/export/collections_excel?date=${dateInput}`;
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const dropdowns = document.getElementsByClassName("dropdown-btn");
+    const currentUrl = window.location.pathname;
+
+    // --- Sidebar Dropdown Logic ---
+    for (let i = 0; i < dropdowns.length; i++) {
+        dropdowns[i].addEventListener("click", function() {
+            const dropdownContent = this.nextElementSibling;
+            const isOpen = dropdownContent.style.display === "block";
+
+            for (let j = 0; j < dropdowns.length; j++) {
+                dropdowns[j].classList.remove("active");
+                dropdowns[j].nextElementSibling.style.display = "none";
+                dropdowns[j].querySelector('span').textContent = "▼";
+            }
+
+            if (!isOpen) {
+                this.classList.add("active");
+                dropdownContent.style.display = "block";
+                this.querySelector('span').textContent = "▲";
+            }
+        });
+    }
+
+    // --- Auto-Open Sidebar Logic ---
+    const subLinks = document.querySelectorAll('.sub-link');
+    subLinks.forEach(link => {
+        const linkPath = new URL(link.href).pathname;
+        if (currentUrl === linkPath) {
+            link.classList.add('active');
+            const parentContainer = link.closest('.dropdown-container');
+            const parentBtn = parentContainer.previousElementSibling;
+            parentContainer.style.display = "block";
+            parentBtn.classList.add('active');
+            parentBtn.querySelector('span').textContent = "▲";
+        }
+    });
+});
+
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+});
+function openModal(chartKey, title) {
+    const sourceChart = charts[chartKey];
+    if (!sourceChart) return;
+
+    document.getElementById('chartModal').style.display = 'flex';
+    document.getElementById('modalTitle').textContent = title;
+
+    const modalCanvas = document.getElementById('modalCanvas');
+    if (modalChartInstance) modalChartInstance.destroy();
+
+    const sourceConfig = sourceChart.config;
+
+    modalChartInstance = new Chart(modalCanvas, {
+        type: sourceConfig.type,
+        data: JSON.parse(JSON.stringify(sourceConfig.data)),
+        options: {
+            ...sourceConfig.options,
+            maintainAspectRatio: false,
+            layout: { padding: 40 },
+            devicePixelRatio: 2
+        },
+        plugins: sourceConfig.plugins || []
+    });
+}
+
+function closeModal() {
+    document.getElementById('chartModal').style.display = 'none';
+    if (modalChartInstance) {
+        modalChartInstance.destroy();
+        modalChartInstance = null;
+    }
+}
+
+async function refreshDashboard() {
+    showLoader();
+    var selectedDate = document.getElementById('selected_date').value;
+    if (!selectedDate) return;
+
+    await updateCreditTable(selectedDate);
+    try {
+        //  Stock KPI
+        const kpiRes = await fetch(`/api/collection/value?date=${selectedDate}`);
+        const kpiData = await kpiRes.json();
+        const fullStockValue = (kpiData.total_value || 0);
+        document.getElementById('kpi-value').textContent = currencyFormatter.format(fullStockValue);
+
+        const collRes = await fetch(`/api/collected/value?date=${selectedDate}`);
+        const collData = await collRes.json();
+        const totalCollValue = (collData.collected_value || 0);
+        document.getElementById('coll-value').textContent = currencyFormatter.format(totalCollValue);
+
+
+        // Product Wise Stock Value
+        const stockRes = await fetch(`/api/collections/branches?date=${selectedDate}`);
+        const stockData = await stockRes.json();
+        renderProductStockChart(stockData);
+
+    } catch (error) {
+        console.error("Error refreshing dashboard:", error);
+    }
+    handleApplyFilter();
+    loadBranches();
+}
+
+function getPreviousDate(inputDate) {
+  const date = new Date(inputDate);
+
+  // Subtract one day from the current date value
+  date.setDate(date.getDate() - 1);
+
+  return date;
+}
+
+function renderProductStockChart(data) {
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    if (stockChartInstance) stockChartInstance.destroy();
+
+    // Store the configuration so openModal can access it
+    const config = {
+        type: 'bar',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Stock Value',
+                data: data.values,
+                backgroundColor: ['#043927','#D3D3D3','#FFA500','#0492C2','#00008B','#90EE90','#C0C0C0','#FA8128','#82CAFF','#AFB1AE','#0041C2','#964B00','#2C3E4C'],
+                borderRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { bottom: 0, top: 30} },
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    display: true,
+                    anchor: 'end',
+                    align: 'top',
+                    offset: 5,
+                    color: '#444',
+                    font: { size: 10, weight: 'bold' },
+                    formatter: (value) => value ? `${Math.round(value)}L` : ''
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => ` Value: ${currencyFormatter.format(ctx.raw * 100000)}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#444', font: { size: 10, weight: '600' } }
+                },
+                y: {
+                    grid: { display: false },
+                    beginAtZero: true,
+                    grace: '10%',
+                    ticks: { display: false }
+                }
+            }
+        }
+    };
+
+    stockChartInstance = new Chart(ctx, config);
+    charts['stock'] = stockChartInstance;
+}
+
+
+function renderAgingGroupedChart(data) {
+    const ctx = document.getElementById('agingChart').getContext('2d');
+
+    // Destroy existing instance before creating a new one
+    if (agingChartInstance) {
+        agingChartInstance.destroy();
+    }
+
+    agingChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.labels,
+            datasets: data.datasets.map(ds => ({
+                label: ds.label,
+                data: ds.data,
+                backgroundColor: ds.color,
+                barPercentage: 1.0,
+                categoryPercentage: 0.8
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                grid: { display: false },
+                ticks: { color: '#444', font: { size: 10, weight: '600' } }
+            },
+            y: {
+                grid: { display: false },
+                beginAtZero: true,
+                grace: '10%',
+                ticks: { display: false }
+            }
+            },
+            plugins: {
+            datalabels: {
+                display: true,
+                anchor: 'end',
+                align: 'top',
+                offset: 5,
+                color: '#444',
+                font: { size: 10, weight: 'bold' },
+                formatter: (value) => {
+                    return value ? `${Math.round(value)} L` : '';
+                }
+            },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: (ctx) => ` ${ctx.dataset.label}: ${currencyFormatter.format(ctx.raw * 100000)}`
+                    }
+                }
+            }
+        }
+    });
+}
+async function loadBranches() {
+    try {
+        const dateInput = document.getElementById('selected_date');
+        var selectedDate = dateInput.value;
+        if (!selectedDate) {
+            console.warn("No date selected");
+            return;
+        }
+
+        const res = await fetch(`/api/collections/branches-list?date=${selectedDate}`);
+        const branches = await res.json();
+
+        const select = document.getElementById('branch-select');
+        branches.forEach(branch => {
+            const opt = document.createElement('option');
+            opt.value = branch;
+            opt.textContent = branch;
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error("Error loading branches:", error);
+    }
+}
+
+function handleApplyFilter() {
+    var today = document.getElementById('selected_date').value;
+    const branchEl = document.getElementById('branch-select');
+    const selectedBranch = branchEl ? branchEl.value : "All";
+
+    if (today) {
+
+        updateCreditTable(today,selectedBranch);
+    } else {
+        alert("Please select a date first");
+    }
+}
+async function updateCreditTable(selectedDate, selectedBranch) {
+    try {
+        // Updated URL to include branch parameter
+        const res = await fetch(`/api/collections/mapped-details?date=${selectedDate}&branch=${selectedBranch}`);
+        const data = await res.json();
+
+        const tbody = document.getElementById('credit-table-body');
+        tbody.innerHTML = '';
+
+        const formatter = new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        });
+
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = "1px solid #ccc";
+
+            tr.innerHTML = `
+                <td style="text-align: left; padding: 8px; font-weight: bold; color: #3a5b94;">${row.branch}</td>
+                <td style="text-align: left; padding: 8px; font-weight: bold; color: #3a5b94;">${row.customer}</td>
+                <td style="text-align: center; padding: 8px;">${row.PROFIT_CENTRE_1 || '-'}</td>
+                <td style="text-align: center; padding: 8px;">${formatter.format(row.outstanding)}</td>
+                <td style="text-align: center; padding: 8px;">${formatter.format(row.collected)}</td>
+                <td style="text-align: center; padding: 8px;">${formatter.format(row.balance)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (error) {
+        console.error("Error loading table:", error);
+    } finally {
+        hideLoader();
+    }
+}
+
+window.onload = () => {
+    const today = document.getElementById('selected_date').value;
+            const yesterday = getPreviousDate(today);
+            yesterdayDate = yesterday.toISOString().split('T')[0];
+    document.getElementById('my-date-picker').value = yesterdayDate.split("-").reverse().join("-");
+    document.getElementById('selected_date').value = yesterdayDate;
+    if(yesterdayDate) refreshDashboard();
+};
+
+function loadDate(val){
+    val = val.split("/").reverse().join("-");
+    document.getElementById('selected_date').value = val;
+}
+
+
+//filter part
+function filterTable() {
+   var table = document.getElementById('credit-table-body');
+   var rows = table.getElementsByTagName('tr');
+   var filters = new Array();
+   for (var i = 0; i < 14; i++) {
+     var input = document.getElementById('filter' + i);
+     filters[i] = input ? input.value.toLowerCase() : '';
+   }
+   for (var i = 0; i < rows.length; i++) {
+     var row = rows[i];
+     var cells = row.getElementsByTagName('td');
+     var showRow = true;
+     for (var j = 0; j < 14; j++) {
+       if (filters[j] && cells[j]) {
+         var cellText = cells[j].innerText || cells[j].textContent;
+         if (cellText.toLowerCase().indexOf(filters[j]) == -1) {
+           showRow = false;
+         }
+       }
+     }
+     row.style.display = showRow ? '' : 'none';
+   }
+ }
+
+ function handleFilterKeypress(e) {
+   if (!e) e = window.event;
+   var keyCode = e.keyCode || e.which;
+   if (keyCode == 13) {
+     filterTable();
+   }
+ }
+
+ function attachFilterEvents() {
+   for (var i = 0; i < 14; i++) {
+     var input = document.getElementById('filter' + i);
+     if (input) {
+       if (input.attachEvent) {
+         input.attachEvent('onkeypress', handleFilterKeypress);
+       } else {
+         input.addEventListener('keypress', handleFilterKeypress);
+       }
+     }
+   }
+ }
+
+ function init() {
+   var inputs = document.getElementsByTagName('input');
+   for (var i = 0; i < inputs.length; i++) {
+     if (inputs[i].type == 'checkbox') {
+       inputs[i].checked = false;
+     }
+   }
+   attachFilterEvents();
+   var referenceContainer = document.getElementById('referenceContainer');
+   var targetContainer = document.getElementById('targetContainer');
+   if (referenceContainer && targetContainer) {
+   }
+ }
+
+ function filterDisplay(idName){
+ var filter_id = idName.replace("filter_img_", "");
+  var filter_display = document.getElementById(idName.replace("filter_img_", "")).style.display;
+ if(filter_display === 'none'){
+ document.getElementById(filter_id).style.display = 'block';
+ }else{
+ document.getElementById(filter_id).style.display = 'none';
+ document.getElementById(filter_id).value='';
+     filterTable();
+ }
+ }
+
+ if (window.attachEvent) {
+   window.attachEvent('onload', init);
+ } else {
+   window.addEventListener('load', init);
+ }
+</script>
+</body>
+{% endblock %}
