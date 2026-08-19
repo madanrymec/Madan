@@ -1,0 +1,1219 @@
+{% block content %}
+<body style="margin: 0px; font-family: var(--sans); background-color: var(--bg-0); color: var(--text-0);">
+    
+    <!-- MODALS (Hidden by default) -->
+    <div id="chartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(13,17,23,0.85); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(4px);">
+        <div style="background:var(--bg-1); border: 1px solid var(--line); width:90%; height:85%; position:relative; border-radius:12px; padding:20px; display:flex; flex-direction:column; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+            <span onclick="closeModal()" style="position:absolute; top:10px; right:20px; font-size:40px; cursor:pointer; color:var(--text-1); z-index:10001; transition: color 0.2s;">×</span>
+            <h3 id="modalTitle" style="text-align:center; margin-bottom:15px; color: var(--text-0);"></h3>
+            <div id="modalcanvasdiv" style="flex-grow:1; position:relative;">
+                <canvas id="modalCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div id="chartModalforSector" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(13,17,23,0.85); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(4px);">
+        <div id="modelSectorMainDiv" style="background:var(--bg-1); border: 1px solid var(--line); width:90%; height:85%; position:relative; border-radius:12px; padding:20px; display:flex; flex-direction:column; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+            <span onclick="closeSectorModal()" style="position:absolute; top:10px; right:20px; font-size:40px; cursor:pointer; color:var(--text-1); z-index:10005; transition: color 0.2s;">×</span>
+            <h3 id="modalTitleforSector" style="text-align:center; margin: 0 0 15px 0; font-family: var(--sans); flex-shrink: 0; color: var(--text-0);"></h3>
+
+            <div id="modalProductFilterBar" style="display:block; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10004;">
+                <div style="display: flex; justify-content: center;">
+                    <div class="modal-dropdown" style="position: relative; width: 320px;">
+                        <div id="modal-filter-header" onclick="toggleSectorFilter()" style="background: var(--bg-2); border: 1px solid var(--line); padding: 8px 15px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
+                            <span id="modal-selected-text" style="font-weight: bold; color: var(--text-0); font-size: 14px;">Select Products</span>
+                            <span style="font-size: 12px; color: var(--copper-bright);">▼</span>
+                        </div>
+
+                        <div id="modal-filter-content" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-1); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); padding: 15px; margin-top: 5px; z-index: 10006;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid var(--line-soft); padding-bottom: 8px;">
+                                <button type="button" onclick="setSectorProds(true)" style="background:none; border:none; color:var(--teal); cursor:pointer; font-weight:bold; font-size:12px;">Select All</button>
+                                <button type="button" onclick="setSectorProds(false)" style="background:none; border:none; color:var(--text-2); cursor:pointer; font-weight:bold; font-size:12px;">Clear All</button>
+                            </div>
+                            <div id="sectorCheckboxContainer" class="checkbox-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: 200px; overflow-y: auto; padding: 5px; color: var(--text-0);">
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="DC Machines" checked onchange="updateSectorFilterText()"> DC MACHINES</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="HV Motors" checked onchange="updateSectorFilterText()"> HV MOTORS</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="HV Generators" checked onchange="updateSectorFilterText()"> HV GENERATORS</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="LV Motors (Non-Standard)" checked onchange="updateSectorFilterText()"> LV MOTORS (NS)</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="LV Motors (Standard)" checked onchange="updateSectorFilterText()"> LV MOTORS (S)</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="LV Generators" checked onchange="updateSectorFilterText()"> LV GENERATORS</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="DG Sets" checked onchange="updateSectorFilterText()"> DG SETS</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="Transformer Pune" checked onchange="updateSectorFilterText()"> TRANSFORMERS PUNE</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="Transformer Mysore" checked onchange="updateSectorFilterText()"> TRANSFORMERS MYSORE</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="RRM" checked onchange="updateSectorFilterText()"> RRM</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="EVM" checked onchange="updateSectorFilterText()"> EVM</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="SWITCHGEARS" checked onchange="updateSectorFilterText()"> SWITCHGEARS</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="SPARES & SERVICE" checked onchange="updateSectorFilterText()"> SP&S</label>
+                                <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><input type="checkbox" class="sector-prod-check" value="Traction" checked onchange="updateSectorFilterText()"> TRACTION</label>
+                            </div>
+                            <div style="margin-top: 10px; border-top: 1px solid var(--line-soft); padding-top: 10px; display: flex; justify-content: flex-end;">
+                                <button type="button" onclick="applySectorFilter()" style="padding: 6px 20px; background: var(--copper-bright); color: var(--bg-0); border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">Apply Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chartAreaSector" style="flex-grow: 1; width: 100%; position: relative;">
+                <canvas id="modalCanvasforSector"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER NAVIGATION -->
+    <header>
+        <div class="header" style="background-color: var(--bg-1); width: 100%; display: flex; align-items: center; color: var(--text-0); padding: 10px 20px; box-sizing: border-box; position: fixed; top: 0; z-index: 1001; border-bottom: 1px solid var(--line);">
+            <div class="hamburger" onclick="toggleSidebar()" style="font-size: 24px; cursor: pointer; margin-right: 20px; color: var(--copper-bright); user-select: none;">☰</div>
+            <p class="user-info" style="margin: 0; color: var(--text-1);">Welcome, <span style="color: var(--teal);">{{ username }}</span>!</p>
+            <h3 style="margin: 0; position: absolute; left: 50%; transform: translateX(-50%); font-size: 1.17em; font-weight: bold; color: var(--text-0);">DIGITAL DASHBOARD</h3>
+            <div style="display: flex; align-items: center; margin-left: auto;">
+                <h2 id="comp-name" style="font-size: 12px; margin: 0 10px 0 0; font-weight: bold; color: var(--text-1);">KIRLOSKAR ELECTRIC COMPANY</h2>
+                <img src="{{ url_for('static', filename='images/KEC_LOGO.jpg') }}" alt="Company Logo" id="logo" style="height: 40px; border-radius: 4px;">
+            </div>
+        </div>
+    </header>
+
+    <div id="loader-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13,17,23,0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div class="spinner" style="border: 4px solid var(--line); border-top: 4px solid var(--teal); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;"></div>
+    </div>
+
+    <div class="main-container1" style="padding-top: 60px;">
+        
+        <!-- SIDEBAR -->
+        <div id="mySidebar" class="sidebar">
+            <a href="javascript:void(0)" class="dropdown-btn">Billing <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{ url_for('quarterly_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('home') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('daily_dashboard') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Order Book <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{url_for('quarterly_order_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('order_mtd') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('order_daily') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Comparison <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{url_for('order_data_compare') }}" class="sub-link">Orders Comparison</a>
+                <a href="{{ url_for('data_compare') }}" class="sub-link">Billing Comparison</a>
+            </div>
+            
+            <a href="{{ url_for('pending_orders_page') }}" style="background-color:var(--bg-3); color: var(--copper-bright);">Pending Orders</a>
+            <a href="{{ url_for('fg_report') }}">FG Report</a>
+            
+            <a href="javascript:void(0)" class="dropdown-btn">Finance <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{url_for('collection_report') }}" class="sub-link">Collections</a>
+            </div>
+            
+            <a href="javascript:void(0)" class="dropdown-btn">MIS <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('mis_report') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('mis_unit_report') }}" class="sub-link">MIS-Units</a>
+            </div>
+        </div>
+
+        <div class="content" style="padding: 20px; overflow: auto; width: 100%;">
+            
+            <!-- HEADER FILTERS -->
+            <div class="content1" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div class="exit-bar" style="display: flex; gap: 15px;">
+                    <a href="#" onclick="history.back(); return false;" title="Go Back">
+                        <img id="back" src="{{ url_for('static', filename='images/back_mis.svg') }}" alt="Go Back" style="height: 24px; filter: invert(1);">
+                    </a>
+                    <a href="{{ url_for('logout') }}" title="Logout">
+                        <img id="logout" src="{{ url_for('static', filename='images/logout_mis.svg') }}" alt="Logout" style="height: 24px; filter: invert(1);">
+                    </a>
+                </div>
+                
+                <h2 id="header2" style="margin: 0; color: var(--text-0); font-weight: bold; font-family: var(--disp);">
+                    Pending Orders Dashboard
+                </h2>
+                
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <button onclick="downloadPendingExcel()" id="excelbutton" title="Download Excel" style="background-color: var(--teal); padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer;">
+                        <img src="{{ url_for('static', filename='images/img.png') }}" alt="Go Back" id="excel" style="height: 20px; filter: invert(1);">
+                    </button>
+                    <button onclick="downloadDailyPPT()" id="pptbutton" title="Download PPT" style="cursor: pointer; padding: 8px 12px; border: none; border-radius: 4px; background: var(--copper-bright);">
+                        <img src="static/images/ppt.webp" id="dwldImg" style="height: 20px;">
+                    </button>
+            
+                    <div id="datepick" style="background: var(--bg-2); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
+                        <label for="order_date" style="font-weight: bold; font-size: 14px; margin: 0; color: var(--text-1);">Select Date:</label>
+                        <input type="date" id="order_date" value="{{ order_date }}" style="display: none;">
+                        <input type="text" id="my-date-picker" placeholder="" oninput="loadDate(this.value)" style="background: transparent; color: var(--text-0); border: none; outline: none; font-family: var(--sans);">
+                        <button id="apply_date" onclick="refreshDashboard()" style="background: var(--bg-3); border: 1px solid var(--line); color: var(--text-1); padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.2s;">
+                            Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CSS GRID LAYOUT -->
+            <div class="parent">
+                
+                <!-- TOP LEFT: KPI Stack -->
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="div-box no-hover" style="padding: 12px; text-align: center; background: var(--bg-2);">
+                        <h2 style="margin: 0; font-size: 18px; color: var(--text-0);">KPI</h2>
+                    </div>
+                    
+                    <div class="div-box no-hover" style="text-align: center; flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: var(--text-1);">Orders Value</h4>
+                        <div id="kpi-value" style="font-size: 26px; font-weight: bold; color: var(--copper-bright); font-family: var(--mono);">₹ 0</div>
+                    </div>
+                </div>
+
+                <!-- TOP MIDDLE: Unit Wise -->
+                <div class="div-box" onclick="openModal('branch', 'Unit Wise Orders')">
+                    <h4 style="margin: 0 0 15px 0; font-size: 14px; text-align: center; color: var(--text-1);">Unit Wise Orders</h4>
+                    <div class="chart-container"><canvas id="salesChannelChart"></canvas></div>
+                </div>
+
+                <!-- TOP RIGHT: Product Wise -->
+                <div class="div-box" onclick="openModal('product', 'Product Wise Orders')">
+                     <h4 style="margin: 0 0 15px 0; font-size: 14px; text-align: center; color: var(--text-1);">Product Wise Orders</h4>
+                    <div class="chart-container"><canvas id="productCategoryChart"></canvas></div>
+                </div>
+
+                <!-- BOTTOM LEFT: Empty Box matching layout of image -->
+                <div class="div-box no-hover" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <!-- Empty visual filler matching original dashboard -->
+                </div>
+
+                <!-- BOTTOM MIDDLE: Sector Wise -->
+                <div class="div-box" onclick="openSectorModal('monthly', 'Sector Wise Orders')">
+                    <h4 style="margin: 0 0 15px 0; font-size: 14px; text-align: center; color: var(--text-1);">Sector Wise Orders</h4>
+                    <div class="chart-container"><canvas id="monthlyComparisonChart"></canvas></div>
+                </div>
+
+                <!-- BOTTOM RIGHT: Branch Wise -->
+                <div class="div-box" onclick="openModal('region', 'Branch Wise Orders')">
+                   <h4 style="margin: 0 0 15px 0; font-size: 14px; text-align: center; color: var(--text-1);">Branch Wise Orders</h4>
+                    <div class="chart-container"><canvas id="regionSalesChart"></canvas></div>
+                </div>
+
+                <!-- BOTTOM SPANNING: Top 10 Customers -->
+                <div class="div-box span-full" onclick="openModal('customer','Top 10 Customers')">
+                    <h4 style="margin: 0 0 15px 0; font-size: 14px; text-align: center; color: var(--text-1);">Top 10 Customers</h4>
+                    <div class="chart-container" style="height: 400px;"><canvas id="customersales"></canvas></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+    <!-- STYLES -->
+    <style>
+        :root{
+            --bg-0:#0d1117;
+            --bg-1:#141b22;
+            --bg-2:#1a232c;
+            --bg-3:#212d38;
+            --line:#2a3744;
+            --line-soft:#1f2a34;
+            --copper:#c87d3f;
+            --copper-bright:#e6985a;
+            --copper-dim:#8a5a34;
+            --teal:#3fb8a6;
+            --good:#5ec98f;
+            --warn:#e0a83e;
+            --bad:#d96a5a;
+            --text-0:#eef2f5;
+            --text-1:#aab8c2;
+            --text-2:#6b7b88;
+            --mono:'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+            --sans:'Inter', -apple-system, sans-serif;
+            --disp:'Libre Franklin', 'Inter', sans-serif;
+        }
+
+        /* --- THE NEW CSS GRID ALIGNMENT --- */
+        .parent {
+            display: grid;
+            grid-template-columns: 220px 1.2fr 1.6fr;
+            grid-template-rows: minmax(360px, auto) minmax(360px, auto) auto;
+            gap: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .div-box {
+            background: var(--bg-1);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            padding: 15px;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .div-box:hover:not(.no-hover) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+            border-color: var(--copper-dim);
+        }
+        
+        .no-hover { cursor: default; }
+        .span-full { grid-column: 1 / -1; }
+
+        .chart-container {
+            height: calc(100% - 30px);
+            width: 100%;
+            position: relative;
+        }
+
+        /* Checkbox styling */
+        .checkbox-grid input[type="checkbox"] { accent-color: var(--teal); }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-0); }
+        ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--copper-dim); }
+        
+        /* Apply button hover effect */
+        #apply_date:hover { background: var(--copper-bright) !important; color: var(--bg-0) !important; }
+
+        /* RESPONSIVE MEDIA QUERIES */
+        @media (max-width: 1100px) {
+            .parent {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+            .parent > div:nth-child(1) { grid-column: 1 / -1; flex-direction: row !important; }
+            .parent > div:nth-child(1) > div { min-height: 80px; } /* KPI boxes side-by-side */
+            .parent > div:nth-child(4) { display: none; } /* Hide blank visual box on smaller screens */
+        }
+
+        @media (max-width: 768px) {
+            .parent { grid-template-columns: 1fr; }
+            .parent > div { grid-column: 1 / -1 !important; }
+        }
+
+        /* User's Original Fixed-Height Request */
+        @media only screen and (max-height:565px) {
+            .header { height: 40px !important; padding: 5px 15px !important; }
+            .user-info { font-size: 10px; }
+            #comp-name { font-size: 8px !important; }
+            #logo { height: 25px !important; }
+            #back, #logout, #excel { height: 2vh !important; }
+            #header2 { font-size: 15px !important; margin: 0; }
+            .content1 { margin-bottom: 10px; height: auto; }
+            #datepick { padding: 3px 6px !important; gap: 12px; }
+            #apply_date { padding: 3px 10px !important; font-size: 10px !important; }
+            #my-date-picker { font-size: 10px !important; }
+            .sidebar a, .dropdown-btn { font-size: 11px !important; }
+            .sub-link { font-size: 10px !important; }
+            .main-container1 { padding-top: 40px !important; }
+            
+            /* Squeeze the grid tightly for short displays */
+            .parent {
+                grid-template-columns: 160px 1fr 1fr !important;
+                grid-template-rows: 230px 230px auto !important;
+                gap: 10px !important;
+            }
+            .div-box { padding: 10px !important; }
+            h4 { font-size: 11px !important; margin-bottom: 5px !important; }
+            #kpi-value { font-size: 18px !important; }
+            .chart-container { height: calc(100% - 20px) !important; }
+        }
+    </style>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        flatpickr("#my-date-picker", { dateFormat: "d/m/Y" });
+
+        // ==========================================
+        // DARK THEME CONSTANTS FOR JS
+        // ==========================================
+        const TEXT_0 = '#eef2f5';
+        const TEXT_1 = '#aab8c2';
+        const TEXT_2 = '#6b7b88';
+        const LINE = '#2a3744';
+        const LINE_SOFT = '#1f2a34';
+        const TEAL = '#3fb8a6';
+        const COPPER_BRIGHT = '#e6985a';
+
+        Chart.defaults.color = TEXT_1;
+        Chart.defaults.font.family = "'Inter', sans-serif";
+
+        function toggleSidebar() {
+            document.getElementById('mySidebar').classList.toggle('open');
+        }
+
+        function downloadPendingExcel() {
+            const dateValue = document.getElementById('order_date').value;
+            if (!dateValue) {
+                alert("Please select a date first.");
+                return;
+            }
+            const pageType = window.location.pathname.includes('pending_order') ? 'pending_order' : '';
+            window.location.href = `/api/pending_order_excel?date=${dateValue}&type=${pageType}`;
+        }
+
+        function downloadDailyPPT() {
+            const selectedDate = document.getElementById('order_date').value;
+            if (!selectedDate) {
+                alert("Please select a date first.");
+                return;
+            }
+            window.location.href = `/export_pending_orders_report?date=${selectedDate}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdowns = document.getElementsByClassName("dropdown-btn");
+            const currentUrl = window.location.pathname;
+
+            for (let i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].addEventListener("click", function() {
+                    const dropdownContent = this.nextElementSibling;
+                    const isOpen = dropdownContent.style.display === "block";
+
+                    for (let j = 0; j < dropdowns.length; j++) {
+                        dropdowns[j].classList.remove("active");
+                        dropdowns[j].nextElementSibling.style.display = "none";
+                        dropdowns[j].querySelector('span').textContent = "▼";
+                    }
+
+                    if (!isOpen) {
+                        this.classList.add("active");
+                        dropdownContent.style.display = "block";
+                        this.querySelector('span').textContent = "▲";
+                    }
+                });
+            }
+
+            const subLinks = document.querySelectorAll('.sub-link');
+            subLinks.forEach(link => {
+                const linkPath = new URL(link.href).pathname;
+                if (currentUrl === linkPath) {
+                    link.classList.add('active');
+                    const parentContainer = link.closest('.dropdown-container');
+                    const parentBtn = parentContainer.previousElementSibling;
+                    parentContainer.style.display = "block";
+                    parentBtn.classList.add('active');
+                    parentBtn.querySelector('span').textContent = "▲";
+                }
+            });
+        });
+
+        const mediaQuery = window.matchMedia("(max-height: 560px)");
+
+        Chart.register(ChartDataLabels);
+        let charts = {};
+        let modalChartInstance = null;
+        let sectorChartInstance = null;
+        function showLoader() { document.getElementById('loader-overlay').style.display = 'flex'; }
+        function hideLoader() { document.getElementById('loader-overlay').style.display = 'none'; }
+
+        function getQueryString() {
+            const dateVal = document.getElementById('order_date').value;
+            const params = new URLSearchParams();
+            if (dateVal) params.append('date', dateVal);
+            return params.toString();
+        }
+        
+        window.openSectorModal = async function(chartKey, title) {
+            document.getElementById('chartModalforSector').style.display = 'flex';
+            document.getElementById('modalTitleforSector').textContent = title;
+            const dateVal = document.getElementById('order_date').value;
+            const params = new URLSearchParams();
+            params.append('date', dateVal);
+
+            window.setSectorProds(true);
+
+            if (typeof showLoader === 'function') showLoader();
+            try {
+                const res = await fetch(`/api/pending/sectors?${params.toString()}`);
+                const data = await res.json();
+
+                const canvas = document.getElementById('modalCanvasforSector');
+                const ctx = canvas.getContext('2d');
+                if (sectorChartInstance) sectorChartInstance.destroy();
+
+                const sectorLinePlugin = {
+                    id: 'sectorLineConnector',
+                    afterDraw: (chart) => {
+                        const { ctx, chartArea } = chart;
+                        const leftSide = [];
+                        const rightSide = [];
+
+                        chart.data.datasets[0].data.forEach((value, index) => {
+                            const meta = chart.getDatasetMeta(0).data[index];
+                            if (meta.hidden) return;
+
+                            const props = meta.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+                            const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
+                            const isRight = Math.cos(midAngle) > 0;
+
+                            const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
+                            const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
+
+                            const x2_init = Math.cos(midAngle) * (props.outerRadius + 35) + props.x;
+                            const y2_init = Math.sin(midAngle) * (props.outerRadius + 35) + props.y;
+
+                            const info = {
+                                x1, y1, x2_init, y2_init,
+                                isRight, index, value,
+                                midAngle,
+                                y_final: y2_init 
+                            };
+
+                            if (isRight) rightSide.push(info);
+                            else leftSide.push(info);
+                        });
+
+                        const resolveVerticalSpace = (sideList) => {
+                            if (sideList.length === 0) return;
+                            const minGap = 32; 
+
+                            sideList.sort((a, b) => a.y2_init - b.y2_init);
+
+                            for (let i = 1; i < sideList.length; i++) {
+                                if (sideList[i].y_final - sideList[i-1].y_final < minGap) {
+                                    sideList[i].y_final = sideList[i-1].y_final + minGap;
+                                }
+                            }
+                            for (let i = sideList.length - 2; i >= 0; i--) {
+                                if (sideList[i+1].y_final - sideList[i].y_final < minGap) {
+                                    sideList[i].y_final = sideList[i+1].y_final - minGap;
+                                }
+                            }
+                        };
+
+                        resolveVerticalSpace(leftSide);
+                        resolveVerticalSpace(rightSide);
+
+                        const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                        const map = { 'DD': 'Domestic Direct', 'DE':'Dealers','DX':'Deemed Export','EX':'Export' };
+
+                        [...leftSide, ...rightSide].forEach(item => {
+                            const { x1, y1, x2_init, y_final, isRight, index, value } = item;
+
+                            const x2 = x2_init;
+                            const y2 = y_final;
+                            const x3 = x2 + (isRight ? 20 : -20);
+
+                            ctx.save();
+                            ctx.strokeStyle = LINE;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(x1, y1);
+                            ctx.lineTo(x2, y2);
+                            ctx.lineTo(x3, y2);
+                            ctx.stroke();
+
+                            const pct = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+                            const labelName = chart.data.labels[index];
+                            const fullName = map[labelName] || labelName;
+
+                            const textX = x3 + (isRight ? 5 : -5);
+                            ctx.textAlign = isRight ? 'left' : 'right';
+                            ctx.textBaseline = 'middle';
+
+                            if(mediaQuery.matches == true){
+                                ctx.font = 'bold 8px Arial'; ctx.fillStyle = TEXT_0;
+                            } else {
+                                ctx.font = 'bold 12px Arial'; ctx.fillStyle = TEXT_0;
+                            }
+                            ctx.fillText(fullName, textX, y2 - 8);
+
+                            ctx.font = 'bold 11px Arial';
+                            ctx.fillStyle = TEXT_1;
+                            ctx.fillText(`${value.toFixed(2)} L (${pct})`, textX, y2 + 8);
+
+                            ctx.restore();
+                        });
+                    }
+                };
+
+                sectorChartInstance = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.values,
+                            backgroundColor: ['#c87d3f','#3fb8a6','#7a9cc6','#e0a83e','#9b7fc4','#5ec98f'],
+                            borderWidth: 2,
+                            borderColor: '#141b22'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: { padding: 110 },
+                        plugins: { legend: { display: false }, datalabels: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1a1a1a',
+                                padding: 10,
+                                callbacks: {
+                                    title: (tooltipItems) => tooltipItems[0].label,
+                                    label: (ctx) => {
+                                        const val = ctx.raw * 100000;
+                                        return ` Actual: ${val.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    plugins: [sectorLinePlugin]
+                });
+            } catch (e) {
+                console.error("Failed to load Sector Modal:", e);
+            } finally {
+                if (typeof hideLoader === 'function') hideLoader();
+            }
+            if(mediaQuery.matches == true){resize(352);}
+        };
+
+        function resize(height){
+            var canvas = document.getElementById('modalCanvasforSector');
+            canvas.style.height = height + 'px';
+        }
+
+        window.toggleSectorFilter = () => {
+            const el = document.getElementById('modal-filter-content');
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        };
+
+        window.setupSectorCheckboxes = () => {
+            const container = document.getElementById('sectorCheckboxContainer');
+            if (container.innerHTML.trim() !== "") return;
+            const prods = ["DC MACHINES", "HV MOTORS", "HV GENERATORS","RRM", "LV MOTORS (NS)", "LV MOTORS (S)", "EVM", "LV GENERATORS", "DG SETS", "TRANSFORMERS PUNE","SWITCHGEARS", "TRANSFORMERS MYSORE","SPARES & SERVICE"];
+            prods.forEach(p => {
+                const lbl = document.createElement('label');
+                lbl.style.cssText = "font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;";
+                lbl.innerHTML = `<input type="checkbox" class="sector-prod-check" value="${p}" checked onchange="updateSectorFilterText()"> ${p}`;
+                container.appendChild(lbl);
+            });
+        };
+
+        window.setSectorProds = (status) => {
+            document.querySelectorAll('.sector-prod-check').forEach(cb => { cb.checked = status; });
+            updateSectorFilterText();
+        };
+
+        window.updateSectorFilterText = () => {
+            const checked = document.querySelectorAll('.sector-prod-check:checked').length;
+            const total = document.querySelectorAll('.sector-prod-check').length;
+            const textElem = document.getElementById('modal-selected-text');
+
+            if (checked === total) { textElem.textContent = "All Products"; } 
+            else if (checked === 0) { textElem.textContent = "None Selected"; } 
+            else { textElem.textContent = `${checked} Selected`; }
+        };
+
+        window.applySectorFilter = async function() {
+            const dateVal = document.getElementById('order_date')?.value;
+            if (!dateVal) { console.error("No date selected"); return; }
+            if (typeof showLoader === 'function') showLoader();
+
+            const params = new URLSearchParams();
+            params.append('date', dateVal);
+            const checkedProds = document.querySelectorAll('.sector-prod-check:checked');
+            checkedProds.forEach((cb) => { params.append('product', cb.value); });
+            
+            try {
+                const response = await fetch(`/api/pending/sectors?${params.toString()}`);
+                const data = await response.json();
+
+                if (sectorChartInstance) {
+                    sectorChartInstance.data.labels = data.labels;
+                    sectorChartInstance.data.datasets[0].data = data.values;
+                    sectorChartInstance.update();
+                    document.getElementById('modal-filter-content').style.display = 'none';
+                }
+            } catch (e) {
+                console.error("Filter Update Failed:", e);
+            } finally {
+                if (typeof hideLoader === 'function') hideLoader();
+            }
+        };
+
+        window.closeSectorModal = function() {
+            setSectorProds(true);
+            document.getElementById('modal-filter-content').style.display = 'none';
+            document.getElementById('chartModalforSector').style.display = 'none';
+            if (sectorChartInstance) {
+                sectorChartInstance.destroy();
+                sectorChartInstance = null;
+            }
+        };
+
+        function openModal(chartKey, title) {
+            const source = charts[chartKey];
+            if (!source) return;
+
+            document.getElementById('chartModal').style.display = 'flex';
+            document.getElementById('modalTitle').textContent = title;
+
+            const modalCanvas = document.getElementById('modalCanvas');
+            const modalCtx = modalCanvas.getContext('2d');
+            if (modalChartInstance) modalChartInstance.destroy();
+
+            const sourceConfig = source.config;
+
+            let modalOptions = {
+                ...sourceConfig.options,
+                maintainAspectRatio: false,
+                devicePixelRatio: window.devicePixelRatio || 2
+            };
+
+            let activePlugins = [];
+
+            if (chartKey === 'branch' || chartKey === 'monthly') {
+                const modalLinePlugin = {
+                    id: 'modalLineConnector',
+                    afterDraw: (chart) => {
+                        const { ctx } = chart;
+                        const leftLabels = [];
+                        const rightLabels = [];
+
+                        chart.data.datasets.forEach((dataset, i) => {
+                            const meta = chart.getDatasetMeta(i);
+                            const total = dataset.data.reduce((a, b) => a + (Number(b) || 0), 0);
+                            if (total === 0) return;
+
+                            meta.data.forEach((datapoint, index) => {
+                                if (datapoint.hidden) return;
+
+                                const props = datapoint.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+                                const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
+                                const isRight = Math.cos(midAngle) > 0;
+
+                                const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
+                                const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
+
+                                let x2 = Math.cos(midAngle) * (props.outerRadius + 45) + props.x;
+                                let y2 = Math.sin(midAngle) * (props.outerRadius + 45) + props.y;
+
+                                const sideList = isRight ? rightLabels : leftLabels;
+                                const minGap = 35; 
+
+                                sideList.sort((a, b) => a.y - b.y);
+                                sideList.forEach(prev => {
+                                    if (Math.abs(y2 - prev.y) < minGap) {
+                                        y2 = y2 > prev.y ? prev.y + minGap : prev.y - minGap;
+                                    }
+                                });
+                                sideList.push({ y: y2 });
+
+                                const x3 = x2 + (isRight ? 30 : -30);
+
+                                ctx.save();
+                                ctx.strokeStyle = LINE;
+                                ctx.lineWidth = 1.5; 
+                                ctx.beginPath();
+                                ctx.moveTo(x1, y1);
+                                ctx.lineTo(x2, y2);
+                                ctx.lineTo(x3, y2);
+                                ctx.stroke();
+
+                                const rawValue = Number(dataset.data[index]) || 0;
+                                const percentage = ((rawValue / total) * 100).toFixed(1) + '%';
+                                const labelName = chart.data.labels[index] || '';
+
+                                ctx.textAlign = isRight ? 'left' : 'right';
+                                ctx.textBaseline = 'middle';
+                                const textX = x3 + (isRight ? 10 : -10);
+
+                                ctx.font = 'bold 13px Arial';
+                                ctx.fillStyle = TEXT_0;
+                                ctx.fillText(labelName, textX, y2 - 9);
+
+                                ctx.font = 'bold 12px Arial';
+                                ctx.fillStyle = TEXT_1; 
+                                ctx.fillText(`${Math.round(rawValue)} L (${percentage})`, textX, y2 + 9);
+
+                                ctx.restore();
+                            });
+                        });
+                    }
+                };
+
+                activePlugins.push(modalLinePlugin);
+                modalOptions.layout = { padding: { left: 110, right: 110, top: 60, bottom: 60 } };
+                modalOptions.plugins = {
+                    ...sourceConfig.options.plugins,
+                    legend: { display: false, position: 'right' },
+                    datalabels: { display: false }
+                };
+
+            } else {
+                const originalFormatter = sourceConfig.options.plugins?.datalabels?.formatter;
+                const originalTooltip = sourceConfig.options.plugins?.tooltip?.callbacks;
+                const originalRich = sourceConfig.options.plugins?.datalabels?.rich;
+
+                activePlugins.push(ChartDataLabels);
+
+                modalOptions.plugins = {
+                    legend: {
+                        display: sourceConfig.options.plugins?.legend?.display !== undefined
+                                 ? sourceConfig.options.plugins.legend.display : false
+                    },
+                    datalabels: {
+                        formatter: originalFormatter ? originalFormatter : (v) => Math.round(v) + ' L',
+                        rich: originalRich || {},
+                        display: sourceConfig.options.plugins?.datalabels?.display !== undefined
+                                 ? sourceConfig.options.plugins.datalabels.display : true,
+                        font: { weight: 'bold', size: 14 },
+                        color: TEXT_1,
+                        anchor: sourceConfig.options.plugins?.datalabels?.anchor || 'end',
+                        align: sourceConfig.options.plugins?.datalabels?.align || 'top'
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        callbacks: originalTooltip || {}
+                    }
+                };
+
+                modalOptions.scales = {
+                    x: {
+                        stacked: sourceConfig.options.scales?.x?.stacked || false,
+                        grid: { display: false },
+                        ticks: { color: TEXT_1 }
+                    },
+                    y: {
+                        stacked: sourceConfig.options.scales?.y?.stacked || false,
+                        beginAtZero: true,
+                        grid: { display: false },
+                        ticks: { display: sourceConfig.options.scales?.y?.ticks?.display !== false, color: TEXT_1 }
+                    }
+                };
+            }
+            if (chartKey === 'customer') {
+                modalOptions.indexAxis = 'y';
+                modalOptions.layout = { padding: { left: 20, right: 40, top: 20, bottom: 20 } };
+                modalOptions.scales = {
+                    x: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Value in Lakhs', color: TEXT_1 },
+                        grid: { display: false },
+                        ticks: { color: TEXT_1 }
+                    },
+                    y: {
+                        ticks: { autoSkip: false, font: { size: 12, weight: 'bold' }, color: TEXT_1 },
+                        grid: { display: false },
+                    }
+                };
+
+                modalOptions.plugins = {
+                    legend: { display: false },
+                    datalabels: {
+                        display: true, anchor: 'end', align: 'right', color: TEXT_0,
+                        formatter: (val) => Math.round(val) + ' L'
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a1a1a', padding: 10,
+                        callbacks: {
+                            label: (ctx) => {
+                                const val = (ctx.raw || 0) * 100000;
+                                const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+                                return [` Actual: ${currencyFormatter.format(val)}`];
+                            }
+                        }
+                    },
+                };
+            }
+
+            modalChartInstance = new Chart(modalCtx, {
+                type: sourceConfig.type,
+                data: JSON.parse(JSON.stringify(sourceConfig.data)),
+                options: modalOptions,
+                plugins: activePlugins
+            });
+        }
+        
+        function closeModal() {
+            document.getElementById('chartModal').style.display = 'none';
+            if (modalChartInstance) {
+                modalChartInstance.destroy();
+                modalChartInstance = null;
+            }
+        }
+
+        async function refreshDashboard() {
+            const qs = getQueryString();
+            showLoader();
+            try {
+                const kpiRes = await fetch(`/api/pending/total?${qs}`);
+                const kpi = await kpiRes.json();
+                const fullValue = (kpi.total || 0) * 100000;
+                const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+                document.getElementById('kpi-value').textContent = currencyFormatter.format(fullValue);
+
+                const pRes = await fetch(`/api/pending/products?${qs}`);
+                const pData = await pRes.json();
+                if (charts.product) charts.product.destroy();
+
+                charts.product = new Chart(document.getElementById('productCategoryChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: pData.labels,
+                        datasets: [{
+                            label: 'Actual',
+                            data: pData.values,
+                            backgroundColor: ['#c87d3f','#3fb8a6','#7a9cc6','#e0a83e','#9b7fc4','#5ec98f','#d96a5a','#6b8fae','#c7a76b','#5a8f9c','#a87fae','#8aa86b'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: { padding: { top: 30, bottom: 10 } },
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                display: true, anchor: 'end', align: 'top', offset: 5, color: TEXT_1,
+                                font: { size: 10, weight: 'bold' },
+                                formatter: (value) => value ? `${Math.round(value)} L` : ''
+                            },
+                            tooltip: {
+                                backgroundColor: '#1a1a1a', padding: 10,
+                                callbacks: {
+                                    label: (ctx) => {
+                                        const val = (ctx.raw || 0) * 100000;
+                                        return ` Actual: ${currencyFormatter.format(val)}`;
+                                    }
+                                }
+                            },
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: TEXT_1, font: { size: 10, weight: '600' } } },
+                            y: { grid: { display: false }, beginAtZero: true, grace: '10%', ticks: { display: false } }
+                        }
+                    },
+                    plugins: [ChartDataLabels]
+                });
+
+                const monthlyCanvas = document.getElementById('monthlyComparisonChart');
+                const existingMonthly = Chart.getChart(monthlyCanvas);
+                if (existingMonthly) existingMonthly.destroy();
+                const mRes = await fetch(`/api/pending/sectors?${qs}`);
+                const mData = await mRes.json();
+
+                const highResLinePlugin = {
+                    id: 'highResLineConnector',
+                    afterDraw: (chart) => {
+                        const { ctx, chartArea } = chart;
+                        const leftSide = [];
+                        const rightSide = [];
+
+                        chart.data.datasets.forEach((dataset, i) => {
+                            const meta = chart.getDatasetMeta(i);
+                            meta.data.forEach((datapoint, index) => {
+                                if (datapoint.hidden) return;
+
+                                const props = datapoint.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+                                const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
+                                const isRight = Math.cos(midAngle) > 0;
+
+                                const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
+                                const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
+                                const x2_initial = Math.cos(midAngle) * (props.outerRadius + 35) + props.x;
+                                const y2_initial = Math.sin(midAngle) * (props.outerRadius + 35) + props.y;
+
+                                const info = {
+                                    x1, y1, x2_initial, y2_initial, isRight, index, dataset,
+                                    midAngle, outerRadius: props.outerRadius, centerX: props.x, centerY: props.y
+                                };
+
+                                if (isRight) rightSide.push(info);
+                                else leftSide.push(info);
+                            });
+                        });
+
+                        const resolveOverlap = (sideList) => {
+                            if (sideList.length === 0) return;
+                            const minGap = 24;
+                            sideList.sort((a, b) => a.y2_initial - b.y2_initial);
+                            for (let i = 1; i < sideList.length; i++) {
+                                if (sideList[i].y2_initial - sideList[i-1].y2_initial < minGap) {
+                                    sideList[i].y2_initial = sideList[i-1].y2_initial + minGap;
+                                }
+                            }
+                            for (let i = sideList.length - 2; i >= 0; i--) {
+                                if (sideList[i+1].y2_initial - sideList[i].y2_initial < minGap) {
+                                    sideList[i].y2_initial = sideList[i+1].y2_initial - minGap;
+                                }
+                            }
+                        };
+
+                        resolveOverlap(leftSide);
+                        resolveOverlap(rightSide);
+
+                        [...leftSide, ...rightSide].forEach(item => {
+                            const { x1, y1, x2_initial, y2_initial, isRight, index, dataset } = item;
+                            const x2 = x2_initial; const y2 = y2_initial; const x3 = x2 + (isRight ? 15 : -15);
+
+                            ctx.save();
+                            ctx.strokeStyle = LINE;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y2);
+                            ctx.stroke();
+
+                            const value = dataset.data[index];
+                            const total = dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1) + '%';
+                            const labelName = chart.data.labels[index];
+                            const map = { 'DD': 'Domestic Direct', 'DE':'Dealers','DX':'Deemed Export','EX':'Export' };
+                            const shortLabel = (map[labelName] || labelName);
+
+                            ctx.font = 'bold 10px Arial'; ctx.fillStyle = TEXT_0;
+                            ctx.textAlign = isRight ? 'left' : 'right'; ctx.textBaseline = 'middle';
+                            const textX = x3 + (isRight ? 5 : -5);
+                            ctx.fillText(shortLabel, textX, y2 - 6);
+                            ctx.font = 'bold 10px Arial'; ctx.fillStyle = TEXT_1;
+                            ctx.fillText(percentage, textX, y2 + 6);
+                            ctx.restore();
+                        });
+                    }
+                };
+
+                charts.monthly = new Chart(monthlyCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: mData.labels,
+                        datasets: [{
+                            data: mData.values,
+                            backgroundColor: ['#c87d3f','#3fb8a6','#7a9cc6','#e0a83e','#9b7fc4','#5ec98f'],
+                            borderWidth: 2, borderColor: '#141b22', hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        layout: { padding: { left: 80, right: 80, top: 60, bottom: 50 } },
+                        plugins: {
+                            legend: { display: false }, datalabels: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1a1a1a', padding: 10,
+                                callbacks: {
+                                    title: (tooltipItems) => tooltipItems[0].label,
+                                    label: (ctx) => {
+                                        const i = ctx.dataIndex;
+                                        const act = (mData.values[i] || 0) * 100000;
+                                        return [` Actual: ${currencyFormatter.format(act)}`];
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    plugins: [highResLinePlugin]
+                });
+
+                const rRes = await fetch(`/api/pending/branches?${qs}`);
+                let rData = await rRes.json();
+                const mappedLabels = rData.labels.map(label => label === 'InternationalMarket' ? 'IMD' : label);
+                if (charts.region) charts.region.destroy();
+
+                charts.region = new Chart(document.getElementById('regionSalesChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: mappedLabels,
+                        datasets: [{
+                            label: 'Actual', data: rData.values,
+                            backgroundColor: ['#7a9cc6','#e0a83e','#9b7fc4','#5ec98f','#d96a5a','#6b8fae','#c7a76b','#5a8f9c','#a87fae','#8aa86b','#c87d3f','#3fb8a6'],
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false, position: 'bottom', labels: { boxWidth: 12, font: { size: 11, color: TEXT_0 } } },
+                            datalabels: {
+                                display: (context) => context.datasetIndex === 0,
+                                anchor: 'center', align: 'right', color: TEXT_0,
+                                font: { size: 10, weight: 'bold' },
+                                formatter: (value, context) => {
+                                    const actual = rData.values[context.dataIndex];
+                                    return actual > 0 ? `${Math.round(actual)}L` : '';
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#1a1a1a', padding: 10,
+                                callbacks: {
+                                    label: (ctx) => {
+                                        const act = (rData.values[ctx.dataIndex] || 0) * 100000;
+                                        return [` Actual:      ${currencyFormatter.format(act)}`];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, beginAtZero: true, ticks: { color: TEXT_1 } },
+                            y: { grid: { display: false }, ticks: { font: { size: 11, weight: 'bold' }, color: TEXT_1 } }
+                        }
+                    }
+                });
+
+                const bRes = await fetch(`/api/pending/units?${qs}`);
+                const bData = await bRes.json();
+                const canvas = document.getElementById('salesChannelChart');
+                let existingChart = Chart.getChart(canvas);
+                if (existingChart) existingChart.destroy();
+
+                const ResLinePlugin = {
+                    id: 'ResLineConnector',
+                    afterDraw: (chart) => {
+                        const { ctx } = chart;
+                        const leftLabels = []; const rightLabels = [];
+
+                        chart.data.datasets.forEach((dataset, i) => {
+                            const meta = chart.getDatasetMeta(i);
+                            const total = dataset.data.reduce((a, b) => a + (Number(b) || 0), 0);
+                            if (total === 0) return;
+
+                            meta.data.forEach((datapoint, index) => {
+                                if (datapoint.hidden) return;
+
+                                const props = datapoint.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+                                const midAngle = props.startAngle + (props.endAngle - props.startAngle) / 2;
+                                const isRight = Math.cos(midAngle) > 0;
+
+                                const x1 = Math.cos(midAngle) * props.outerRadius + props.x;
+                                const y1 = Math.sin(midAngle) * props.outerRadius + props.y;
+                                let x2 = Math.cos(midAngle) * (props.outerRadius + 30) + props.x;
+                                let y2 = Math.sin(midAngle) * (props.outerRadius + 30) + props.y;
+
+                                const sideList = isRight ? rightLabels : leftLabels;
+                                const minGap = 24;
+                                sideList.sort((a, b) => a.y - b.y);
+                                sideList.forEach(prev => {
+                                    if (Math.abs(y2 - prev.y) < minGap) {
+                                        y2 = y2 > prev.y ? prev.y + minGap : prev.y - minGap;
+                                    }
+                                });
+                                sideList.push({ y: y2 });
+
+                                const x3 = x2 + (isRight ? 20 : -20);
+
+                                ctx.save();
+                                ctx.strokeStyle = LINE;
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y2);
+                                ctx.stroke();
+
+                                const value = Number(dataset.data[index]) || 0;
+                                const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                const labelName = chart.data.labels[index] || '';
+
+                                ctx.textAlign = isRight ? 'left' : 'right'; ctx.textBaseline = 'middle';
+                                const textX = x3 + (isRight ? 5 : -5);
+
+                                ctx.font = 'bold 10px Arial'; ctx.fillStyle = TEXT_0;
+                                ctx.fillText(labelName, textX, y2 - 6);
+                                ctx.fillStyle = TEXT_1; ctx.fillText(percentage, textX, y2 + 6);
+                                ctx.restore();
+                            });
+                        });
+                    }
+                };
+
+                charts.branch = new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: bData.labels,
+                        datasets: [{
+                            data: bData.values,
+                            backgroundColor: ['#c87d3f','#3fb8a6','#7a9cc6','#e0a83e','#9b7fc4','#5ec98f', '#d96a5a', '#6b8fae'],
+                            borderWidth: 2, borderColor: '#141b22', hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        layout: { padding: { top: 50, bottom: 50, left: 40, right: 40 } },
+                        plugins: {
+                            legend: { display: false }, datalabels: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1a1a1a', padding: 10,
+                                callbacks: {
+                                    title: (tooltipItems) => tooltipItems[0].label,
+                                    label: (ctx) => {
+                                        const act = (bData.values[ctx.dataIndex] || 0) * 100000;
+                                        return [` Actual: ${currencyFormatter.format(act)}`];
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    plugins: [ResLinePlugin]
+                });
+
+                const custRes = await fetch(`/api/pending/customers?${qs}`);
+                const custData = await custRes.json();
+                if (charts.customer) charts.customer.destroy();
+                var test = document.getElementById('customersales');
+                
+                charts.customer = new Chart(test, {
+                    type: 'bar',
+                    data: {
+                        labels: custData.labels, 
+                        datasets: [{
+                            label: 'Value (Lakhs)', data: custData.values,
+                            backgroundColor: '#3fb8a6', borderColor: '#141b22', borderRadius: 0,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            x: { beginAtZero: true, title: { display: true, text: 'Value in Lakhs', color: TEXT_1 }, grid: { display: false }, ticks: { color: TEXT_1 } },
+                            y: { ticks: { autoSkip: false, font: { size: 11, weight: 'bold' }, color: TEXT_1 }, grid: { display: false } }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            datalabels : {
+                                anchor: 'center', align: 'center', clamp: true, color: '#fff',
+                                font: { size: 10, weight: 'bold' },
+                                formatter: (val) => Math.round(val) + ' L'
+                            },
+                            tooltip: {
+                                backgroundColor: '#1a1a1a', padding: 10,
+                                callbacks: {
+                                    label: (ctx) => {
+                                        const act = (custData.values[ctx.dataIndex] || 0) * 100000;
+                                        return [` Actual: ${currencyFormatter.format(act)}`];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Dashboard refresh failed:", err);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('order_date');
+            if (dateInput && !dateInput.value) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+            }
+            refreshDashboard();
+        });
+
+        window.onload = () => {
+            const today = document.getElementById('order_date').value;
+            document.getElementById('my-date-picker').value = today.split("-").reverse().join("-");
+        };
+
+        function loadDate(val){
+            val = val.split("/").reverse().join("-");
+            document.getElementById('order_date').value = val;
+        }
+    </script>
+</body>
+{% endblock %}
