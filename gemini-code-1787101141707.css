@@ -1,0 +1,74 @@
+/* =========================================
+   SIDEBAR & HAMBURGER NAVIGATION
+========================================= */
+.sidebar {
+    height: 100%;
+    width: 260px;
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: -260px; /* Hidden by default off-screen */
+    background-color: var(--bg-1);
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: left 0.3s ease-in-out;
+    border-right: 1px solid var(--line);
+    padding-top: 60px; /* Clears the fixed header */
+    box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+}
+
+/* Toggled state applied via Javascript */
+.sidebar.open {
+    left: 0; 
+}
+
+.sidebar a, .dropdown-btn {
+    display: block;
+    color: var(--text-1);
+    padding: 14px 20px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+    box-sizing: border-box;
+    transition: background 0.2s, color 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.dropdown-btn.active, .sidebar a.active {
+    background-color: var(--bg-3) !important;
+    color: var(--copper-bright) !important;
+    border-left: 3px solid var(--copper-bright);
+}
+
+.sidebar a:hover:not(.active), .dropdown-btn:hover {
+    background-color: var(--bg-2);
+    color: var(--text-0);
+    border-left: 3px solid var(--teal);
+}
+
+/* Sub-menu container */
+.dropdown-container {
+    display: none; 
+    background-color: var(--bg-0);
+}
+
+.sub-link {
+    padding-left: 40px !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    border-bottom: 1px solid var(--line-soft);
+    border-left: none !important;
+}
+
+.sub-link.active {
+    color: var(--teal) !important;
+    background-color: var(--bg-2) !important;
+    font-weight: bold !important;
+    border-left: 3px solid var(--teal) !important;
+}

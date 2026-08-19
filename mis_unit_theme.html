@@ -1,0 +1,1340 @@
+{% block content %}
+<body style="margin: 0px; font-family: var(--sans); background-color: var(--bg-0); color: var(--text-0);">
+    
+    <!-- HEADER WITH HAMBURGER -->
+    <header>
+        <div class="header" style="background-color: var(--bg-1); width: 100%; display: flex; align-items: center; color: var(--text-0); padding: 10px 20px; box-sizing: border-box; position: fixed; top: 0; z-index: 1001; border-bottom: 1px solid var(--line);">
+            <!-- Hamburger Icon -->
+            <div class="hamburger" onclick="toggleSidebar()" style="font-size: 24px; cursor: pointer; margin-right: 20px; color: var(--copper-bright); user-select: none;">☰</div>
+            
+            <p class="user-info" style="margin: 0; color: var(--text-1);">Welcome, <span style="color: var(--teal);">{{ username }}</span>!</p>
+            <h3 style="margin: 0; position: absolute; left: 50%; transform: translateX(-50%); font-size: 1.17em; font-weight: bold; color: var(--text-0);">DIGITAL DASHBOARD</h3>
+            
+            <div style="display: flex; align-items: center; margin-left: auto;">
+                <h2 id="comp-name" style="font-size: 12px; margin: 0 10px 0 0; font-weight: bold; color: var(--text-1);">KIRLOSKAR ELECTRIC COMPANY</h2>
+                <img id="logo" style="height: 40px; border-radius: 4px;" src="{{ url_for('static', filename='images/KEC_LOGO.jpg') }}" alt="Company Logo">
+            </div>
+        </div>
+    </header>
+
+    <div id="loader-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13,17,23,0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div class="spinner" style="border: 4px solid var(--line); border-top: 4px solid var(--teal); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;"></div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="main-container1" style="padding-top: 60px;">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <div id="mySidebar" class="sidebar">
+            <a href="javascript:void(0)" class="dropdown-btn">Billing <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{ url_for('quarterly_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('home') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('daily_dashboard') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Order Book <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{ url_for('quarterly_order_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('order_mtd') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('order_daily') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Comparison <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_data_compare') }}" class="sub-link">Orders Comparison</a>
+                <a href="{{ url_for('data_compare') }}" class="sub-link">Billing Comparison</a>
+            </div>
+            <a href="{{ url_for('pending_orders_page') }}">Pending Orders</a>
+            <a href="{{ url_for('fg_report') }}">FG Report</a>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Finance <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('collection_report') }}" class="sub-link">Collections</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">MIS <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('mis_report') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('mis_unit_report') }}" class="sub-link">MIS-Units</a>
+            </div>
+        </div>
+
+        <div class="content" style="padding: 20px; overflow: auto; width: 100%;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="exit-bar" style="display: flex; gap: 15px;">
+                    <a href="#" onclick="history.back(); return false;" title="Go Back">
+                        <img id="back" style="height: 24px; filter: invert(1);" src="{{ url_for('static', filename='images/back_mis.svg') }}" alt="Go Back">
+                    </a>
+                    <a href="{{ url_for('logout') }}" title="Logout">
+                        <img id="logout" style="height: 24px; filter: invert(1);" src="{{ url_for('static', filename='images/logout_mis.svg') }}" alt="Logout">
+                    </a>
+                </div>
+
+                <div id="filter-wrapper" style="display: flex; gap: 15px; align-items: center; justify-content: flex-end;">
+                    
+                    <div id="FYdiv" style="background: var(--bg-2); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
+                        <label id="FYlabel" style="font-weight: bold; font-size: 14px; margin: 0; color: var(--text-1);">FY:</label>
+                        <select id="fin_year_select" style="border: none; outline: none; background: transparent; font-size: 14px; cursor: pointer; color: var(--text-0);">
+                            {% for year in years %}
+                                <option style="background: var(--bg-1); color: var(--text-0);" value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="UnitDiv" style="background: var(--bg-2); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
+                        <label style="font-weight: bold; font-size: 14px; margin: 0; color: var(--text-1);">UNIT:</label>
+                        <select id="unit_select" style="border: none; outline: none; background: transparent; font-size: 14px; cursor: pointer; color: var(--text-0);">
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="CFD CORP" selected>CFD CORP</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="Bran O_S">Bran O_S</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="Unit-1 Govanahalli">Unit-1 Govanahalli</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="Unit-2 HUBLI-Special">Unit-2 HUBLI-Special</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="Unit-25ACM ACM-STD Motors">Unit-25ACM ACM-STD Motors</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="Unit-25ACG ACG&EVM">Unit-25ACG ACG&EVM</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="Unit-7 TUMKUR">Unit-7 TUMKUR</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="UN05 Mysore Unit">UN05 OFT Unit</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="UN10 SWG">UN10 SWG Unit</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="Unit-16 PUNE">Unit-16 PUNE</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="DG Set HUBLI">DG Set HUBLI</option>
+                            <option style="background: var(--bg-1); color: var(--text-0);" value="Unit-12-20 Spares&Service">Unit-12-20 Spares&Service</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="financial-container" style="width: 100%; margin: 0px; font-family: var(--sans); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); border-radius: 4px; overflow: hidden; height: fit-content; background: var(--bg-1);">
+                <div class="table-wrapper" style=" height: 75vh; width: 100%; overflow: auto; border: 1px solid var(--line); background-color: var(--bg-1);">
+                    <table class="pbt-table" style="table-layout: fixed !important; border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12px; color: var(--text-1);">
+                        <colgroup>
+                            <col style="width: 16%;">
+                            <col style="width: 7%;" span="16">
+                            <col style="width: 10%;">
+                        </colgroup>
+                        <thead>
+                            <tr class="header-group-row">
+                                <th class="sticky-col first-header" rowspan="2" style="position: sticky; top: 0; left: 0; background-color: var(--bg-3); color: var(--text-0); font-weight: bold; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; z-index: 5;">Particulars</th>
+                                <th colspan="4" style="position: sticky; top: 0; background-color: var(--bg-2); color: var(--text-0); font-weight: bold; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; z-index: 4;">Q1</th>
+                                <th colspan="4" style="position: sticky; top: 0; background-color: var(--bg-3); color: var(--text-0); font-weight: bold; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; z-index: 4;">Q2</th>
+                                <th colspan="4" style="position: sticky; top: 0; background-color: var(--bg-2); color: var(--text-0); font-weight: bold; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; z-index: 4;">Q3</th>
+                                <th colspan="4" style="position: sticky; top: 0; background-color: var(--bg-3); color: var(--text-0); font-weight: bold; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; z-index: 4;">Q4</th>
+                                <th class="grand-total-header" rowspan="2" style="position: sticky; top: 0; right: 0; background-color: var(--bg-3); color: var(--copper-bright); font-weight: bold; border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; z-index: 4;">GRAND TOTAL</th>
+                            </tr>
+                            <tr class="header-unit-row">
+                                <!-- Q1 -->
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 6px 4px;">April</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 6px 4px;">May</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 6px 4px;">June</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-3); border-right: 1px solid var(--line); padding: 6px 4px; font-weight: bold;">Q1 Total</th>
+                                <!-- Q2 -->
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-3); border-right: 1px solid var(--line); padding: 6px 4px;">July</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-3); border-right: 1px solid var(--line); padding: 6px 4px;">August</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-3); border-right: 1px solid var(--line); padding: 6px 4px;">September</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 6px 4px; font-weight: bold;">Q2 Total</th>
+                                <!-- Q3 -->
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 6px 4px;">October</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 6px 4px;">November</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 6px 4px;">December</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-3); border-right: 1px solid var(--line); padding: 6px 4px; font-weight: bold;">Q3 Total</th>
+                                <!-- Q4 -->
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-3); border-right: 1px solid var(--line); padding: 6px 4px;">January</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-3); border-right: 1px solid var(--line); padding: 6px 4px;">February</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-3); border-right: 1px solid var(--line); padding: 6px 4px;">March</th>
+                                <th style="position: sticky; top: 30px; border-bottom: 1px solid var(--line); z-index: 4; background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 6px 4px; font-weight: bold;">Q4 Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly_trend_tbody" style="font-size: 12px; font-family: var(--mono);">
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="18" style="position: sticky; left: 0; background-color: var(--copper-dim); color: var(--bg-0); font-weight: bold; padding: 4px 8px; font-family: var(--sans);"><span style="position: sticky; left: 20px;">A. Income</span></td>
+                            </tr>
+
+                            <tr id="net-sales-master-row" class="master-row" onclick="toggleRowAccordion('net-sales')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="net-sales-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Net Sales
+                                </td>
+                                <td id="cell-ns-april">0.00</td><td id="cell-ns-may">0.00</td><td id="cell-ns-june">0.00</td>
+                                <td id="cell-ns-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ns-july">0.00</td><td id="cell-ns-august">0.00</td><td id="cell-ns-september">0.00</td>
+                                <td id="cell-ns-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ns-october">0.00</td><td id="cell-ns-november">0.00</td><td id="cell-ns-december">0.00</td>
+                                <td id="cell-ns-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ns-january">0.00</td><td id="cell-ns-february">0.00</td><td id="cell-ns-march">0.00</td>
+                                <td id="cell-ns-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ns-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="net-sales-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="net-sales-subtable"></table></td></tr>
+
+                            <tr id="scrap-sales-master-row" class="master-row" onclick="toggleRowAccordion('scrap-sales')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="scrap-sales-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Scrap Sales
+                                </td>
+                                <td id="cell-ss-april">0.00</td><td id="cell-ss-may">0.00</td><td id="cell-ss-june">0.00</td>
+                                <td id="cell-ss-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ss-july">0.00</td><td id="cell-ss-august">0.00</td><td id="cell-ss-september">0.00</td>
+                                <td id="cell-ss-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ss-october">0.00</td><td id="cell-ss-november">0.00</td><td id="cell-ss-december">0.00</td>
+                                <td id="cell-ss-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ss-january">0.00</td><td id="cell-ss-february">0.00</td><td id="cell-ss-march">0.00</td>
+                                <td id="cell-ss-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ss-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="scrap-sales-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="scrap-sales-subtable"></table></td></tr>
+
+                            <tr id="other-income-master-row" class="master-row" onclick="toggleRowAccordion('other-income')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="other-income-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Other Income
+                                </td>
+                                <td id="cell-oi-april">0.00</td><td id="cell-oi-may">0.00</td><td id="cell-oi-june">0.00</td>
+                                <td id="cell-oi-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-oi-july">0.00</td><td id="cell-oi-august">0.00</td><td id="cell-oi-september">0.00</td>
+                                <td id="cell-oi-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-oi-october">0.00</td><td id="cell-oi-november">0.00</td><td id="cell-oi-december">0.00</td>
+                                <td id="cell-oi-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-oi-january">0.00</td><td id="cell-oi-february">0.00</td><td id="cell-oi-march">0.00</td>
+                                <td id="cell-oi-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-oi-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="other-income-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="other-income-subtable"></table></td></tr>
+
+                            <tr id="iut-out-master-row" class="master-row" onclick="toggleRowAccordion('iut-out')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="iut-out-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>IUT - Out
+                                </td>
+                                <td id="cell-io-april">0.00</td><td id="cell-io-may">0.00</td><td id="cell-io-june">0.00</td>
+                                <td id="cell-io-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-io-july">0.00</td><td id="cell-io-august">0.00</td><td id="cell-io-september">0.00</td>
+                                <td id="cell-io-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-io-october">0.00</td><td id="cell-io-november">0.00</td><td id="cell-io-december">0.00</td>
+                                <td id="cell-io-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-io-january">0.00</td><td id="cell-io-february">0.00</td><td id="cell-io-march">0.00</td>
+                                <td id="cell-io-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-io-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="iut-out-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="iut-out-subtable"></table></td></tr>
+
+                            <tr class="subtotal-row">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: var(--bg-2); border-top: 1px solid var(--copper-dim); border-bottom: 1px solid var(--copper-dim); color: var(--text-0); font-family: var(--sans); padding: 7px 10px;">Total Income - A</td>
+                                <td id="cell-total-april">0.00</td><td id="cell-total-may">0.00</td><td id="cell-total-june">0.00</td>
+                                <td id="cell-total-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-total-july">0.00</td><td id="cell-total-august">0.00</td><td id="cell-total-september">0.00</td>
+                                <td id="cell-total-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-total-october">0.00</td><td id="cell-total-november">0.00</td><td id="cell-total-december">0.00</td>
+                                <td id="cell-total-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-total-january">0.00</td><td id="cell-total-february">0.00</td><td id="cell-total-march">0.00</td>
+                                <td id="cell-total-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-total-grand-total" style="background-color: var(--bg-3); color: var(--copper-bright); font-weight: bold;">0.00</td>
+                            </tr>
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="18" style="position: sticky; left: 0; background-color: var(--copper-dim); color: var(--bg-0); font-weight: bold; padding: 4px 8px; font-family: var(--sans);"><span style="position: sticky; left: 20px;">B. Expenditure</span></td>
+                            </tr>
+
+                            <tr id="rm-consumption-master-row" class="master-row" onclick="toggleRowAccordion('rm-consumption')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="rm-consumption-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>RM Consumption
+                                </td>
+                                <td id="cell-rm-april">0.00</td><td id="cell-rm-may">0.00</td><td id="cell-rm-june">0.00</td>
+                                <td id="cell-rm-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-rm-july">0.00</td><td id="cell-rm-august">0.00</td><td id="cell-rm-september">0.00</td>
+                                <td id="cell-rm-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-rm-october">0.00</td><td id="cell-rm-november">0.00</td><td id="cell-rm-december">0.00</td>
+                                <td id="cell-rm-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-rm-january">0.00</td><td id="cell-rm-february">0.00</td><td id="cell-rm-march">0.00</td>
+                                <td id="cell-rm-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-rm-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="rm-consumption-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="rm-consumption-subtable"></table></td></tr>
+
+                            <tr id="employee-expenses-master-row" class="master-row" onclick="toggleRowAccordion('employee-expenses')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="employee-expenses-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Employee related expenses
+                                </td>
+                                <td id="cell-ee-april">0.00</td><td id="cell-ee-may">0.00</td><td id="cell-ee-june">0.00</td>
+                                <td id="cell-ee-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ee-july">0.00</td><td id="cell-ee-august">0.00</td><td id="cell-ee-september">0.00</td>
+                                <td id="cell-ee-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ee-october">0.00</td><td id="cell-ee-november">0.00</td><td id="cell-ee-december">0.00</td>
+                                <td id="cell-ee-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ee-january">0.00</td><td id="cell-ee-february">0.00</td><td id="cell-ee-march">0.00</td>
+                                <td id="cell-ee-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ee-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="employee-expenses-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="employee-expenses-subtable"></table></td></tr>
+
+                            <tr id="iut-in-master-row" class="master-row" onclick="toggleRowAccordion('iut-in')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="iut-in-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>IUT-In
+                                </td>
+                                <td id="cell-ii-april">0.00</td><td id="cell-ii-may">0.00</td><td id="cell-ii-june">0.00</td>
+                                <td id="cell-ii-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ii-july">0.00</td><td id="cell-ii-august">0.00</td><td id="cell-ii-september">0.00</td>
+                                <td id="cell-ii-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ii-october">0.00</td><td id="cell-ii-november">0.00</td><td id="cell-ii-december">0.00</td>
+                                <td id="cell-ii-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ii-january">0.00</td><td id="cell-ii-february">0.00</td><td id="cell-ii-march">0.00</td>
+                                <td id="cell-ii-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ii-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="iut-in-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="iut-in-subtable"></table></td></tr>
+
+                            <tr id="transport-charges-master-row" class="master-row" onclick="toggleRowAccordion('transport-charges')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="transport-charges-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Transport charges
+                                </td>
+                                <td id="cell-tc-april">0.00</td><td id="cell-tc-may">0.00</td><td id="cell-tc-june">0.00</td>
+                                <td id="cell-tc-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-tc-july">0.00</td><td id="cell-tc-august">0.00</td><td id="cell-tc-september">0.00</td>
+                                <td id="cell-tc-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-tc-october">0.00</td><td id="cell-tc-november">0.00</td><td id="cell-tc-december">0.00</td>
+                                <td id="cell-tc-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-tc-january">0.00</td><td id="cell-tc-february">0.00</td><td id="cell-tc-march">0.00</td>
+                                <td id="cell-tc-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-tc-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="transport-charges-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="transport-charges-subtable"></table></td></tr>
+
+                            <tr id="finance-charges-master-row" class="master-row" onclick="toggleRowAccordion('finance-charges')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="finance-charges-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Interest & finance charges
+                                </td>
+                                <td id="cell-fc-april">0.00</td><td id="cell-fc-may">0.00</td><td id="cell-fc-june">0.00</td>
+                                <td id="cell-fc-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-fc-july">0.00</td><td id="cell-fc-august">0.00</td><td id="cell-fc-september">0.00</td>
+                                <td id="cell-fc-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-fc-october">0.00</td><td id="cell-fc-november">0.00</td><td id="cell-fc-december">0.00</td>
+                                <td id="cell-fc-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-fc-january">0.00</td><td id="cell-fc-february">0.00</td><td id="cell-fc-march">0.00</td>
+                                <td id="cell-fc-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-fc-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="finance-charges-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="finance-charges-subtable"></table></td></tr>
+
+                            <tr id="depreciation-master-row" class="master-row" onclick="toggleRowAccordion('depreciation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="depreciation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Depreciation
+                                </td>
+                                <td id="cell-dep-april">0.00</td><td id="cell-dep-may">0.00</td><td id="cell-dep-june">0.00</td>
+                                <td id="cell-dep-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-dep-july">0.00</td><td id="cell-dep-august">0.00</td><td id="cell-dep-september">0.00</td>
+                                <td id="cell-dep-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-dep-october">0.00</td><td id="cell-dep-november">0.00</td><td id="cell-dep-december">0.00</td>
+                                <td id="cell-dep-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-dep-january">0.00</td><td id="cell-dep-february">0.00</td><td id="cell-dep-march">0.00</td>
+                                <td id="cell-dep-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-dep-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="depreciation-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="depreciation-subtable"></table></td></tr>
+
+                            <tr id="revenue-expenses-master-row" class="master-row" onclick="toggleRowAccordion('revenue-expenses')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="revenue-expenses-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Revenue expenses
+                                </td>
+                                <td id="cell-re-april">0.00</td><td id="cell-re-may">0.00</td><td id="cell-re-june">0.00</td>
+                                <td id="cell-re-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-re-july">0.00</td><td id="cell-re-august">0.00</td><td id="cell-re-september">0.00</td>
+                                <td id="cell-re-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-re-october">0.00</td><td id="cell-re-november">0.00</td><td id="cell-re-december">0.00</td>
+                                <td id="cell-re-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-re-january">0.00</td><td id="cell-re-february">0.00</td><td id="cell-re-march">0.00</td>
+                                <td id="cell-re-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-re-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="revenue-expenses-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="revenue-expenses-subtable"></table></td></tr>
+
+                            <tr class="subtotal-row">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: var(--bg-2); border-top: 1px solid var(--copper-dim); border-bottom: 1px solid var(--copper-dim); color: var(--text-0); font-family: var(--sans); padding: 7px 10px;">Total Expenditure - B</td>
+                                <td id="cell-exp-april">0.00</td><td id="cell-exp-may">0.00</td><td id="cell-exp-june">0.00</td>
+                                <td id="cell-exp-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-exp-july">0.00</td><td id="cell-exp-august">0.00</td><td id="cell-exp-september">0.00</td>
+                                <td id="cell-exp-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-exp-october">0.00</td><td id="cell-exp-november">0.00</td><td id="cell-exp-december">0.00</td>
+                                <td id="cell-exp-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-exp-january">0.00</td><td id="cell-exp-february">0.00</td><td id="cell-exp-march">0.00</td>
+                                <td id="cell-exp-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-exp-grand-total" style="background-color: var(--bg-3); color: var(--copper-bright); font-weight: bold;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row" style="font-weight: bold;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: var(--bg-2); color: var(--text-0); font-family: var(--sans); padding: 7px 10px;">Gross Profit/(Loss)</td>
+                                <td id="cell-gp-april">0.00</td><td id="cell-gp-may">0.00</td><td id="cell-gp-june">0.00</td>
+                                <td id="cell-gp-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-gp-july">0.00</td><td id="cell-gp-august">0.00</td><td id="cell-gp-september">0.00</td>
+                                <td id="cell-gp-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-gp-october">0.00</td><td id="cell-gp-november">0.00</td><td id="cell-gp-december">0.00</td>
+                                <td id="cell-gp-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-gp-january">0.00</td><td id="cell-gp-february">0.00</td><td id="cell-gp-march">0.00</td>
+                                <td id="cell-gp-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-gp-grand-total" style="background-color: var(--bg-3); color: var(--copper-bright); font-weight: bold;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row" style="font-weight: bold;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: var(--bg-2); color: var(--text-0); font-family: var(--sans); padding: 7px 10px;">EBIDTA from operation <br> (Before allocation)</td>
+                                <td id="cell-eb-april">0.00</td><td id="cell-eb-may">0.00</td><td id="cell-eb-june">0.00</td>
+                                <td id="cell-eb-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-eb-july">0.00</td><td id="cell-eb-august">0.00</td><td id="cell-eb-september">0.00</td>
+                                <td id="cell-eb-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-eb-october">0.00</td><td id="cell-eb-november">0.00</td><td id="cell-eb-december">0.00</td>
+                                <td id="cell-eb-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-eb-january">0.00</td><td id="cell-eb-february">0.00</td><td id="cell-eb-march">0.00</td>
+                                <td id="cell-eb-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-eb-grand-total" style="background-color: var(--bg-3); color: var(--copper-bright); font-weight: bold;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row pbt-highlight" style="font-weight: bold;">
+                                <td class="sticky-col text-left highlight-blue" style="position: sticky; left: 0; font-weight: bold; background-color: rgba(63, 184, 166, 0.15) !important; color: var(--teal) !important; font-family: var(--sans); padding: 7px 10px;">PBT before allocation [C=A-B]</td>
+                                <td id="cell-pbt-april">0.00</td><td id="cell-pbt-may">0.00</td><td id="cell-pbt-june">0.00</td>
+                                <td id="cell-pbt-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-pbt-july">0.00</td><td id="cell-pbt-august">0.00</td><td id="cell-pbt-september">0.00</td>
+                                <td id="cell-pbt-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-pbt-october">0.00</td><td id="cell-pbt-november">0.00</td><td id="cell-pbt-december">0.00</td>
+                                <td id="cell-pbt-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-pbt-january">0.00</td><td id="cell-pbt-february">0.00</td><td id="cell-pbt-march">0.00</td>
+                                <td id="cell-pbt-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-pbt-grand-total" style="background-color: var(--bg-3); color: var(--teal); font-weight: bold;">0.00</td>
+                            </tr>
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="18" style="position: sticky; left: 0; background-color: var(--copper-dim); color: var(--bg-0); font-weight: bold; padding: 4px 8px; font-family: var(--sans);"><span style="position: sticky; left: 20px;">D.Corporate & Branch allocation</span></td>
+                            </tr>
+
+                            <tr id="ere-allocation-master-row" class="master-row" onclick="toggleRowAccordion('ere-allocation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="ere-allocation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>ERE - allocation
+                                </td>
+                                <td id="cell-erea-april">0.00</td><td id="cell-erea-may">0.00</td><td id="cell-erea-june">0.00</td>
+                                <td id="cell-erea-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-erea-july">0.00</td><td id="cell-erea-august">0.00</td><td id="cell-erea-september">0.00</td>
+                                <td id="cell-erea-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-erea-october">0.00</td><td id="cell-erea-november">0.00</td><td id="cell-erea-december">0.00</td>
+                                <td id="cell-erea-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-erea-january">0.00</td><td id="cell-erea-february">0.00</td><td id="cell-erea-march">0.00</td>
+                                <td id="cell-erea-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-erea-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="ere-allocation-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="ere-allocation-subtable"></table></td></tr>
+
+                            <tr id="ore-allocation-master-row" class="master-row" onclick="toggleRowAccordion('ore-allocation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="ore-allocation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>ORE - allocation
+                                </td>
+                                <td id="cell-orea-april">0.00</td><td id="cell-orea-may">0.00</td><td id="cell-orea-june">0.00</td>
+                                <td id="cell-orea-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-orea-july">0.00</td><td id="cell-orea-august">0.00</td><td id="cell-orea-september">0.00</td>
+                                <td id="cell-orea-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-orea-october">0.00</td><td id="cell-orea-november">0.00</td><td id="cell-orea-december">0.00</td>
+                                <td id="cell-orea-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-orea-january">0.00</td><td id="cell-orea-february">0.00</td><td id="cell-orea-march">0.00</td>
+                                <td id="cell-orea-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-orea-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="ore-allocation-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="ore-allocation-subtable"></table></td></tr>
+
+                            <tr id="interest-allocation-master-row" class="master-row" onclick="toggleRowAccordion('interest-allocation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="interest-allocation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Interest - allocation
+                                </td>
+                                <td id="cell-inta-april">0.00</td><td id="cell-inta-may">0.00</td><td id="cell-inta-june">0.00</td>
+                                <td id="cell-inta-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-inta-july">0.00</td><td id="cell-inta-august">0.00</td><td id="cell-inta-september">0.00</td>
+                                <td id="cell-inta-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-inta-october">0.00</td><td id="cell-inta-november">0.00</td><td id="cell-inta-december">0.00</td>
+                                <td id="cell-inta-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-inta-january">0.00</td><td id="cell-inta-february">0.00</td><td id="cell-inta-march">0.00</td>
+                                <td id="cell-inta-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-inta-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="interest-allocation-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="interest-allocation-subtable"></table></td></tr>
+
+                            <tr id="depreciation-allocation-master-row" class="master-row" onclick="toggleRowAccordion('depreciation-allocation')">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; font-weight: bold; color: var(--teal); background-color: var(--bg-2); border-right: 1px solid var(--line); padding: 7px 10px 7px 15px; font-family: var(--sans);">
+                                    <span id="depreciation-allocation-arrow" class="row-arrow" style="display:inline-block; margin-right: 5px; transition: transform 0.2s; color: var(--copper-bright);">▶</span>Depreciation - allocation
+                                </td>
+                                <td id="cell-depa-april">0.00</td><td id="cell-depa-may">0.00</td><td id="cell-depa-june">0.00</td>
+                                <td id="cell-depa-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-depa-july">0.00</td><td id="cell-depa-august">0.00</td><td id="cell-depa-september">0.00</td>
+                                <td id="cell-depa-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-depa-october">0.00</td><td id="cell-depa-november">0.00</td><td id="cell-depa-december">0.00</td>
+                                <td id="cell-depa-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-depa-january">0.00</td><td id="cell-depa-february">0.00</td><td id="cell-depa-march">0.00</td>
+                                <td id="cell-depa-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-depa-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00</td>
+                            </tr>
+                            <tr id="depreciation-allocation-dropdown-container" class="dropdown-container-row" style="display: none;"><td colspan="18" style="padding: 0; border: none;"><table style="width: 100%; border-collapse: collapse; margin: 0; background-color: var(--bg-0);" id="depreciation-allocation-subtable"></table></td></tr>
+
+                            <tr class="subtotal-row" style="background-color: var(--bg-2); font-weight: bold;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: var(--bg-2); border-top: 1px solid var(--copper-dim); border-bottom: 1px solid var(--copper-dim); color: var(--text-0); font-family: var(--sans); padding: 7px 10px;">Total allocation - D</td>
+                                <td id="cell-allocd-april">0.00</td><td id="cell-allocd-may">0.00</td><td id="cell-allocd-june">0.00</td>
+                                <td id="cell-allocd-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-allocd-july">0.00</td><td id="cell-allocd-august">0.00</td><td id="cell-allocd-september">0.00</td>
+                                <td id="cell-allocd-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-allocd-october">0.00</td><td id="cell-allocd-november">0.00</td><td id="cell-allocd-december">0.00</td>
+                                <td id="cell-allocd-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-allocd-january">0.00</td><td id="cell-allocd-february">0.00</td><td id="cell-allocd-march">0.00</td>
+                                <td id="cell-allocd-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-allocd-grand-total" style="background-color: var(--bg-3); color: var(--copper-bright); font-weight: bold;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row" style="font-weight: bold;">
+                                <td class="sticky-col text-left" style="position: sticky; left: 0; font-weight: bold; background-color: var(--bg-2); color: var(--text-0); font-family: var(--sans); padding: 7px 10px;">EBIDTA from operation (after allocation)</td>
+                                <td id="cell-ebidtaa-april">0.00</td><td id="cell-ebidtaa-may">0.00</td><td id="cell-ebidtaa-june">0.00</td>
+                                <td id="cell-ebidtaa-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ebidtaa-july">0.00</td><td id="cell-ebidtaa-august">0.00</td><td id="cell-ebidtaa-september">0.00</td>
+                                <td id="cell-ebidtaa-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ebidtaa-october">0.00</td><td id="cell-ebidtaa-november">0.00</td><td id="cell-ebidtaa-december">0.00</td>
+                                <td id="cell-ebidtaa-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ebidtaa-january">0.00</td><td id="cell-ebidtaa-february">0.00</td><td id="cell-ebidtaa-march">0.00</td>
+                                <td id="cell-ebidtaa-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-ebidtaa-grand-total" style="background-color: var(--bg-3); color: var(--copper-bright); font-weight: bold;">0.00</td>
+                            </tr>
+
+                            <tr class="metric-row pbt-highlight" style="font-weight: bold;">
+                                <td class="sticky-col text-left highlight-blue" style="position: sticky; left: 0; font-weight: bold; background-color: rgba(63, 184, 166, 0.15) !important; color: var(--teal) !important; font-family: var(--sans); padding: 7px 10px;">PBT after allocation [ E=C-D ]</td>
+                                <td id="cell-pbta-april">0.00</td><td id="cell-pbta-may">0.00</td><td id="cell-pbta-june">0.00</td>
+                                <td id="cell-pbta-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-pbta-july">0.00</td><td id="cell-pbta-august">0.00</td><td id="cell-pbta-september">0.00</td>
+                                <td id="cell-pbta-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-pbta-october">0.00</td><td id="cell-pbta-november">0.00</td><td id="cell-pbta-december">0.00</td>
+                                <td id="cell-pbta-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-pbta-january">0.00</td><td id="cell-pbta-february">0.00</td><td id="cell-pbta-march">0.00</td>
+                                <td id="cell-pbta-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00</td>
+                                <td id="cell-pbta-grand-total" style="background-color: var(--bg-3); color: var(--teal); font-weight: bold;">0.00</td>
+                            </tr>
+
+                            <tr class="section-title">
+                                <td class="sticky-col text-left" colspan="18" style="position: sticky; left: 0; background-color: var(--copper-dim); color: var(--bg-0); font-weight: bold; padding: 4px 8px; font-family: var(--sans);"><span style="position: sticky; left: 20px;">E. % to total income before allocation</span></td>
+                            </tr>
+
+                            <tr class="ratio-row">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: var(--bg-2); border-right: 1px solid var(--line); color: var(--text-1); font-family: var(--sans);">RM Consumption</td>
+                                <td id="cell-pct-rm-april">0.00%</td><td id="cell-pct-rm-may">0.00%</td><td id="cell-pct-rm-june">0.00%</td>
+                                <td id="cell-pct-rm-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-rm-july">0.00%</td><td id="cell-pct-rm-august">0.00%</td><td id="cell-pct-rm-september">0.00%</td>
+                                <td id="cell-pct-rm-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-rm-october">0.00%</td><td id="cell-pct-rm-november">0.00%</td><td id="cell-pct-rm-december">0.00%</td>
+                                <td id="cell-pct-rm-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-rm-january">0.00%</td><td id="cell-pct-rm-february">0.00%</td><td id="cell-pct-rm-march">0.00%</td>
+                                <td id="cell-pct-rm-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-rm-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: var(--bg-2); border-right: 1px solid var(--line); color: var(--text-1); font-family: var(--sans);">RM Consumption including freight</td>
+                                <td id="cell-pct-rmf-april">0.00%</td><td id="cell-pct-rmf-may">0.00%</td><td id="cell-pct-rmf-june">0.00%</td>
+                                <td id="cell-pct-rmf-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-rmf-july">0.00%</td><td id="cell-pct-rmf-august">0.00%</td><td id="cell-pct-rmf-september">0.00%</td>
+                                <td id="cell-pct-rmf-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-rmf-october">0.00%</td><td id="cell-pct-rmf-november">0.00%</td><td id="cell-pct-rmf-december">0.00%</td>
+                                <td id="cell-pct-rmf-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-rmf-january">0.00%</td><td id="cell-pct-rmf-february">0.00%</td><td id="cell-pct-rmf-march">0.00%</td>
+                                <td id="cell-pct-rmf-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-rmf-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: var(--bg-2); border-right: 1px solid var(--line); color: var(--text-1); font-family: var(--sans);">Employee related expenses</td>
+                                <td id="cell-pct-ee-april">0.00%</td><td id="cell-pct-ee-may">0.00%</td><td id="cell-pct-ee-june">0.00%</td>
+                                <td id="cell-pct-ee-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-ee-july">0.00%</td><td id="cell-pct-ee-august">0.00%</td><td id="cell-pct-ee-september">0.00%</td>
+                                <td id="cell-pct-ee-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-ee-october">0.00%</td><td id="cell-pct-ee-november">0.00%</td><td id="cell-pct-ee-december">0.00%</td>
+                                <td id="cell-pct-ee-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-ee-january">0.00%</td><td id="cell-pct-ee-february">0.00%</td><td id="cell-pct-ee-march">0.00%</td>
+                                <td id="cell-pct-ee-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-ee-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: var(--bg-2); border-right: 1px solid var(--line); color: var(--text-1); font-family: var(--sans);">Revenue expenses</td>
+                                <td id="cell-pct-re-april">0.00%</td><td id="cell-pct-re-may">0.00%</td><td id="cell-pct-re-june">0.00%</td>
+                                <td id="cell-pct-re-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-re-july">0.00%</td><td id="cell-pct-re-august">0.00%</td><td id="cell-pct-re-september">0.00%</td>
+                                <td id="cell-pct-re-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-re-october">0.00%</td><td id="cell-pct-re-november">0.00%</td><td id="cell-pct-re-december">0.00%</td>
+                                <td id="cell-pct-re-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-re-january">0.00%</td><td id="cell-pct-re-february">0.00%</td><td id="cell-pct-re-march">0.00%</td>
+                                <td id="cell-pct-re-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-re-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: var(--bg-2); border-right: 1px solid var(--line); color: var(--text-1); font-family: var(--sans);">Transport charges</td>
+                                <td id="cell-pct-tc-april">0.00%</td><td id="cell-pct-tc-may">0.00%</td><td id="cell-pct-tc-june">0.00%</td>
+                                <td id="cell-pct-tc-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-tc-july">0.00%</td><td id="cell-pct-tc-august">0.00%</td><td id="cell-pct-tc-september">0.00%</td>
+                                <td id="cell-pct-tc-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-tc-october">0.00%</td><td id="cell-pct-tc-november">0.00%</td><td id="cell-pct-tc-december">0.00%</td>
+                                <td id="cell-pct-tc-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-tc-january">0.00%</td><td id="cell-pct-tc-february">0.00%</td><td id="cell-pct-tc-march">0.00%</td>
+                                <td id="cell-pct-tc-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-tc-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: var(--bg-2); border-right: 1px solid var(--line); color: var(--text-1); font-family: var(--sans);">Interest & finance charges</td>
+                                <td id="cell-pct-fc-april">0.00%</td><td id="cell-pct-fc-may">0.00%</td><td id="cell-pct-fc-june">0.00%</td>
+                                <td id="cell-pct-fc-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-fc-july">0.00%</td><td id="cell-pct-fc-august">0.00%</td><td id="cell-pct-fc-september">0.00%</td>
+                                <td id="cell-pct-fc-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-fc-october">0.00%</td><td id="cell-pct-fc-november">0.00%</td><td id="cell-pct-fc-december">0.00%</td>
+                                <td id="cell-pct-fc-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-fc-january">0.00%</td><td id="cell-pct-fc-february">0.00%</td><td id="cell-pct-fc-march">0.00%</td>
+                                <td id="cell-pct-fc-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-fc-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: var(--bg-2); border-right: 1px solid var(--line); color: var(--text-1); font-family: var(--sans);">Depreciation</td>
+                                <td id="cell-pct-dep-april">0.00%</td><td id="cell-pct-dep-may">0.00%</td><td id="cell-pct-dep-june">0.00%</td>
+                                <td id="cell-pct-dep-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-dep-july">0.00%</td><td id="cell-pct-dep-august">0.00%</td><td id="cell-pct-dep-september">0.00%</td>
+                                <td id="cell-pct-dep-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-dep-october">0.00%</td><td id="cell-pct-dep-november">0.00%</td><td id="cell-pct-dep-december">0.00%</td>
+                                <td id="cell-pct-dep-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-dep-january">0.00%</td><td id="cell-pct-dep-february">0.00%</td><td id="cell-pct-dep-march">0.00%</td>
+                                <td id="cell-pct-dep-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-dep-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00%</td>
+                            </tr>
+
+                            <tr class="ratio-row border-double">
+                                <td class="sticky-col text-left indent" style="position: sticky; left: 0; background-color: var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0); font-weight: bold; font-family: var(--sans);">PBT before allocation</td>
+                                <td id="cell-pct-pbt-april">0.00%</td><td id="cell-pct-pbt-may">0.00%</td><td id="cell-pct-pbt-june">0.00%</td>
+                                <td id="cell-pct-pbt-q1" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-pbt-july">0.00%</td><td id="cell-pct-pbt-august">0.00%</td><td id="cell-pct-pbt-september">0.00%</td>
+                                <td id="cell-pct-pbt-q2" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-pbt-october">0.00%</td><td id="cell-pct-pbt-november">0.00%</td><td id="cell-pct-pbt-december">0.00%</td>
+                                <td id="cell-pct-pbt-q3" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-pbt-january">0.00%</td><td id="cell-pct-pbt-february">0.00%</td><td id="cell-pct-pbt-march">0.00%</td>
+                                <td id="cell-pct-pbt-q4" style="font-weight:bold; background-color:var(--bg-2); border-right: 1px solid var(--line); color: var(--text-0);">0.00%</td>
+                                <td id="cell-pct-pbt-grand-total" style="font-weight: bold; background-color: var(--bg-3); color: var(--copper-bright);">0.00%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN HTML STYLE BLOCK WITH DARK THEME -->
+    <style>
+        :root{
+            --bg-0:#0d1117;
+            --bg-1:#141b22;
+            --bg-2:#1a232c;
+            --bg-3:#212d38;
+            --line:#2a3744;
+            --line-soft:#1f2a34;
+            --copper:#c87d3f;
+            --copper-bright:#e6985a;
+            --copper-dim:#8a5a34;
+            --teal:#3fb8a6;
+            --good:#5ec98f;
+            --warn:#e0a83e;
+            --bad:#d96a5a;
+            --text-0:#eef2f5;
+            --text-1:#aab8c2;
+            --text-2:#6b7b88;
+            --mono:'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+            --sans:'Inter', -apple-system, sans-serif;
+            --disp:'Libre Franklin', 'Inter', sans-serif;
+        }
+
+        .sticky-col { font-size: 12px; text-align: left; }
+        
+        td { 
+            padding: 5px 10px; 
+            border-right: 1px solid var(--line-soft); 
+            border-bottom: 1px solid var(--line-soft); 
+            text-align: right; 
+        }
+
+        .master-row { background-color: var(--bg-1); transition: background-color 0.2s; }
+        .master-row:hover { background-color: var(--bg-2); }
+        
+        .dropdown-container-row td { padding: 0 !important; border: none !important; }
+        
+        .subtotal-row td {
+            background-color: var(--bg-2); 
+            border-top: 1px solid var(--copper-dim); 
+            border-bottom: 1px solid var(--copper-dim);
+            color: var(--text-0);
+        }
+
+        .metric-row td {
+            background-color: var(--bg-2); 
+            color: var(--text-0);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .pbt-highlight td {
+            border-top: 2px solid var(--teal);
+            border-bottom: 2px solid var(--teal) !important;
+        }
+
+        .ratio-row td { background-color: var(--bg-1); color: var(--text-1); }
+        .ratio-row.border-double td { border-top: 1px solid var(--line); border-bottom: 4px double var(--line); }
+        
+        .grand-total-header, .grand-total-cell {
+            background-color: var(--bg-3) !important; color: var(--copper-bright) !important; font-weight: bold;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-0); }
+        ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--copper-dim); }
+    </style>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        // ==========================================
+        // HAMBURGER TOGGLE INJECTION
+        // ==========================================
+        function toggleSidebar() {
+            document.getElementById('mySidebar').classList.toggle('open');
+        }
+
+        const chronologicalMonths = ["April", "May", "June", "July", "August", "September", "October", "November", "December", "January", "February", "March"];
+
+
+        let unitMonthlyState = {
+            netSales: { totals: {}, breakdown: {} },
+            scrapSales: { totals: {}, breakdown: {} },
+            otherIncome: { totals: {}, breakdown: {} },
+            iutOut: { totals: {}, breakdown: {} },
+            rmConsumption: { totals: {}, breakdown: {} },
+            employeeExpenses: { totals: {}, breakdown: {} },
+            iutIn: { totals: {}, breakdown: {} },
+            transportCharges: { totals: {}, breakdown: {} },
+            financeCharges: { totals: {}, breakdown: {} },
+            depreciation: { totals: {}, breakdown: {} },
+            revenueExpenses: { totals: {}, breakdown: {} },
+            ereAllocation: { totals: {}, breakdown: {} },
+            oreAllocation: { totals: {}, breakdown: {} },
+            interestAllocation: { totals: {}, breakdown: {} },
+            depreciationAllocation: { totals: {}, breakdown: {} }
+        };
+
+        const masterAccountDescriptions = {
+            "700001" : " Direct Revenue-Manf", "700002" : " Direct Revenue-Trade", "700003" : " Direct Revenue-Trade", "700004" : " Direct Revenue-Serv",
+            "700006" : " Foreign Rev-Manf Mat", "700007" : " Foreign Rev-Trade Ma", "700008" : " Foreign Rev-Service", "700009" : " Revenue from Dealer",
+            "700010" : " Rev from Dealer Sale", "700012" : " Rev from Dealer sale", "700013" : " Rev from Dealer sale", "700014" : " Deemed Export-Manf M",
+            "700015" : " Deemed Export-Trade", "700018" : " SEZ Revenue-Manf Mat", "700019" : " SEZ Revenue-Trade Ma", "700024" : " Project Revenue- Tra",
+            "700025" : " Project Revenue- Ser", "700026" : " Indirect Foreign Rev", "700030" : " Direct Revenue-Compo", "700031" : " E DUTY ON SALES",
+            "700034": "Prov-Sale Ret(IND AS)","700032":"IUT Services (Out)","700033":"Sale-RETN-NPV(IND AS)","700021" : " SEZ Revenue-Service Material",
+             "446105" : "OCI-M2M-Invest-INDAS", "712006" : "INT on RETN (IND AS)"
+        };
+        Object.assign(masterAccountDescriptions, {
+            "700005":"Scrap Sales Rev", "432406" : "Prov WARRANTY(IND AS)",
+            "410001":"CRGO Steel-Raw Mat","410002":"CRNGO Steeel-Raw Mat", "410003":"Copper Rods-Raw Mat", "410004":"Mild Steel-Raw Mat", "410005":"Others-Raw Mat", "410006":"Raw Mat FI Entry", "410007":"Goods for resale, Wi", "410008":"RM Consu-Ind-SaleOrd", "410010":"RM  Consu-SaleOrder",
+"410011":"Compon-Indi-Consumed", "410014":"R.M-Ind Cons stock p", "410101":"Copper Related Mat-S", "410102":"Mild Steel- S.Finish", "410103":"Radiators-S.Finished", "410104":"TRF oil-S.Finished", "410105":"Bodi/Stat Fram-S.Fin", "410106":"Bearings-S.Finished", "410107":"Magnet frames-S.Fin",
+"410109":"Current Transf-S.Fin", "410110":"Potential Transf-S.F", "410113":"Conductors-S.Finishe", "410114":"Capacitors-S.Finishe", "410115":"Others-S.Finished", "410116":"Maint Spares Indig-S", "410118":"SFG Consu-SaleOrder", "410119":"Components-Ind-Consu", "410121":"Comp-Ind-Cons-stock",
+"410122":"ElectricalStampings-", "410123":"Elec&Switchgear-Loca", "410125":"Shafts-S.Finished Pr", "410126":"Covers-S.Fin Product", "410127":"Coolers-S.Fin Produc", "410128":"Commutators-S.Finish", "410129":"Sub-Assemblies-S.Fin", "410201":"Transformers-Finishe", "410202":"Switch Gears-Finishe",
+"410203":"Electronics-Finished", "410204":"UPS-Finished Prod", "410205":"Inverters-Finished P", "410207":"FG consu-Without Acc", "410208":"FG consu-With Accoun", "410210":"Stores & maint spare", "410212":"Maint spares-Ind-Con", "410213":"AC Motors-Fin Prod", "410214":"DC Machines-Finished",
+"410215":"AC Generators-Finish", "410217":"MBS-Finished Product", "410302":"CRNGO Steeel-R.Mat-I", "410305":"Others-R.Mat-Importe", "410307":"Components-Imp-Consu", "410314":"R.M-Imp-Cons-stock p", "410316":"Comp-Imp-Con-stock p", "410317":"ElectricalStampings-", "410401":"Copper Related Mat-I",
+"410405":"Bodies/Stat Fram-Imp", "410406":"Bearings-Imported", "410415":"Others-Imported", "410417":"Elec&Switchgear-Impo", "410418":"Trading goods-Local", "410501":"SUB-CONTRACT EXP", "410503":"Purchases - Trad", "410505":"Matl rej-prod/scrap", "410506":"Materials drawn for",
+"410508":"Price diff-matl mvmt", "410509":"Price diff-Settlemen", "410510":"Chng in comp-Sub-con", "410511":"Chan in semi-fin-sub", "410513":"Chan in spare-Subcon", "410515":"Scrap Mat-Mat Rej-Pr", "410601":"Change in WIP-RA", "410603":"Change in comp-Local", "410604":"Change in comp-Impor",
+"410605":"Change in finished G", "410606":"Change in PM Stock", "410607":"Service Expenses [OW", "410701":"Expenses from stock", "410702":"Gain/ Loss on Revalu", "410703":"CARRAIGE INWARDS", "410704":"ENTRY TAX ON PURCHAS", "410705":"IMPORTS SERVICE EXPS", "410706":"CONSUMABLES", "410707":"ED on CLG. Stock",
+"410708":"Cons-A C Generators", "410709":"Cons-AVMs", "410710":"Cons-Base Frame", "410711":"Cons-Battery", "410712":"Cons-Bat Chan Switch", "410713":"Cons-Canopy", "410714":"Cons-Control Panel", "410715":"Cons-Coupling", "410716":"Cons-Elec Components", "410717":"Cons-OtherComponents", "410718":"Cons-Engine",
+"410719":"Cons-Gauges & Sensor", "410720":"Cons-Mchd Components", "410721":"Cons-Rubber Compnts", "410722":"Cons-ENG.Spares", "410723":"Cons-ENG.KIT F Serie", "410724":"Cons-ENG.KIT I Serie", "410726":"Cons-ENG.KIT R Serie", "410728":"Cons-Local Projects", "410729":"Cons-ENG. Others", "410730":"Cons-Fuel Tank",
+"410731":"Cons-Hardwares", "410732":"Cons-Kent Oil Meter", "410733":"Cons-Panel Filter", "410734":"Cons-Radiator", "410738":"Cons-Vent. Fan", "410739":"GODOWN HANDLING CHGS", "720001":"CASH DISCOUNTS EARNE", "410736":"Cons-Silencer", "410737":"Cons-Solenoid", "410740":"PSG-PURCHASES", "438004":"Octroi Duty Inword",
+"448001":"MANUFACTURING EXPENS", "410009":"COGS-Ind-Trading-Without Account Assignment Object", "410015":"Raw Material FI Entry - IUT", "410016":"Raw Material FI Entry - ED", "410017":"Raw Material FI Entry - Pending at port -Import", "410018":"FI Entry - Pending at port -Export", "410019":"Raw Material FI Entry - NRV", "410020":"RawMaterialFI Entry-IUTprof elem",
+"410021":"Raw Material FI Entry - Sales Reversal ", "410022":"Raw Material FI Entry - Debit note provison", "410023":"Raw Material FI Entry - consumables ", "410024":"Turn Over Dis-Purcha", "410108":"Alliminium Flats-S.Finished", "410111":"Integrated Circuits-S.Finished", "410112":"Heat alumilium Sinks-S.Finished",
+"410117":"Semi Finished FI Entry-S.Finished", "410120":"SFG Consu-SaleOrder-WithAccount Assignment Object", "410124":"Comp-Indigenous-Cons-Service Mat provide to vendor", "410209":"Goods for resale, Local-Account Assignment Object", "410211":"Finished Goods -Consumed-stock provide To Vendor",
+"410216":"Traction-Finished Product", "410218":"Commutators-S.Finished Product", "410219":"Sub-Assemblies-S.Finished Product", "410301":"CRGO Steel-Raw Material-Imported", "410303":"Copper Rods-Raw Material-Imported", "410304":"Mild Steel-Raw Material-Imported", "410306":"RM Consu-Imp-SaleOrder-Without Acc Assignment Obj",
+"410308":"COGS-Imp-Trading-Without Account Assignment Object", "410309":"Stores & Maint spares Import- Without Account Assi", "410310":"RM  Consu-SaleOrder-Imported With Acc Assign Obj", "410311":"Compon-Imported-Consu-With Account Assignment Obje", "410312":"Goods for resale, Imp-Account Assignment Object",
+"410313":"Stores & maint spares Import with Account Assignm", "410315":"Stores & maint spares-Import-Cons Provided to Vend", "410402":"Mild Steel- Imported", "410403":"Radiators-Imported", "410404":"TRF oil-Imported", "410407":"Magnet frames-Imported", "410408":"Alliminium Flats-Imported", "410409":"Current Transformer-Imported",
+"410410":"Potential Transf-Imported", "410411":"Integrated Circuits-Imported", "410412":"Heat alumilium Sinks-Imported", "410413":"Conductors-Imported", "410414":"Capacitors-Imported", "410416":"Maintainance Spares -Imp-Semi finished", "410419":"Trading Goods Foreign- rd Party", "410502":"Inventory adj.(on phy ver expense)",
+"410504":"Purchases - Trading - Foreign", "410507":"Mat drawn for testing / inspection with acc assign", "410512":"Change in finished goods - Subcontracting", "410514":"Job Purchases - erection and services-VBR-", "410602":"Change in WIP / FG- (Manual)", "410608":"Carriage inward -Domestic ", "410609":"Carriage inward -imports",
+"410610":"Clearing agent charges - Domestic ", "410611":"Clearing agent charges -Import ", "410612":"Demurrage", "410725":"Consumption-Engine Kit - Local", "410727":"Consumption-Engine Imported", "410735":"Consumption-Reactors",
+    "421000": "Cont. PF(Employer Sh", "421001": "CONT TO SUPERANNUATI", "421002": "CONTRIBUTION TO ESI-", "421003": "CONT. PENSION SCHEME", "421004": "PF ADMN&INSP CHRGS", "421005": "CONTRIBUTION TO EDLI", "421006": "CONTRIBUTION TO SOSC", "421007": "CONT TO GRATUITY", "421008": "CONT-DEATH REL FUND", "421009": "Cont Benovalent Fund", "422001": "CANTEEN EXPENSES", "422002": "CANTEEN RECOVERY",
+    "422003": "UNIFORMS & SHOES", "422004": "TRANSPORTATION - EMP", "422005": "TRAINING PROGRAME EX", "422006": "RELOCATION EXPENSE",
+    "420101": "Wages- Basic", "420102": "Wages- FDA", "420103": "Wages- VDA", "420104": "Wages -DA",
+    "420105": "Wages- HRA", "420106": "Wages-Conveyance Allowance", "420107": "Wages- Transport Allowance", "420108": "Wages- Attendance Allowance",
+    "420109": "Wages- Washing Allowance", "420110": "Wages- Shift Allowance", "420111": "Wages- Education Allowance", "420112": "Wages- Medical Benefit",
+    "420113": "Wages- Special allowance", "420114": "Wages- Variable Allowance", "420115": "Wages Compensation Allowance", "420116": "Wages- LTC",
+    "420117": "Wages - Leave Encashment", "420118": "Wages- Incentive /OT", "420119": "Wages - arrears current period", "420120": "Wages- arrears previous period",
+    "420121": "Stipend - Trainees", "420122": "Wages- Bonus (statutory)", "420123": "Wages- Performance Bonus", "420124": "Inventor bonus/ gift",
+    "420125": "grant for maternity allowance", "420126": "Relocation Expenses", "420127": "Wages - Leave Encashment (Prov)", "420128": "Wages - other allowance",
+    "420201": "Salaries- Basic", "420202": "Salaries- HRA", "420203": "Salaries-Conveyance", "420204": "Salaries-Education Allowance",
+    "420205": "Salaries - Variable Pay", "420206": "Salaries - LTA", "420207": "Salaries - Medical Policy", "420208": "Salaries - Medical Reimb",
+    "420209": "Salaries - Professional member", "420210": "Salaries - Furniture fixture (tax)", "420211": "Salaries -Attire", "420212": "Salaries - Magazine",
+    "420213": "Salaries - Telephone", "420214": "Salaries -Vehicle interest sub", "420215": "Salaries - Housing Loan Subsidy", "420216": "Salaries -other allowance",
+    "420217": "Salaries - Leave Encashment", "420218": "Arrears of salary Current", "420219": "Arrears of Salary Previous", "420220": "Notice pay recovery",
+    "420221": "Note pay re-imbursed", "420222": "Severance Compensation", "420223": "grant for maternity allowance", "420224": "Performance Bonus",
+    "420225": "Incentive/OT", "420226": "Bonus", "420227": "Salaries - Pensioner", "420228": "Relocation Expenses",
+    "420229": "Salaries- Leave Encashment (Prov)", "420230": "Salaries - Gratuity excess", "420234": "Salaries-SPL All-PF", "421102": "Wages- SAF (Provision)",
+    "421103": "Wages -Gratuity (Provision)", "421104": "Wages- PF Employer Contribution", "421105": "Wages- Employee pension scheme", "421106": "Wages- ESI Contribution",
+    "421107": "Wages - PF admin & inspection", "421108": "Wages - EDLI", "421109": "Wages - SOSOC", "421110": "Benevolent Fund-Employer Share",
+    "421111": "Employer share to Death relief fund", "421112": "Employers cont. to group insurance", "421113": "Insurance - Personal Accident", "421201": "Salaries - SAF(Provision)",
+    "421202": "Salaries - Gratuity (Provision)", "421204": "Salaries - employers cont. to PF", "421205": "Salaries - pension fund cont.", "421206": "Salaries - PF admin & inspection",
+    "421207": "Salaries - EDLI", "421208": "Salaries - SOSOC", "421209": "Benevolent Fund-Employer Share", "421210": "Employers cont. to group insurance",
+    "421211": "Insurance - Personal Accident", "421212": "Employer share to Death relief fund", "422101": "Canteen - Maf", "422102": "canteen Recovery -Maf",
+    "422103": "Employee Transportation -Maf", "422104": "Uniform & Shoes -Maf", "422105": "Refreshments -Maf", "422106": "Social function/festival exp -Maf",
+    "422107": "Gift to retiring employee Maf", "422108": "Medical Exp - Maf", "422201": "Canteen Expenses", "422202": "canteen Recovery",
+    "422203": "Uniforms & Shoes", "422204": "Employee Transportation", "422205": "Refreshments", "422206": "Pooja/social function exp",
+    "422207": "Gift to retiring employee", "422208": "Medical Exp", "422209": "Lab Welfare-charges", "423101": "Salary",
+    "423102": "Performance Bonus", "423103": "PF", "423106": "LTA", "423108": "Leave encashment",
+    "423109": "Medical Reimbursement", "423110": "Executive Director Salary", "423111": "Executive Director PF", "423112": "Executive Director LTA",
+    "423113": "Executive Director Leave encashment", "423114": "Executive Director Medical Reimb.", "424901": "Allocation of Corporate ERE(420011)", "424902": "Allocation of Branch ERE(420010)(424901)",
+    "424903": "Allocation of Corporate ERE(420011)(424902)", "424904": "Allocation of Branch ERE(420010)", "420129": "Wages- Overtime", "420231": "Salaries-DA",
+    "420232": "Salaries-V M R", "421213": "Salaries- ESI Contr", "421214": "OCI-Emp DBP (IND AS)",
+    "900101": "iut-in expenses", "432001": "TRAN CHARGES ON SALE", "432012": "SRE(SERVICE FREIGHT)", "432013": "SRE-FRGT REIMBURSED", "432701": "Transport charges on sales - Domestic", "432702": "Transport charges on sales - export",
+    "432703": "Clearing agent charges - Domestic", "432704": "Clearing agent charges - export", "432705": "Transport charges - Paid/recovered", "432706": "Service Tax paid on GTA", "432707": "Demurrage charges", "432708": "Courier charges -Domestic", "432709": "Courier charges -Export",
+    "454101": "Interest on working Capital Loan", "454102": "Interest on Bill discounting - Sales", "454103": "Interest on Bill discounting - Purchases", "454104": "Interest on Term Loan",
+    "454105": "Interest on Car Loan", "454106": "Interest on Finance Lease", "454107": "Interest on ICD", "454108": "Interest on cumulative FD", "454109": "Interest on non cumulative FD", "454110": "Interest on Business Deposit", "454111": "Interest on Trade Advance",
+    "454112": "Interest on Unsecured loan", "454113": "Interest on Buyer Credit", "454114": "Finance charges - Loan renewal/processing", "454115": "Brokerage and commission -ICD", "454116": "Brokerage and commission -FD",
+    "454117": "FinChg-RentDep(IN AS)", "454121": "Corporate Interest & Finance Exp Allocation","453101" : "LC  Charges (454015)", "453102" : "BG Charges(454017)" ,"453103" : "Bank charges (454016)" ,"453104" : "stamp papers purchased for LC/ BG",
+    "446003": " BANK GUARANTEE COMMI","446002": "  BANK CHARGES-OTHERS-42900","446001": " L/C OPENING CHARGES","446004": " BANK CHARGES-LC OPEN",
+    "454001": " INT PAID ON SECURED" ,"454002": " INT PAID ON UNSECURE" ,"454003": " INT PAID ON BUSINESS" ,"454004": " INT PAID ON BILL DIS", "458001": "DEP-FACTORY BUILDING",
+    "458002": "DEP-NON-FACTORY BUIL", "458003": "DEP-PLANT & MACHINER", "458004": "DEP-TECHNICAL KNOWHO", "458005": "DEP-FURNITURE & EQUI", "458006": "DEP-MOTOR VEHICLES",
+    "458007": "DEP-TOOLS DIES JIGS", "458009": "DEP ON LEASED ASSET.", "458010": "DEP ON SOFTWARE", "458011": "DEP ON ELEC INST", "458012": "DEP ON BRN & CORP(AL)", "458013": "DEP-OFFICE EQUIPMENT", "458014": "DEPR-RETAINED EARN", "457101": "Amortization", "458008": "DEPRECIATION ON LEASED ASSET-(458009)",
+     "430001": "RENT PAID", "420014": "RETAINER CHARGES", "420015": "Contract Lab Charges", "430002": "LEASE RENTALS-MACHIN",
+    "430003": "LEASE RENTALS-OTHERS", "430004": "BRANCH ORE(ALLOCATED", "430005": "CORP ORE(ALLOCATED", "431001": "OFFICE MAINTENANCE",
+    "431002": "REPAIRS-BUILDING", "431003": "REPAIRS-PLANT & MACH", "431004": "REPAIRS-OTHERS", "431005": "REPAIRS & MAINTENANC",
+    "431008": "TESTING CHARGES", "431009": "MAINTENANCE CHGS", "432002": "OCTROI DUTY ON SALES", "432004": "SUNDRY SALES EXP",
+    "432005": "ENTRY TAX ON SALES", "432006": "TURNOVER DIS ALLOWED", "432007": "LIQUIDATED DAMAGES I", "432008": "SALES SER-REP&REW CH",
+    "432009": "SERVICE DIS ALLOWED", "432010": "WARRRANTY CLAIMS", "432011": "SRE(SERVICE INSU.)", "432018": "SRE-BASIC DISCOUNT",
+    "433001": "COMM PAID ON SALES", "434001": "CASH DISCOUNT ALLOWE", "435001": "ADDITIONAL SALES TAX", "436001": "VEHICLE MAINTENANCE",
+    "437001": "INS-FIRE", "437002": "INS-MARINE", "437004": "INS-MOTOR VEHICLES", "437005": "INS-PERSONAL ACCIDEN",
+    "437006": "INS-OVERSEAS MEDICAL", "437007": "INS-OTHERS", "438001": "RATES & TAXES", "438003": "PROFESSIONAL TAX PAI",
+    "438005": "SER TAX PAID ON GTA/", "439002": "ADVERTISEMENTS (INDI", "439003": "ADVERTISEMENTS (ABRO", "439005": "ADVTS - ADM & OTH",
+    "439102": "small balance wrtoff", "440001": "PRINTING & STATIONER", "440002": "COMP HARDWARE MANT", "440003": "COMP SOFTWARE MANT",
+    "441005": "MD TRAVEL-OVERSEAS", "441002": "STAFF TRAVEL-LOCAL", "441003": "TRAVELLING RISK INSU", "441004": "MD TRAVEL-DOMESTIC",
+    "441006": "STAFF TRAVEL-DOMESTI", "441007": "STAFF TRAVEL-OVERSEA", "441009": "ENTERTAINMENT EXPENS", "441010": "TRAVEL FARE",
+    "441011": "TRAVEL EXPENSE FOR S", "441012": "AUDITORS-TRAVEL", "441013": "MD TRAVEL-IN FOREX", "441014": "TRVL EXP - OTHERS",
+    "441015": "STAFF TRAVEL-FARE", "441016": "ENTERTAINMENT EXP(GI", "441017": "CONVEYANCE EXPENSES", "441018": "CLUB EXPENSES",
+    "441019": "DIRECTORS' TRAVEL-IN", "441020": "DIRECTORS' TRAVEL-FO", "441022": "TRAL REIMB OF EMP VE", "441023": "STAFF TRAVEL IN FORE",
+    "442001": "POSTAGE & TELEGRAMS", "442002": "TELEPHONE CHARGES", "442003": "MOBILE CHARGES", "443001": "AUDITORS' REMUNERATI",
+    "443002": "INTERNAL AUDIT FEE", "444001": "SECURITY CHARGES", "444002": "TECH CONS&PROF CHARG", "444004": "BROKERAGE & COMMISSI",
+    "444005": "BROKERAGE ON FD", "445001": "A/CING MACHINERY HIR", "446009": "SML BAL WRITEEN OFF", "447001": "NEWSPAPERS & MAGAZIN",
+    "448002": "WATER CHARGES", "448003": "GENERAL EXPENSES", "448005": "FACTORY PWR&LIGHT", "448006": "POWER & FUEL-HSD",
+    "448007": "Vehicle Expence-Dies", "450001": "PRIOR YEAR EXP", "456001": "EXCISE DUTY PAID/LOS", "454008": "PENAL INT&PENALTY DE",
+    "446005": "FOREIGN CURR REVAL-L", "446006": "EXP FROM CURR VAL-LO", "446008": "TRANS DIFF-FOREIGN C", "446007": "ROUNDING DIFF-FOREIG",
+    "720002": "FOREN-CURR-REV-GAIN", "720003": "FOREN-CURR-TRAN-GAIN", "449003": "PROV.FOR CONTINGENCY", "448008": "Contract labour Char",
+    "448009": "FIXED ASSETS VERIFIC", "457003": "DOUBTFUL ADVANCES", "452001": "DIRECTORS' SITTING F", "454020": "LOSS ON FWD-CONTRACT",
+    "454021": "PREM/DISC-FWD CONT", "718001": "INTERNAL CAPITALIZAT", "451001": "Donation", "426101": "Traning Programme- Course fee",
+    "426102": "Training Programme- Consultant bill", "426103": "Training Programme- Travel/hotel exp", "426201": "Recruitment Exp -Head Hunter",
+    "426202": "Recruitment Exp- Travel/hotel exp", "426104": "Traning Programme- Course fee", "426105": "Training Programme- Consultant bill",
+    "426106": "Training Programme- Travel/hotel exp", "426203": "Recruitment Exp-Head Hunter", "426204": "Recruitment Exp- Travel/hotel exp",
+    "427101": "Factory power & Lighting", "427102": "HSD & Diesel", "427201": "Factory power & Lighting", "427202": "HSD & Diesel",
+    "428101": "Contract labour charges", "428102": "Security charges", "428103": "Testing Charges", "428104": "ISO citification charges",
+    "428105": "Water", "428106": "R & D expenses", "428107": "Royalty", "428108": "Patent charges",
+    "430101": "Rent of manufacturing premises", "430102": "Maintenance charges paid for building", "430201": "Rent - Branch/sales office",
+    "430202": "Rent - godown /warehouse", "430301": "Xerox machine", "430401": "Plant & machinery", "430402": "testing equipments",
+    "430403": "Tools", "430501": "office equipments", "430502": "CAR", "431101": "Repair & Maintenance - Land & Building",
+    "431201": "Repair & Maintenance - Plant & Equipment", "431301": "Repair & Maintenance - Tools & Jigs", "431401": "Repair & Maintenance - Motor Vehicles",
+    "431501": "Repair & Maintenance - Office Equipments", "431601": "Repair & Maintenance -Furniture & Fittings", "431701": "office Maintenance",
+    "432101": "Sundry sales expenses", "432102": "Sales promotion material", "432103": "Marketing consultancy", "432201": "Exhibition Expenses",
+    "432301": "Conference expenses", "432401": "Warranty Expense", "432402": "Service & Rewinding charges", "432403": "Warranty - Provision",
+    "432404": "Sev&Rewind-Transit D", "432405": "Sev&Rewind-Transport", "432501": "Inspection charges", "432502": "Testing Charges",
+    "432504": "follow-up cost/commissing charges", "432601": "Liquidated damages", "432602": "Royalty - sales", "432604": "Turnover Discount",
+    "432801": "Advertisement -Marketing", "432802": "Advertisement -Admin", "432803": "AGM Expenses", "433101": "Commission",
+    "434101": "Cash Discount", "435101": "Excise duty - paid /Loss", "435102": "Entry Tax - Sales", "435103": "Octrai",
+    "435104": "Sales Tax /VAT -additional demand", "436101": "Vehicle maintenance", "437101": "Insurance - Fire",
+    "437102": "Insurance - Marine (Incoming)", "437201": "Insurance (office property)", "437202": "Insurance - Marine (Outgoing)",
+    "437203": "Insurance - Motor Vehicle", "437204": "Insurance - Overseas policy", "437205": "Insurance - Others",
+    "437206": "insurance - Receivables", "438101": "Rates & Taxes -Property/Municipal", "438102": "Rates & Taxes -ROC/fee",
+    "438103": "Rates & Tax - factory safety licence", "438106": "public fee", "438107": "disposal of waste",
+    "438108": "Rates & taxes other", "438109": "Interest and penalty delayed statutory", "439101": "Water", "439103": "Security Charges",
+    "440101": "Printing & stationery -Others", "440102": "Printing -Annual Accounts", "440103": "Printing -Calendar/dairy",
+    "440104": "Printing & Stationery -consumables", "441101": "Executive Directors Travel - Dom", "441102": "Executive Directors Travel - For",
+    "441103": "Executive Directors Travel - Forex bought", "441104": "Staff Travel- Domestic", "441105": "Staff Travel- foreign",
+    "441106": "Staff Travel- Forex bought", "441107": "Non executive Directors - Travel - Dom", "441108": "Non executive Directors - Travel -For",
+    "441109": "Non executive Directors - Forex bought", "441110": "Non Staff Travel- Domestic", "441111": "Non Staff Travel- foreign",
+    "441112": "Non Staff Travel- Forex bought", "441113": "Local Conveyance - Reimbursed", "441114": "Taxi/Cab charges - direct",
+    "441115": "Hotel Exp- Travel Employees", "441116": "Hotel Exp- Non Travel Employee", "441117": "Hotel Exp -Travel Exec Directors",
+    "441118": "Hotel Exp- Non- Travel Exec Directors", "441119": "Hotel Exp -Travel Non Exec Directors", "441120": "Hotel Exp -Non Travel Non Exec Directors",
+    "441121": "Hotel Exp- Non -Employees", "441122": "Entertainment expenses - Exec Directors", "441123": "Entertainment expenses - others",
+    "442101": "Telephone charges -Land lines", "442102": "Telephone Charges -Mobile", "442103": "Telephone Charges - Matrix card",
+    "442104": "Postal charges - Regular", "442105": "Postal charges - AGM/EGM", "442201": "Domestic courier charges",
+    "442202": "International courier charges", "443101": "Audit fee - Statutory Auditors", "443102": "Audit fee - foreign Branch",
+    "443103": "Auditors out of pocket expenses", "444101": "Technical & Prof. Exp - Maf/Design", "444102": "Technical & Prof. Exp. - Testing",
+    "444103": "Technical & Prof Exp. - Labour matters", "444104": "Technical & Prof Exp - Certifications", "444201": "Technical and Prof Exp - Legal",
+    "444202": "Technical and Prof. Exp.- Tax matter", "444203": "Technical and Prof Exp. - Retainers", "444204": "Technical and Prof Exp- Internal Audit",
+    "444205": "Technical and Prof Exp - Cost Audit", "444206": "Technical and Prof. Exp - Secretarial", "444207": "Technical/Finance/Restructu/Valu..",
+    "444208": "Technical and Prof Exp - Others", "445101": "EDP Software Exp - Consultant", "445102": "EDP Software Exp - Retainers",
+    "445103": "EDP Software Exp - AMC", "445104": "EDP Software Exp - Training", "445105": "EDP Software Exp - Licences/antivirus",
+    "445106": "EDP Software Exp- Modifications", "445107": "EDP Software Exp - Lease Rental", "445201": "EDP Hardware- Consultation",
+    "445202": "EDP-Hardware - AMC", "445203": "EDP Hardware- Cartridges/Consumables", "445204": "EDP Hardware- lease rentals",
+    "445301": "Internet and Broad band Charges", "445302": "Data Card /matrix card", "446101": "forex translation loss",
+    "446102": "Forex - Loss on settlement", "446103": "Market to market loss", "447101": "Subscriptions to Club - membership",
+    "447200": "Subscription to trade association", "448101": "SUBSCRIPTIONS-NEWSPAPERS", "449001": "BAD DEBTS WRITTEN OF",
+    "449101": "Bad debts written off", "450101": "Prior period expenditure", "451101": "Donation",
+    "451102": "CSR Expenses", "452101": "Director setting fee", "454118": "Exchange loss/gain EFFC account",
+    "455101": "Loss on Derivative /Hedging loss", "456101": "Provision for Doubtful trade advances", "456102": "Provision for Doubtful loan advances",
+    "456103": "Provision for Doubtful debts", "456104": "Prov.Asset held-PL", "456105": "PROV FOR LD-AS-29-PL",
+    "456106": "PROV REC-SUB-IND AS", "459002": "Clearing revenue assets sales-Building(Cr)", "459003": "Clearing revenue assets sales-Building(Dr)",
+    "460001": "DIMINUTION IN VALUE OF INVST.EXP-", "461001": "DEPOSITS WRITTEN OFF-", "430203": "Rent - Paid","420000": "SALARIES A/c","420001":"Professional Members", "420002":"LTC", "420003": "Mediclaim", "420004": "Medical Expences", "420005": "LABOUR WELFARE EXPEN",
+ "420006": "INCENTIVE", "420007": "PSB", "420008": "NOTICE PAY", "420009":"WAGES", "420010":"BRANCH ERE(ALLOCATED", "420011":"CORP ERE(ALLOCATED",
+ "420012": "LEAVE ENCASHMENT(UNI)", "420013":"LEAVE ENCASHMENT(STA)", "420016":"RECRUITMENT EXPENSES", "431006":"CANTEEN EXPENSES", "441001":"TRANSIT-GUEST HOUSE",
+ "713001": "INCOME FROM TRADE INVESTMENT", "714001": "RENT RECIEPTS", "715001": "MISC.RECEIPTS", "715003": "Insurance Recovered", "715004": "Unclaimed Balances", "453001":"REMUNERATION TO M.D&",
+ "715005": "Provn nolonger reqd", "717001": "PROFIT ON SALE OF ASSET", "719001": "Duty Draw Back","720009": "Exceptional Income", "720006": "Extraordinary Income", "715006": "Corp Income-Allocn","459001":"LOSS ON SALE OF ASSETS",
+ "441008":"OFFICERS MESS", "441021":"TRAINING PROGRAME EX","457002":"AMORTIZATION OF VRS", "425901": "Corporate ORE Allocation (430005)","425902": "Branch ORE Allocation (430004)","425903": "Corporate ORE Allocation (425901)","425904": "Branch ORE Allocation (425902)",
+  "711001" : "INT REC ON S-TERM DE", "712001" : "INTEREST RECEIVED OT", "712002" : "INT RECD ON VEHICLE",
+        });
+
+        const currencyFormatter = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        function formatCellValue(val) {
+            if (val === 0 || val === null || val === undefined || isNaN(val)) return '0.00';
+            if (val < 0) return `(${currencyFormatter.format(Math.abs(val))})`;
+            return currencyFormatter.format(val);
+        }
+
+        function toggleRowAccordion(rowPrefix) {
+            const containerRow = document.getElementById(`${rowPrefix}-dropdown-container`);
+            const arrow = document.getElementById(`${rowPrefix}-arrow`);
+            if (!containerRow || !arrow) return;
+
+            const isOpening = containerRow.style.display === 'none';
+            document.querySelectorAll('.dropdown-container-row').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.row-arrow').forEach(el => el.style.transform = 'rotate(0deg)');
+            chronologicalMonths.forEach(m => {
+                document.querySelectorAll(`[class^="child-of-"]`).forEach(child => child.style.display = 'none');
+            });
+
+            containerRow.style.display = isOpening ? 'table-row' : 'none';
+            arrow.style.transform = isOpening ? 'rotate(90deg)' : 'rotate(0deg)';
+
+            const children = document.querySelectorAll(`.child-of-${rowPrefix}-dropdown-container`);
+            children.forEach(child => {
+                child.style.display = isOpening ? 'table-row' : 'none';
+            });
+        }
+
+        function buildTrendSubTableRows(containerRowId, breakdownAccounts) {
+            const containerRow = document.getElementById(containerRowId);
+            if (!containerRow) return;
+
+            let nextEl = containerRow.nextElementSibling;
+            while (nextEl && nextEl.classList.contains(`child-of-${containerRowId}`)) {
+                const toRemove = nextEl;
+                nextEl = nextEl.nextElementSibling;
+                toRemove.remove();
+            }
+
+            if (!breakdownAccounts || Object.keys(breakdownAccounts).length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.className = `child-of-${containerRowId}`;
+                emptyRow.style.display = containerRow.style.display;
+                emptyRow.innerHTML = `
+                    <td class="sticky-col text-left indent" style="position: sticky; left: 0; color:var(--text-2); background-color: var(--bg-1); font-style:italic; font-size:12px; padding-left:25px;">No account breakdown details found.</td>
+                    <td colspan="17" style="text-align: right; padding-left: 20px; color: var(--text-2); font-style: italic;">-</td>
+                `;
+                containerRow.parentNode.insertBefore(emptyRow, containerRow.nextSibling);
+                return;
+            }
+
+            const accountNumbers = Object.keys(breakdownAccounts).reverse();
+            accountNumbers.forEach(acctNum => {
+                const tr = document.createElement('tr');
+                tr.className = `child-of-${containerRowId}`;
+                tr.style.background = "var(--bg-1)";
+                tr.style.display = containerRow.style.display;
+
+                const description = masterAccountDescriptions[acctNum] || "Sub-Ledger Position Entry";
+
+                let rowHtml = `<td class="sticky-col text-left indent" style="position: sticky; left: 0; color:var(--text-1); background-color: var(--bg-1); font-size:12px; padding-left:25px; overflow-wrap:break-word; white-space:normal; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line-soft);">
+                                ${acctNum} - ${description}
+                            </td>`;
+
+                const monthlyMap = breakdownAccounts[acctNum];
+                let qSums = { q1: 0, q2: 0, q3: 0, q4: 0 };
+
+                chronologicalMonths.forEach((m, idx) => {
+                    let cellVal = parseFloat(monthlyMap[m] || 0.0);
+                    if (containerRowId.includes('sales') || containerRowId.includes('income') || containerRowId.includes('out')) {
+                        cellVal = Math.abs(cellVal);
+                    }
+
+                    const mKey = m.toLowerCase();
+                    if (["april", "may", "june"].includes(mKey)) qSums.q1 += cellVal;
+                    else if (["july", "august", "september"].includes(mKey)) qSums.q2 += cellVal;
+                    else if (["october", "november", "december"].includes(mKey)) qSums.q3 += cellVal;
+                    else qSums.q4 += cellVal;
+
+                    rowHtml += `<td style="text-align: right; font-size:12px; padding: 5px 10px; border-bottom:1px solid var(--line-soft); border-right: 1px solid var(--line-soft); color: var(--text-1);">${formatCellValue(cellVal)}</td>`;
+
+                    if (idx === 2) rowHtml += `<td style="text-align: right; font-size:12px; font-weight: bold; background: var(--bg-2); padding: 5px 10px; border-bottom:1px solid var(--line-soft); border-right: 1px solid var(--line); color: var(--text-0);">${formatCellValue(qSums.q1)}</td>`;
+                    if (idx === 5) rowHtml += `<td style="text-align: right; font-size:12px; font-weight: bold; background: var(--bg-2); padding: 5px 10px; border-bottom:1px solid var(--line-soft); border-right: 1px solid var(--line); color: var(--text-0);">${formatCellValue(qSums.q2)}</td>`;
+                    if (idx === 8) rowHtml += `<td style="text-align: right; font-size:12px; font-weight: bold; background: var(--bg-2); padding: 5px 10px; border-bottom:1px solid var(--line-soft); border-right: 1px solid var(--line); color: var(--text-0);">${formatCellValue(qSums.q3)}</td>`;
+                    if (idx === 11) rowHtml += `<td style="text-align: right; font-size:12px; font-weight: bold; background: var(--bg-2); padding: 5px 10px; border-bottom:1px solid var(--line-soft); border-right: 1px solid var(--line); color: var(--text-0);">${formatCellValue(qSums.q4)}</td>`;
+                });
+
+                let finalRowGt = parseFloat(monthlyMap['GRAND TOTAL'] || 0.0);
+                if (containerRowId.includes('sales') || containerRowId.includes('income') || containerRowId.includes('out')) {
+                    finalRowGt = Math.abs(finalRowGt);
+                }
+                rowHtml += `<td style="text-align: right; font-weight: bold; background: var(--bg-3); padding: 5px 10px; border-bottom:1px solid var(--line-soft); border-right: 1px solid var(--line); color: var(--copper-bright);">${formatCellValue(finalRowGt)}</td>`;
+
+                tr.innerHTML = rowHtml;
+                containerRow.parentNode.insertBefore(tr, containerRow.nextSibling);
+            });
+        }
+
+        function initializeStateMetrics() {
+            Object.keys(unitMonthlyState).forEach(key => {
+                unitMonthlyState[key].totals = {};
+                unitMonthlyState[key].breakdown = {};
+                chronologicalMonths.forEach(m => { unitMonthlyState[key].totals[m] = 0.0; });
+                unitMonthlyState[key].totals['GRAND TOTAL'] = 0.0;
+            });
+        }
+
+        async function fetchMetricData(endpoint, stateTarget, queryParams) {
+            try {
+                const response = await fetch(`${endpoint}?${queryParams}`);
+                const data = await response.json();
+                if (data && !data.error) {
+                    unitMonthlyState[stateTarget].totals = data.monthly_totals || {};
+                    unitMonthlyState[stateTarget].breakdown = data.dropdown_accounts || {};
+                }
+            } catch (err) {
+                console.error(`Pipeline failure fetching metric context [${stateTarget}]:`, err);
+            }
+        }
+
+        function updateMasterRowCells(idPrefix, totalsMap) {
+            let qSums = { q1: 0, q2: 0, q3: 0, q4: 0 };
+            chronologicalMonths.forEach(m => {
+                const cellId = `cell-${idPrefix}-${m.toLowerCase()}`;
+                const cellEl = document.getElementById(cellId);
+                let val = parseFloat(totalsMap[m] || 0.0);
+                if (['ns', 'ss', 'oi', 'io'].includes(idPrefix)) { val = Math.abs(val); }
+
+                if (cellEl) cellEl.textContent = formatCellValue(val);
+
+                const mKey = m.toLowerCase();
+                if (["april", "may", "june"].includes(mKey)) qSums.q1 += val;
+                else if (["july", "august", "september"].includes(mKey)) qSums.q2 += val;
+                else if (["october", "november", "december"].includes(mKey)) qSums.q3 += val;
+                else qSums.q4 += val;
+            });
+
+            ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+                const qEl = document.getElementById(`cell-${idPrefix}-${q}`);
+                if (qEl) qEl.textContent = formatCellValue(qSums[q]);
+            });
+
+            const grandTotalEl = document.getElementById(`cell-${idPrefix}-grand-total`);
+            if (grandTotalEl) {
+                let gtVal = parseFloat(totalsMap['GRAND TOTAL'] || 0.0);
+                if (['ns', 'ss', 'oi', 'io'].includes(idPrefix)) gtVal = Math.abs(gtVal);
+                grandTotalEl.textContent = formatCellValue(gtVal);
+            }
+        }
+
+        function calculateOperationalTrends() {
+            let grandTotalIncome = 0.0;
+            let grandTotalExpenditure = 0.0;
+            let grandTotalGrossProfit = 0.0;
+            let grandTotalmonthEbidta = 0.0;
+            let grandTotalPBT = 0.0;
+            let grandTotalAllocationD = 0.0;
+            let grandTotalEBIDTAAfter = 0.0;
+            let grandTotalPBTAfter = 0.0;
+
+            let totalRmc = 0.0, totalNetSales = 0.0, totalScrapSales = 0.0;
+            let totalEe = 0.0, totalRe = 0.0, totalTc = 0.0, totalFc = 0.0, totalDep = 0.0, totalIutOut = 0.0;
+
+            let qData = {
+                q1: { ns:0, ss:0, oi:0, io:0, rm:0, ee:0, ii:0, tc:0, fc:0, dep:0, re:0, erea:0, orea:0, inta:0, depa:0 },
+                q2: { ns:0, ss:0, oi:0, io:0, rm:0, ee:0, ii:0, tc:0, fc:0, dep:0, re:0, erea:0, orea:0, inta:0, depa:0 },
+                q3: { ns:0, ss:0, oi:0, io:0, rm:0, ee:0, ii:0, tc:0, fc:0, dep:0, re:0, erea:0, orea:0, inta:0, depa:0 },
+                q4: { ns:0, ss:0, oi:0, io:0, rm:0, ee:0, ii:0, tc:0, fc:0, dep:0, re:0, erea:0, orea:0, inta:0, depa:0 }
+            };
+
+            chronologicalMonths.forEach(m => {
+                const mKey = m.toLowerCase();
+                let q = ["april", "may", "june"].includes(mKey) ? "q1" :
+                        ["july", "august", "september"].includes(mKey) ? "q2" :
+                        ["october", "november", "december"].includes(mKey) ? "q3" : "q4";
+
+                const ns = Math.abs(parseFloat(unitMonthlyState.netSales.totals[m] || 0.0));
+                const ss = Math.abs(parseFloat(unitMonthlyState.scrapSales.totals[m] || 0.0));
+                const oi = Math.abs(parseFloat(unitMonthlyState.otherIncome.totals[m] || 0.0));
+                const io = Math.abs(parseFloat(unitMonthlyState.iutOut.totals[m] || 0.0));
+                const rm = parseFloat(unitMonthlyState.rmConsumption.totals[m] || 0.0);
+                const ee = parseFloat(unitMonthlyState.employeeExpenses.totals[m] || 0.0);
+                const ii = parseFloat(unitMonthlyState.iutIn.totals[m] || 0.0);
+                const tc = parseFloat(unitMonthlyState.transportCharges.totals[m] || 0.0);
+                const fc = parseFloat(unitMonthlyState.financeCharges.totals[m] || 0.0);
+                const dep = parseFloat(unitMonthlyState.depreciation.totals[m] || 0.0);
+                const re = parseFloat(unitMonthlyState.revenueExpenses.totals[m] || 0.0);
+                const erea = parseFloat(unitMonthlyState.ereAllocation.totals[m] || 0.0);
+                const orea = parseFloat(unitMonthlyState.oreAllocation.totals[m] || 0.0);
+                const inta = parseFloat(unitMonthlyState.interestAllocation.totals[m] || 0.0);
+                const depa = parseFloat(unitMonthlyState.depreciationAllocation.totals[m] || 0.0);
+
+                qData[q].ns += ns; qData[q].ss += ss; qData[q].oi += oi; qData[q].io += io;
+                qData[q].rm += rm; qData[q].ee += ee; qData[q].ii += ii; qData[q].tc += tc;
+                qData[q].fc += fc; qData[q].dep += dep; qData[q].re += re; qData[q].erea += erea;
+                qData[q].orea += orea; qData[q].inta += inta; qData[q].depa += depa;
+
+                const totalMonthIncome = ns + ss + oi + io;
+                grandTotalIncome += totalMonthIncome;
+                document.getElementById(`cell-total-${mKey}`).textContent = formatCellValue(totalMonthIncome);
+
+                const totalMonthExpenditure = rm + ee + ii + tc + fc + dep + re;
+                grandTotalExpenditure += totalMonthExpenditure;
+                document.getElementById(`cell-exp-${mKey}`).textContent = formatCellValue(totalMonthExpenditure);
+
+                const monthGrossProfit = (ns + ss + io) - (rm + ii);
+                grandTotalGrossProfit += monthGrossProfit;
+                document.getElementById(`cell-gp-${mKey}`).textContent = formatCellValue(monthGrossProfit);
+
+                const monthPBT = totalMonthIncome - totalMonthExpenditure;
+                grandTotalPBT += monthPBT;
+                document.getElementById(`cell-pbt-${mKey}`).textContent = formatCellValue(monthPBT);
+
+                const monthEbidta = monthPBT + dep + fc - oi;
+                grandTotalmonthEbidta += monthEbidta;
+                document.getElementById(`cell-eb-${mKey}`).textContent = formatCellValue(monthEbidta);
+
+                const monthAllocationD = erea + orea + inta + depa;
+                grandTotalAllocationD += monthAllocationD;
+                document.getElementById(`cell-allocd-${mKey}`).textContent = formatCellValue(monthAllocationD);
+
+                const monthPBTAfter = monthPBT - monthAllocationD;
+                grandTotalPBTAfter += monthPBTAfter;
+                document.getElementById(`cell-pbta-${mKey}`).textContent = formatCellValue(monthPBTAfter);
+
+                const monthEBIDTAAfter = monthPBTAfter + inta + depa + fc + dep - oi;
+                grandTotalEBIDTAAfter += monthEBIDTAAfter;
+                document.getElementById(`cell-ebidtaa-${mKey}`).textContent = formatCellValue(monthEBIDTAAfter);
+
+                const selectedCompany = document.getElementById("unit_select").value;
+                const forceZero = (selectedCompany === "CFD CORP" || selectedCompany === "Bran O_S");
+                const denom40_41 = ns + ss;
+                const denom44 = ns + io;
+
+                document.getElementById(`cell-pct-rm-${mKey}`).textContent =
+                    (!forceZero && denom40_41 !== 0) ? (((rm + ii - io) / denom40_41) * 100).toFixed(2) + "%" : "-";
+
+                document.getElementById(`cell-pct-rmf-${mKey}`).textContent =
+                    (!forceZero && denom40_41 !== 0) ? (((rm + ii - io + tc) / denom40_41) * 100).toFixed(2) + "%" : "-";
+
+                document.getElementById(`cell-pct-ee-${mKey}`).textContent =
+                    (!forceZero && totalMonthIncome !== 0) ? ((ee / totalMonthIncome) * 100).toFixed(2) + "%" : "-";
+
+                document.getElementById(`cell-pct-re-${mKey}`).textContent =
+                    (!forceZero && totalMonthIncome !== 0) ? ((re / totalMonthIncome) * 100).toFixed(2) + "%" : "-";
+
+                document.getElementById(`cell-pct-tc-${mKey}`).textContent =
+                    (!forceZero && denom44 !== 0) ? ((tc / denom44) * 100).toFixed(2) + "%" : "-";
+
+                document.getElementById(`cell-pct-fc-${mKey}`).textContent =
+                    (!forceZero && totalMonthIncome !== 0) ? ((fc / totalMonthIncome) * 100).toFixed(2) + "%" : "-";
+
+                document.getElementById(`cell-pct-dep-${mKey}`).textContent =
+                    (!forceZero && totalMonthIncome !== 0) ? ((dep / totalMonthIncome) * 100).toFixed(2) + "%" : "-";
+
+                if (!forceZero && totalMonthIncome !== 0) {
+                    const pbtPct = (monthPBT / totalMonthIncome) * 100;
+                    document.getElementById(`cell-pct-pbt-${mKey}`).textContent = pbtPct < 0 ? `(${Math.abs(pbtPct).toFixed(2)}%)` : pbtPct.toFixed(2) + "%";
+                } else {
+                    document.getElementById(`cell-pct-pbt-${mKey}`).textContent = "-";
+                }
+
+                totalRmc += rm; totalNetSales += ns; totalScrapSales += ss; totalEe += ee;
+                totalRe += re; totalTc += tc; totalFc += fc; totalDep += dep; totalIutOut += io;
+            });
+
+            ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+                const d = qData[q];
+                const qTotalIncome = d.ns + d.ss + d.oi + d.io;
+                document.getElementById(`cell-total-${q}`).textContent = formatCellValue(qTotalIncome);
+
+                const qTotalExp = d.rm + d.ee + d.ii + d.tc + d.fc + d.dep + d.re;
+                document.getElementById(`cell-exp-${q}`).textContent = formatCellValue(qTotalExp);
+
+                const qGP = (d.ns + d.ss + d.io) - (d.rm + d.ii);
+                document.getElementById(`cell-gp-${q}`).textContent = formatCellValue(qGP);
+
+                const qPBT = qTotalIncome - qTotalExp;
+                document.getElementById(`cell-pbt-${q}`).textContent = formatCellValue(qPBT);
+
+                const qEbidta = qPBT + d.dep + d.fc - d.oi;
+                document.getElementById(`cell-eb-${q}`).textContent = formatCellValue(qEbidta);
+
+                const qAllocD = d.erea + d.orea + d.inta + d.depa;
+                document.getElementById(`cell-allocd-${q}`).textContent = formatCellValue(qAllocD);
+
+                const qPBTA = qPBT - qAllocD;
+                document.getElementById(`cell-pbta-${q}`).textContent = formatCellValue(qPBTA);
+
+                const qEbidtaA = qPBTA + d.inta + d.depa + d.fc + d.dep - d.oi;
+                document.getElementById(`cell-ebidtaa-${q}`).textContent = formatCellValue(qEbidtaA);
+
+                const selectedCompany = document.getElementById("unit_select").value;
+                const forceZero = (selectedCompany === "CFD CORP" || selectedCompany === "Bran O_S");
+                const denom40_41 = d.ns + d.ss;
+                const denom44 = d.ns + d.io;
+                document.getElementById(`cell-pct-rm-${q}`).textContent =
+                (!forceZero && denom40_41 !== 0) ? (((d.rm) / denom40_41) * 100).toFixed(2) + "%" : "-";
+
+                document.getElementById(`cell-pct-rmf-${q}`).textContent =
+                (!forceZero && denom40_41 !== 0) ? (((d.rm + d.tc) / denom40_41) * 100).toFixed(2) + "%" : "-";
+
+            document.getElementById(`cell-pct-ee-${q}`).textContent =
+                (!forceZero && qTotalIncome !== 0) ? ((d.ee / qTotalIncome) * 100).toFixed(2) + "%" : "-";
+
+            document.getElementById(`cell-pct-re-${q}`).textContent =
+                (!forceZero && qTotalIncome !== 0) ? ((d.re / qTotalIncome) * 100).toFixed(2) + "%" : "-";
+
+            document.getElementById(`cell-pct-tc-${q}`).textContent =
+                (!forceZero && denom44 !== 0) ? ((d.tc / denom44) * 100).toFixed(2) + "%" : "-";
+
+            document.getElementById(`cell-pct-fc-${q}`).textContent =
+                (!forceZero && qTotalIncome !== 0) ? ((d.fc / qTotalIncome) * 100).toFixed(2) + "%" : "-";
+
+            document.getElementById(`cell-pct-dep-${q}`).textContent =
+                (!forceZero && qTotalIncome !== 0) ? ((d.dep / qTotalIncome) * 100).toFixed(2) + "%" : "-";
+
+            if (!forceZero && qTotalIncome !== 0) {
+                const pbtPct = (qPBT / qTotalIncome) * 100;
+                document.getElementById(`cell-pct-pbt-${q}`).textContent = pbtPct < 0 ? `(${Math.abs(pbtPct).toFixed(2)}%)` : pbtPct.toFixed(2) + "%";
+            } else {
+                document.getElementById(`cell-pct-pbt-${q}`).textContent = "-";
+            }
+                        });
+
+            document.getElementById('cell-total-grand-total').textContent = formatCellValue(grandTotalIncome);
+            document.getElementById('cell-exp-grand-total').textContent = formatCellValue(grandTotalExpenditure);
+            document.getElementById('cell-gp-grand-total').textContent = formatCellValue(grandTotalGrossProfit);
+            document.getElementById('cell-pbt-grand-total').textContent = formatCellValue(grandTotalPBT);
+            document.getElementById('cell-eb-grand-total').textContent = formatCellValue(grandTotalmonthEbidta);
+            document.getElementById('cell-allocd-grand-total').textContent = formatCellValue(grandTotalAllocationD);
+            document.getElementById('cell-ebidtaa-grand-total').textContent = formatCellValue(grandTotalEBIDTAAfter);
+            document.getElementById('cell-pbta-grand-total').textContent = formatCellValue(grandTotalPBTAfter);
+
+            const selectedCompany = document.getElementById("unit_select").value;
+            const forceZero = (selectedCompany === "CFD CORP" || selectedCompany === "Bran O_S");
+
+            const gtDenom40_41 = totalNetSales + totalScrapSales;
+            const gtDenom44 = totalNetSales + totalIutOut;
+
+            document.getElementById('cell-pct-rm-grand-total').textContent =
+                (!forceZero && gtDenom40_41 !== 0) ? ((totalRmc / gtDenom40_41) * 100).toFixed(2) + "%" : "0.00%";
+
+            document.getElementById('cell-pct-rmf-grand-total').textContent =
+                (!forceZero && gtDenom40_41 !== 0) ? (((totalRmc + totalTc) / gtDenom40_41) * 100).toFixed(2) + "%" : "0.00%";
+
+            document.getElementById('cell-pct-ee-grand-total').textContent =
+                (!forceZero && grandTotalIncome !== 0) ? ((totalEe / grandTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+
+            document.getElementById('cell-pct-re-grand-total').textContent =
+                (!forceZero && grandTotalIncome !== 0) ? ((totalRe / grandTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+
+            document.getElementById('cell-pct-tc-grand-total').textContent =
+                (!forceZero && gtDenom44 !== 0) ? ((totalTc / gtDenom44) * 100).toFixed(2) + "%" : "0.00%";
+
+            document.getElementById('cell-pct-fc-grand-total').textContent =
+                (!forceZero && grandTotalIncome !== 0) ? ((totalFc / grandTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+
+            document.getElementById('cell-pct-dep-grand-total').textContent =
+                (!forceZero && grandTotalIncome !== 0) ? ((totalDep / grandTotalIncome) * 100).toFixed(2) + "%" : "0.00%";
+
+            if (!forceZero && grandTotalIncome !== 0) {
+                const gtPbtPct = (grandTotalPBT / grandTotalIncome) * 100;
+                document.getElementById('cell-pct-pbt-grand-total').textContent = gtPbtPct < 0 ? `(${Math.abs(gtPbtPct).toFixed(2)}%)` : gtPbtPct.toFixed(2) + "%";
+            } else {
+                document.getElementById('cell-pct-pbt-grand-total').textContent = "0.00%";
+            }
+        }
+
+        async function refreshUnitMonthlyReport() {
+            const yearSelect = document.getElementById('fin_year_select');
+            const unitSelect = document.getElementById('unit_select');
+            if (!yearSelect || !unitSelect) return;
+
+            const selectedYear = yearSelect.value;
+            const selectedUnit = unitSelect.value;
+            const queryParams = `fin_year=${encodeURIComponent(selectedYear)}&unit=${encodeURIComponent(selectedUnit)}`;
+
+            document.getElementById('loader-overlay').style.display = 'flex';
+            initializeStateMetrics();
+
+            await Promise.all([
+                fetchMetricData('/api/mis/unit-monthly-sales', 'netSales', queryParams),
+                fetchMetricData('/api/mis/unit-scrap-sales', 'scrapSales', queryParams),
+                fetchMetricData('/api/mis/other-income-monthly-sales', 'otherIncome', queryParams),
+                fetchMetricData('/api/mis/iut-out-monthly-sales', 'iutOut', queryParams),
+                fetchMetricData('/api/mis/rm-consp-monthly-sales', 'rmConsumption', queryParams),
+                fetchMetricData('/api/mis/employee-monthly-sales', 'employeeExpenses', queryParams),
+                fetchMetricData('/api/mis/iut-in-monthly-sales', 'iutIn', queryParams),
+                fetchMetricData('/api/mis/transport-monthly-sales', 'transportCharges', queryParams),
+                fetchMetricData('/api/mis/finance-cahrges-monthly-sales', 'financeCharges', queryParams),
+                fetchMetricData('/api/mis/depreciation-monthly-sales', 'depreciation', queryParams),
+                fetchMetricData('/api/mis/revenue-expenses-monthly-sales', 'revenueExpenses', queryParams),
+                fetchMetricData('/api/mis/ere-allocation-monthly-sales', 'ereAllocation', queryParams),
+                fetchMetricData('/api/mis/ore-allocation-monthly-sales', 'oreAllocation', queryParams),
+                fetchMetricData('/api/mis/intrest-allocation-monthly-sales', 'interestAllocation', queryParams),
+                fetchMetricData('/api/mis/dep-allocation-monthly-sales', 'depreciationAllocation', queryParams)
+            ]);
+
+            updateMasterRowCells('ns', unitMonthlyState.netSales.totals);
+            updateMasterRowCells('ss', unitMonthlyState.scrapSales.totals);
+            updateMasterRowCells('oi', unitMonthlyState.otherIncome.totals);
+            updateMasterRowCells('io', unitMonthlyState.iutOut.totals);
+            updateMasterRowCells('rm', unitMonthlyState.rmConsumption.totals);
+            updateMasterRowCells('ee', unitMonthlyState.employeeExpenses.totals);
+            updateMasterRowCells('ii', unitMonthlyState.iutIn.totals);
+            updateMasterRowCells('tc', unitMonthlyState.transportCharges.totals);
+            updateMasterRowCells('fc', unitMonthlyState.financeCharges.totals);
+            updateMasterRowCells('dep', unitMonthlyState.depreciation.totals);
+            updateMasterRowCells('re', unitMonthlyState.revenueExpenses.totals);
+            updateMasterRowCells('erea', unitMonthlyState.ereAllocation.totals);
+            updateMasterRowCells('orea', unitMonthlyState.oreAllocation.totals);
+            updateMasterRowCells('inta', unitMonthlyState.interestAllocation.totals);
+            updateMasterRowCells('depa', unitMonthlyState.depreciationAllocation.totals);
+
+            buildTrendSubTableRows('net-sales-dropdown-container', unitMonthlyState.netSales.breakdown);
+            buildTrendSubTableRows('scrap-sales-dropdown-container', unitMonthlyState.scrapSales.breakdown);
+            buildTrendSubTableRows('other-income-dropdown-container', unitMonthlyState.otherIncome.breakdown);
+            buildTrendSubTableRows('iut-out-dropdown-container', unitMonthlyState.iutOut.breakdown);
+            buildTrendSubTableRows('rm-consumption-dropdown-container', unitMonthlyState.rmConsumption.breakdown);
+            buildTrendSubTableRows('employee-expenses-dropdown-container', unitMonthlyState.employeeExpenses.breakdown);
+            buildTrendSubTableRows('iut-in-dropdown-container', unitMonthlyState.iutIn.breakdown);
+            buildTrendSubTableRows('transport-charges-dropdown-container', unitMonthlyState.transportCharges.breakdown);
+            buildTrendSubTableRows('finance-charges-dropdown-container', unitMonthlyState.financeCharges.breakdown);
+            buildTrendSubTableRows('depreciation-dropdown-container', unitMonthlyState.depreciation.breakdown);
+            buildTrendSubTableRows('revenue-expenses-dropdown-container', unitMonthlyState.revenueExpenses.breakdown);
+            buildTrendSubTableRows('ere-allocation-dropdown-container', unitMonthlyState.ereAllocation.breakdown);
+            buildTrendSubTableRows('ore-allocation-dropdown-container', unitMonthlyState.oreAllocation.breakdown);
+            buildTrendSubTableRows('interest-allocation-dropdown-container', unitMonthlyState.interestAllocation.breakdown);
+            buildTrendSubTableRows('depreciation-allocation-dropdown-container', unitMonthlyState.depreciationAllocation.breakdown);
+
+            calculateOperationalTrends();
+            document.getElementById('loader-overlay').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const yearMenu = document.getElementById('fin_year_select');
+            const unitMenu = document.getElementById('unit_select');
+            if (yearMenu) yearMenu.addEventListener('change', refreshUnitMonthlyReport);
+            if (unitMenu) unitMenu.addEventListener('change', refreshUnitMonthlyReport);
+
+            refreshUnitMonthlyReport();
+
+            const dropdowns = document.getElementsByClassName("dropdown-btn");
+            for (let i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].addEventListener("click", function() {
+                    const dropdownContent = this.nextElementSibling;
+                    if (!dropdownContent) return;
+                    const isOpen = dropdownContent.style.display === "block";
+                    for (let j = 0; j < dropdowns.length; j++) {
+                        dropdowns[j].classList.remove("active");
+                        if (dropdowns[j].nextElementSibling) dropdowns[j].nextElementSibling.style.display = "none";
+                    }
+                    if (!isOpen) {
+                        this.classList.add("active");
+                        dropdownContent.style.display = "block";
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+{% endblock %}
