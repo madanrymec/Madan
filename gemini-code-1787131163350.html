@@ -1,0 +1,711 @@
+{% block content %}
+<body style="margin: 0px; font-family: var(--sans); background-color: var(--bg-0); color: var(--text-0);">
+    
+    <!-- CHART MODAL -->
+    <div id="chartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(13,17,23,0.85); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(4px);">
+        <div style="background:var(--bg-1); border: 1px solid var(--line); width:90%; height:85%; position:relative; border-radius:12px; padding:20px; display:flex; flex-direction:column; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+            <span onclick="closeModal()" style="position:absolute; top:10px; right:20px; font-size:40px; cursor:pointer; color:var(--text-1); z-index:10001; transition: color 0.2s;">×</span>
+            <h3 id="modalTitle" style="text-align:center; margin-bottom:15px; color: var(--text-0);"></h3>
+            <div style="flex-grow:1; position:relative;">
+                <canvas id="modalCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER WITH HAMBURGER -->
+    <header>
+        <div class="header" style="background-color: var(--bg-1); width: 100%; display: flex; align-items: center; color: var(--text-0); padding: 10px 20px; box-sizing: border-box; position: fixed; top: 0; z-index: 1001; border-bottom: 1px solid var(--line);">
+            <div class="hamburger" onclick="toggleSidebar()" style="font-size: 24px; cursor: pointer; margin-right: 20px; color: var(--copper-bright); user-select: none;">☰</div>
+            
+            <p class="user-info" style="margin: 0; color: var(--text-1);">Welcome, <span style="color: var(--teal);">{{ username }}</span>!</p>
+            <h3 style="margin: 0; position: absolute; left: 50%; transform: translateX(-50%); font-size: 1.17em; font-weight: bold; color: var(--text-0);">DIGITAL DASHBOARD</h3>
+            
+            <div style="display: flex; align-items: center; margin-left: auto;">
+                <h2 id="comp-name" style="font-size: 12px; margin: 0 10px 0 0; font-weight: bold; color: var(--text-1);">KIRLOSKAR ELECTRIC COMPANY</h2>
+                <img id="logo" style="height: 40px; border-radius: 4px;" src="{{ url_for('static', filename='images/KEC_LOGO.jpg') }}" alt="Company Logo">
+            </div>
+        </div>
+    </header>
+
+    <!-- DARK THEME LOADER -->
+    <div id="loader-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13,17,23,0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div class="spinner" style="border: 4px solid var(--line); border-top: 4px solid var(--teal); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;"></div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="main-container1" style="padding-top: 60px;">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <div id="mySidebar" class="sidebar">
+            <a href="javascript:void(0)" class="dropdown-btn">Billing <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{ url_for('quarterly_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('home') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('daily_dashboard') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Order Book <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('order_ytd_dashboard') }}" class="sub-link">YTD</a>
+                <a href="{{url_for('quarterly_order_dashboard') }}" class="sub-link">QTD</a>
+                <a href="{{ url_for('order_mtd') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('order_daily') }}" class="sub-link">Daily</a>
+            </div>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Comparison <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{url_for('order_data_compare') }}" class="sub-link">Orders Comparison</a>
+                <a href="{{ url_for('data_compare') }}" class="sub-link">Billing Comparison</a>
+            </div>
+            
+            <a href="{{ url_for('pending_orders_page') }}">Pending Orders</a>
+            <a href="{{ url_for('fg_report') }}">FG Report</a>
+
+            <a href="javascript:void(0)" class="dropdown-btn">Finance <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{url_for('collection_report') }}" class="sub-link">Collections</a>
+            </div>
+            
+            <a href="javascript:void(0)" class="dropdown-btn">MIS <span style="float:right;">▼</span></a>
+            <div class="dropdown-container">
+                <a href="{{ url_for('mis_report') }}" class="sub-link">MTD</a>
+                <a href="{{ url_for('mis_unit_report') }}" class="sub-link">MIS-Units</a>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="content" style="padding: 20px; overflow: auto; width: 100%;">
+            
+            <!-- CONTROLS & FILTERS -->
+            <div class="content1" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div class="exit-bar" style="display: flex; gap: 15px;">
+                    <a href="#" onclick="history.back(); return false;" title="Go Back">
+                        <img id="back" src="{{ url_for('static', filename='images/back_mis.svg') }}" style="height: 24px; filter: invert(1);" alt="Go Back">
+                    </a>
+                    <a href="{{ url_for('logout') }}" title="Logout">
+                        <img id="logout" src="{{ url_for('static', filename='images/logout_mis.svg') }}" style="height: 24px; filter: invert(1);" alt="Logout">
+                    </a>
+                </div>
+
+                <h2 id="header2" style="margin: 0; color: var(--text-0); font-weight: bold; font-family: var(--disp);">Collection Report</h2>
+                
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <button onclick="downloadCombinedStock()" id="excelbutton" title="Download Excel" style="background-color: var(--teal); padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer;">
+                        <img src="{{ url_for('static', filename='images/img.png') }}" alt="Download Excel" id="excel" style="height: 20px; filter: invert(1);">
+                    </button>
+                    
+                    <div id="datepick" style="background: var(--bg-2); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
+                        <label for="my-date-picker" style="font-weight: bold; font-size: 14px; margin: 0; color: var(--text-1);">Date Range:</label>
+                        <input type="text" id="my-date-picker" placeholder="Select Date Range" style="background: transparent; color: var(--text-0); border: none; outline: none; font-family: var(--sans);">
+                        <input type="hidden" id="start_date">
+                        <input type="hidden" id="end_date">
+                        <button id="apply_date" onclick="refreshDashboard()" style="background: var(--copper-bright); color: var(--bg-0); border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">Apply</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI BOXES -->
+            <div>
+                <div class="div11" style="text-align: center; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); height: auto; width: 14vw; margin-bottom: 10px; min-width: 150px;">
+                    <h2 style="font-size: 18px; padding: 10px; margin: 0; color: var(--text-0);">KPI</h2>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; width: 100%; justify-content: flex-start; flex-wrap: wrap;">
+                    <div class="div33 KPI-box">
+                        <h4 style="margin: 10px 10px 5px; color: var(--text-1);">Total Outstanding Value</h4>
+                        <div id="kpi-value" style="font-size: 24px; font-weight: bold; color: var(--copper-bright); padding: 0 5px 10px;">
+                            ₹ 0
+                        </div>
+                    </div>
+                    
+                    <div class="div33 KPI-box">
+                        <h4 style="margin: 10px 10px 5px; color: var(--text-1);">Total Collected Value</h4>
+                        <div id="coll-value" style="font-size: 24px; font-weight: bold; color: var(--teal); padding: 0 5px 10px;">
+                            ₹ 0
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARTS AND TABLES -->
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; width: 100%; justify-content: center;">
+                
+                <!-- Stock Chart -->
+                <div class="content-box" id="PWSV" style="width: 100%; cursor: pointer;" onclick="openModal('stock', 'Branch Wise Outstanding Value')">
+                    <h4 style="color: var(--text-1);">Branch Wise Outstanding Value</h4>
+                    <div style="height: 350px;"><canvas id="stockChart"></canvas></div>
+                </div>
+
+                <!-- Collection Table -->
+                <div class="content-box" style="width: 100%;">
+                    <div class="filter-container" style="padding: 10px 15px; display: flex; gap: 15px; align-items: center; background: var(--bg-2); border-bottom: 1px solid var(--line); border-radius: 8px 8px 0 0;">
+                        <label for="branch-select" style="font-weight: bold; font-size: 13px; color: var(--text-1);">Branch:</label>
+                        <select id="branch-select" style="padding: 6px 10px; font-size: 13px; border-radius: 4px; border: 1px solid var(--line); background: var(--bg-1); color: var(--text-0); min-width: 180px; outline: none;">
+                            <option value="All">Select All</option>
+                        </select>
+                        <button onclick="handleApplyFilter()" style="padding: 6px 15px; background: var(--copper-bright); color: var(--bg-0); border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                            Apply Filter
+                        </button>
+                    </div>
+
+                    <h4 style="position: sticky; top: 0; background: var(--bg-1); padding: 15px 0 10px; margin: 0; color: var(--text-0); text-align: left;">Collection Details</h4>
+                    
+                    <div style="overflow-x: auto; max-height: 500px;">
+                        <table id="credit-table" style="width: 100%; border-collapse: collapse; font-size: 13px; font-family: var(--mono);">
+                            <thead style="position: sticky; top: 0; z-index: 1;">
+                                <tr style="background: var(--bg-3); color: var(--copper-bright);">
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--line); font-family: var(--sans);">Branch</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--line); font-family: var(--sans);">Customer</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 1px solid var(--line); font-family: var(--sans);">Profit Centre</th>
+                                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid var(--line); font-family: var(--sans);">Outstanding</th>
+                                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid var(--line); font-family: var(--sans);">Collected</th>
+                                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid var(--line); font-family: var(--sans);">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="credit-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Aging Chart (Hidden by default based on original code) -->
+                <div class="content-box" id="PWFG" style="width: 100%; display: none;">
+                    <h4 style="color: var(--text-1);">Product Wise FG Stock Aging Value</h4>
+                    <div style="height: 350px;"><canvas id="agingChart"></canvas></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN HTML STYLE BLOCK WITH DARK THEME -->
+    <style>
+        :root{
+            --bg-0:#0d1117;
+            --bg-1:#141b22;
+            --bg-2:#1a232c;
+            --bg-3:#212d38;
+            --line:#2a3744;
+            --line-soft:#1f2a34;
+            --copper:#c87d3f;
+            --copper-bright:#e6985a;
+            --copper-dim:#8a5a34;
+            --teal:#3fb8a6;
+            --good:#5ec98f;
+            --warn:#e0a83e;
+            --bad:#d96a5a;
+            --text-0:#eef2f5;
+            --text-1:#aab8c2;
+            --text-2:#6b7b88;
+            --mono:'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+            --sans:'Inter', -apple-system, sans-serif;
+            --disp:'Libre Franklin', 'Inter', sans-serif;
+        }
+
+        .content-box {
+            background: var(--bg-1);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            padding: 15px;
+            box-sizing: border-box;
+            border: 1px solid var(--line);
+        }
+
+        .KPI-box {
+            background: var(--bg-1); 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+            text-align: center; 
+            border: 1px solid var(--line);
+            min-width: 200px;
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-evenly;
+        }
+
+        /* Scrollbar customizing */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-0); }
+        ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--copper-dim); }
+
+        /* Handle mobile/small tablets */
+        @media (max-width: 1100px) {
+            .content-box { width: 100% !important; }
+        }
+
+        @media only screen and (max-height:565px) {
+            .header { height: 40px; padding: 5px 15px !important; }
+            .user-info { font-size:10px; }
+            #comp-name{ font-size: 8px !important; }
+            #logo{ height: 25px !important; }
+            #back, #logout, #excel { height: 2vh !important; }
+            #header2 { font-size: 15px !important; }
+            .main-container1 { padding-top: 40px !important; }
+            #datepick { padding: 3px 6px !important; gap: 12px; }
+            #apply_date { padding: 3px 10px !important; font-size: 10px !important; }
+            #my-date-picker { font-size: 10px !important; }
+            .KPI-box h4 { font-size: 10px; }
+            #kpi-value, #coll-value { font-size: 14px !important; }
+            .sidebar a, .dropdown-btn { font-size: 11px !important; }
+            .sub-link { font-size: 10px !important; }
+            #modalCanvas { height: 60% !important; }
+        }
+    </style>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        // ==========================================
+        // DARK THEME CONSTANTS FOR JS
+        // ==========================================
+        const TEXT_0 = '#eef2f5';
+        const TEXT_1 = '#aab8c2';
+        const TEXT_2 = '#6b7b88';
+        const LINE = '#2a3744';
+        const LINE_SOFT = '#1f2a34';
+        const TEAL = '#3fb8a6';
+        const COPPER_BRIGHT = '#e6985a';
+
+        Chart.defaults.color = TEXT_1;
+        Chart.defaults.font.family = "'Inter', sans-serif";
+
+        // ==========================================
+        // HAMBURGER TOGGLE INJECTION
+        // ==========================================
+        function toggleSidebar() {
+            document.getElementById('mySidebar').classList.toggle('open');
+        }
+
+        let modalChartInstance = null;
+        let stockChartInstance = null;
+        let agingChartInstance = null;
+        Chart.register(ChartDataLabels);
+        let charts = {};
+        let dateRangePicker;
+
+        function showLoader() { document.getElementById('loader-overlay').style.display = 'flex'; }
+        function hideLoader() { document.getElementById('loader-overlay').style.display = 'none'; }
+        
+        function downloadCombinedStock() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            if (!startDate) {
+                alert("Please select a date range first.");
+                return;
+            }
+            window.location.href = `/api/export/collections_excel?start_date=${startDate}&end_date=${endDate}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdowns = document.getElementsByClassName("dropdown-btn");
+            const currentUrl = window.location.pathname;
+
+            for (let i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].addEventListener("click", function() {
+                    const dropdownContent = this.nextElementSibling;
+                    const isOpen = dropdownContent.style.display === "block";
+
+                    for (let j = 0; j < dropdowns.length; j++) {
+                        dropdowns[j].classList.remove("active");
+                        dropdowns[j].nextElementSibling.style.display = "none";
+                        dropdowns[j].querySelector('span').textContent = "▼";
+                    }
+
+                    if (!isOpen) {
+                        this.classList.add("active");
+                        dropdownContent.style.display = "block";
+                        this.querySelector('span').textContent = "▲";
+                    }
+                });
+            }
+
+            const subLinks = document.querySelectorAll('.sub-link');
+            subLinks.forEach(link => {
+                const linkPath = new URL(link.href).pathname;
+                if (currentUrl === linkPath) {
+                    link.classList.add('active');
+                    const parentContainer = link.closest('.dropdown-container');
+                    const parentBtn = parentContainer.previousElementSibling;
+                    parentContainer.style.display = "block";
+                    parentBtn.classList.add('active');
+                    parentBtn.querySelector('span').textContent = "▲";
+                }
+            });
+
+            dateRangePicker = flatpickr("#my-date-picker", {
+                mode: "range",
+                dateFormat: "d/m/Y",
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length === 2) {
+                        document.getElementById('start_date').value = formatLocalDate(selectedDates[0]);
+                        document.getElementById('end_date').value = formatLocalDate(selectedDates[1]);
+                    } else if (selectedDates.length === 1) {
+                        const singleDate = formatLocalDate(selectedDates[0]);
+                        document.getElementById('start_date').value = singleDate;
+                        document.getElementById('end_date').value = singleDate;
+                    }
+                }
+            });
+        });
+
+        function formatLocalDate(dateObj) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const currencyFormatter = new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        });
+
+        function openModal(chartKey, title) {
+            const sourceChart = charts[chartKey];
+            if (!sourceChart) return;
+
+            document.getElementById('chartModal').style.display = 'flex';
+            document.getElementById('modalTitle').textContent = title;
+
+            const modalCanvas = document.getElementById('modalCanvas');
+            if (modalChartInstance) modalChartInstance.destroy();
+
+            const sourceConfig = sourceChart.config;
+
+            modalChartInstance = new Chart(modalCanvas, {
+                type: sourceConfig.type,
+                data: JSON.parse(JSON.stringify(sourceConfig.data)),
+                options: {
+                    ...sourceConfig.options,
+                    maintainAspectRatio: false,
+                    layout: { padding: 40 },
+                    devicePixelRatio: 2,
+                    plugins: {
+                        ...sourceConfig.options.plugins,
+                        legend: { labels: { color: TEXT_0 } }
+                    },
+                    scales: {
+                        x: { ticks: { color: TEXT_1 }, grid: { color: LINE_SOFT } },
+                        y: { ticks: { display: false }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('chartModal').style.display = 'none';
+            if (modalChartInstance) {
+                modalChartInstance.destroy();
+                modalChartInstance = null;
+            }
+        }
+
+        async function refreshDashboard() {
+            showLoader();
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+
+            if (!startDate) {
+                hideLoader();
+                return;
+            }
+
+            try {
+                const queryParams = `start_date=${startDate}&end_date=${endDate}`;
+
+                const kpiRes = await fetch(`/api/collection/value?${queryParams}`);
+                const kpiData = await kpiRes.json();
+                document.getElementById('kpi-value').textContent = currencyFormatter.format(kpiData.total_value || 0);
+
+                const collRes = await fetch(`/api/collected/value?${queryParams}`);
+                const collData = await collRes.json();
+                document.getElementById('coll-value').textContent = currencyFormatter.format(collData.collected_value || 0);
+
+                const stockRes = await fetch(`/api/collections/branches?${queryParams}`);
+                const stockData = await stockRes.json();
+                renderProductStockChart(stockData);
+
+            } catch (error) {
+                console.error("Error refreshing dashboard:", error);
+            }
+            await loadBranches();
+            handleApplyFilter();
+        }
+
+        function getPreviousDate(inputDate) {
+          const date = new Date(inputDate);
+          date.setDate(date.getDate() - 1);
+          return date;
+        }
+
+        function renderProductStockChart(data) {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            if (stockChartInstance) stockChartInstance.destroy();
+
+            const config = {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Stock Value',
+                        data: data.values,
+                        backgroundColor: ['#c87d3f','#3fb8a6','#7a9cc6','#e0a83e','#9b7fc4','#5ec98f','#d96a5a','#6b8fae','#c7a76b','#5a8f9c','#a87fae','#8aa86b'],
+                        borderRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { bottom: 0, top: 30} },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            display: true,
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 5,
+                            color: TEXT_1,
+                            font: { size: 10, weight: 'bold' },
+                            formatter: (value) => value ? `${Math.round(value)}L` : ''
+                        },
+                        tooltip: {
+                            backgroundColor: '#1a232c', borderColor: LINE, borderWidth: 1, titleColor: TEXT_0, bodyColor: TEXT_1,
+                            callbacks: {
+                                label: (ctx) => ` Value: ${currencyFormatter.format(ctx.raw * 100000)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: TEXT_1, font: { size: 11 } }
+                        },
+                        y: {
+                            grid: { display: false },
+                            beginAtZero: true,
+                            grace: '10%',
+                            ticks: { display: false }
+                        }
+                    }
+                }
+            };
+
+            stockChartInstance = new Chart(ctx, config);
+            charts['stock'] = stockChartInstance;
+        }
+
+        function renderAgingGroupedChart(data) {
+            const ctx = document.getElementById('agingChart').getContext('2d');
+            if (agingChartInstance) agingChartInstance.destroy();
+
+            agingChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: data.datasets.map(ds => ({
+                        label: ds.label,
+                        data: ds.data,
+                        backgroundColor: ds.color,
+                        barPercentage: 1.0,
+                        categoryPercentage: 0.8
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: TEXT_1, font: { size: 11 } }
+                        },
+                        y: {
+                            grid: { display: false },
+                            beginAtZero: true,
+                            grace: '10%',
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: {
+                        datalabels: {
+                            display: true,
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 5,
+                            color: TEXT_1,
+                            font: { size: 10, weight: 'bold' },
+                            formatter: (value) => value ? `${Math.round(value)} L` : ''
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#1a232c', borderColor: LINE, borderWidth: 1, titleColor: TEXT_0, bodyColor: TEXT_1,
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.dataset.label}: ${currencyFormatter.format(ctx.raw * 100000)}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadBranches() {
+            try {
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+                if (!startDate) return;
+
+                const res = await fetch(`/api/collections/branches-list?start_date=${startDate}&end_date=${endDate}`);
+                const branches = await res.json();
+
+                const select = document.getElementById('branch-select');
+                select.innerHTML = '<option value="All">Select All</option>';
+                branches.forEach(branch => {
+                    const opt = document.createElement('option');
+                    opt.value = branch;
+                    opt.textContent = branch;
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error("Error loading branches:", error);
+            }
+        }
+
+        function handleApplyFilter() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const branchEl = document.getElementById('branch-select');
+            const selectedBranch = branchEl ? branchEl.value : "All";
+
+            if (startDate) {
+                updateCreditTable(startDate, endDate, selectedBranch);
+            } else {
+                alert("Please select a date range first");
+            }
+        }
+
+        async function updateCreditTable(startDate, endDate, selectedBranch) {
+            try {
+                const res = await fetch(`/api/collections/mapped-details?start_date=${startDate}&end_date=${endDate}&branch=${selectedBranch}`);
+                const data = await res.json();
+
+                const tbody = document.getElementById('credit-table-body');
+                tbody.innerHTML = '';
+
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = "1px solid var(--line-soft)";
+                    tr.style.transition = "background-color 0.2s";
+                    tr.onmouseover = () => tr.style.backgroundColor = "var(--bg-2)";
+                    tr.onmouseout = () => tr.style.backgroundColor = "transparent";
+
+                    tr.innerHTML = `
+                        <td style="text-align: left; padding: 10px; font-weight: bold; color: var(--teal); font-family: var(--sans);">${row.branch}</td>
+                        <td style="text-align: left; padding: 10px; font-weight: bold; color: var(--teal); font-family: var(--sans);">${row.customer}</td>
+                        <td style="text-align: center; padding: 10px; color: var(--text-1);">${row.PROFIT_CENTRE_1 || '-'}</td>
+                        <td style="text-align: right; padding: 10px; color: var(--text-0);">${currencyFormatter.format(row.outstanding)}</td>
+                        <td style="text-align: right; padding: 10px; color: var(--text-0);">${currencyFormatter.format(row.collected)}</td>
+                        <td style="text-align: right; padding: 10px; color: var(--text-0);">${currencyFormatter.format(row.balance)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error loading table:", error);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        window.onload = () => {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+
+            const formattedYesterday = formatLocalDate(yesterday);
+
+            document.getElementById('start_date').value = formattedYesterday;
+            document.getElementById('end_date').value = formattedYesterday;
+
+            if (dateRangePicker) {
+                dateRangePicker.setDate([yesterday, yesterday], false); 
+            }
+
+            refreshDashboard();
+        };
+
+        function loadDate(val){
+            val = val.split("/").reverse().join("-");
+            document.getElementById('selected_date').value = val;
+        }
+
+        function filterTable() {
+           var table = document.getElementById('credit-table-body');
+           var rows = table.getElementsByTagName('tr');
+           var filters = new Array();
+           for (var i = 0; i < 14; i++) {
+             var input = document.getElementById('filter' + i);
+             filters[i] = input ? input.value.toLowerCase() : '';
+           }
+           for (var i = 0; i < rows.length; i++) {
+             var row = rows[i];
+             var cells = row.getElementsByTagName('td');
+             var showRow = true;
+             for (var j = 0; j < 14; j++) {
+               if (filters[j] && cells[j]) {
+                 var cellText = cells[j].innerText || cells[j].textContent;
+                 if (cellText.toLowerCase().indexOf(filters[j]) == -1) {
+                   showRow = false;
+                 }
+               }
+             }
+             row.style.display = showRow ? '' : 'none';
+           }
+         }
+
+         function handleFilterKeypress(e) {
+           if (!e) e = window.event;
+           var keyCode = e.keyCode || e.which;
+           if (keyCode == 13) { filterTable(); }
+         }
+
+         function attachFilterEvents() {
+           for (var i = 0; i < 14; i++) {
+             var input = document.getElementById('filter' + i);
+             if (input) {
+               if (input.attachEvent) { input.attachEvent('onkeypress', handleFilterKeypress); } 
+               else { input.addEventListener('keypress', handleFilterKeypress); }
+             }
+           }
+         }
+
+         function init() {
+           var inputs = document.getElementsByTagName('input');
+           for (var i = 0; i < inputs.length; i++) {
+             if (inputs[i].type == 'checkbox') { inputs[i].checked = false; }
+           }
+           attachFilterEvents();
+         }
+
+         function filterDisplay(idName){
+             var filter_id = idName.replace("filter_img_", "");
+             var filter_display = document.getElementById(idName.replace("filter_img_", "")).style.display;
+             if(filter_display === 'none'){
+                document.getElementById(filter_id).style.display = 'block';
+             } else {
+                document.getElementById(filter_id).style.display = 'none';
+                document.getElementById(filter_id).value='';
+                filterTable();
+             }
+         }
+
+         if (window.attachEvent) { window.attachEvent('onload', init); } 
+         else { window.addEventListener('load', init); }
+    </script>
+</body>
+{% endblock %}
