@@ -1,0 +1,566 @@
+import datetime
+import docx
+import email
+from email.header import decode_header
+from email.utils import parseaddr, getaddresses
+import imaplib
+import io
+import json
+import os
+import re
+import time
+from PIL import Image
+import pandas as pd
+import PyPDF2
+import pymupdf4llm
+import pymysql
+import pytesseract
+import requests
+import fitz
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+# --- Configuration ---
+pytesseract.pytesseract.tesseract_cmd = (
+    r'C:\Users\madan.hs\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'
+)
+DOWNLOAD_DIR = r'D:\Downloads'
+EMAIL_ACCOUNT = 'mail.processor@kirloskarelectric.com'
+EMAIL_PASSWORD = '*** *** ***'
+IMAP_SERVER = 'imap.gmail.com'
+EXCEL_FILE_PATH = 'Book1.xlsx'
+
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '',
+    'database': 'po_management',
+    'cursorclass': pymysql.cursors.DictCursor,
+}
+
+VALID_SUBJECTS = [
+    'po',
+    'po num',
+    'purchase order',
+    'po number',
+    'po no.',
+    'pur order',
+    'order',
+    'ORDER',
+    'PO',
+    'PO NUM',
+    'PURCHASE ORDERPO',
+    'PO NUMBER',
+    'PO NO.',
+    'PUR ORDER',
+]
+
+
+def load_allowed_emails(excel_path):
+  """Reads the Excel file and returns a clean normalized set of work emails."""
+  try:
+    df = pd.read_excel(excel_path)
+    if 'Work email' in df.columns:
+      allowed_set = set(
+          df['Work email']
+          .dropna()
+          .astype(str)
+          .str.strip()
+          .str.lower()
+          .tolist()
+      )
+      print(
+          f'Loaded {len(allowed_set)} authorized email addresses from'
+          f' {excel_path}.'
+      )
+      return allowed_set
+    else:
+      print(f"Error: Column 'Work email' not found in {excel_path}.")
+      return set()
+  except Exception as e:
+    print(f'Failed to load email whitelist from {excel_path}: {e}')
+    return set()
+
+
+ALLOWED_EMAILS = load_allowed_emails(EXCEL_FILE_PATH)
+
+
+def clean_text(text):
+  if not text:
+    return ''
+  return str(text).lower().strip()
+
+
+def extract_all_email_addresses(msg):
+  """Extracts all unique, clean email addresses from From, To, and CC headers."""
+  raw_headers = []
+
+  # Collect From, To, and CC headers
+  for header in ['From', 'To', 'Cc']:
+    header_values = msg.get_all(header, [])
+    for val in header_values:
+      if val:
+        raw_headers.append(val)
+
+  # Parse headers into name/email tuples
+  parsed_tuples = getaddresses(raw_headers)
+
+  extracted_emails = set()
+  for _, email_addr in parsed_tuples:
+    cleaned = email_addr.strip().lower()
+    if cleaned:
+      extracted_emails.add(cleaned)
+
+  return extracted_emails
+
+
+def extract_text(filepath):
+  """Converts PDFs to Markdown to save tokens and preserve table structures."""
+  text = ''
+  ext = filepath.lower().split('.')[-1]
+
+  try:
+    if ext == 'pdf':
+      # ENGINE 1: Standard Extraction
+      doc = fitz.open(filepath)
+      for page in doc:
+        text += page.get_text() + '\n'
+
+      # ENGINE 2: Fallback to OCR for Scanned Images
+      if len(text.strip()) < 20:
+        print(f'Scanned PDF detected! Running OCR vision on {filepath}...')
+        text = ''
+        for page in doc:
+          pix = page.get_pixmap(dpi=200)
+          img_data = pix.tobytes('png')
+          img = Image.open(io.BytesIO(img_data))
+          text += pytesseract.image_to_string(img) + '\n'
+        doc.close()
+      else:
+        doc.close()
+        # ENGINE 3: LLM Markdown Conversion (for digital PDFs)
+        print(f'Converting {filepath} to Markdown for AI optimization...')
+        text = pymupdf4llm.to_markdown(filepath)
+
+    elif ext == 'docx':
+      doc = docx.Document(filepath)
+      for para in doc.paragraphs:
+        text += para.text + '\n'
+
+    elif ext in ['jpg', 'jpeg', 'png']:
+      img = Image.open(filepath)
+      text = pytesseract.image_to_string(img)
+
+  except Exception as e:
+    print(f'Error reading {filepath}: {e}')
+
+  return text.strip()
+
+
+def get_email_body(msg):
+  """Extracts body and strips out deep, irrelevant email history."""
+  body = ''
+  if msg.is_multipart():
+    for part in msg.walk():
+      content_type = part.get_content_type()
+      content_disposition = str(part.get('Content-Disposition'))
+
+      if content_type == 'text/plain' and 'attachment' not in content_disposition:
+        try:
+          body = part.get_payload(decode=True).decode(
+              part.get_content_charset() or 'utf-8'
+          )
+          break
+        except Exception as e:
+          print(f'Error decoding body part: {e}')
+  else:
+    try:
+      body = msg.get_payload(decode=True).decode(
+          msg.get_content_charset() or 'utf-8'
+      )
+    except Exception as e:
+      print(f'Error decoding raw body: {e}')
+
+  body = body.strip()
+  thread_splitters = [
+      r'_{20,}',
+      r'-----Original Message-----',
+      r'From:.*\nSent:.*\nTo:.*\n',
+  ]
+
+  for splitter in thread_splitters:
+    parts = re.split(splitter, body, maxsplit=2, flags=re.IGNORECASE)
+    if len(parts) > 1:
+      body = parts[0] + '\n\n---FORWARDED CONTENT---\n\n' + parts[1]
+      break
+
+  return body
+
+
+def chunk_text(text, max_chars=12000):
+  """Slices massive documents into safe chunks without breaking paragraphs."""
+  paragraphs = text.split('\n\n')
+  chunks = []
+  current_chunk = ''
+
+  for p in paragraphs:
+    if len(current_chunk) + len(p) < max_chars:
+      current_chunk += p + '\n\n'
+    else:
+      if current_chunk:
+        chunks.append(current_chunk.strip())
+      current_chunk = p + '\n\n'
+
+  if current_chunk:
+    chunks.append(current_chunk.strip())
+
+  return chunks
+
+
+def process_text_with_ai(text, source_name, sender_email, received_at):
+    # Fix 1: Initialize extracted_items at the VERY TOP of the function scope
+    extracted_items = []
+
+    conn = pymysql.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) as count FROM purchase_orders WHERE filename = %s",
+        (source_name,),
+    )
+    row = cursor.fetchone()
+    count = row["count"] if isinstance(row, dict) else row[0]
+
+    if count > 0:
+        print(f"Skipping {source_name}: Already exists in database.")
+        conn.close()
+        return
+    conn.close()
+
+    print(f"Processing whole document for: {source_name}...")
+
+    if not text or len(text) < 20:
+        print(f"Not enough text found in {source_name} to process.")
+        return
+
+    # --- DEEPREAD API CONFIGURATION ---
+    invoke_url = "https://api.deepread.tech/v1/process"
+    api_key = os.getenv(
+        "DEEPREAD_API_KEY",
+        "sk_live_*********",
+    )
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    prompt_instructions = (
+        "Analyze the following purchase order text of Kirloskar Electric Company and extract ALL "
+        "individual line items into a strict JSON array. Every distinct item must be its own object. "
+        "Do not summarize. Quantities and amounts must be numeric."
+    )
+
+    # Fix 2: Updated schema datatypes ('number' instead of 'float' to avoid 422)
+    payload = {
+        "document_type": "purchase_order",
+        "text_content": text,
+        "instructions": prompt_instructions,
+        "schema": {
+            "PO_number": "string",
+            "po_date": "string",
+            "Customer_name": "string",
+            "gst_number": "string",
+            "material_code": "string",
+            "Description_of_material": "string",
+            "quantity": "number",
+            "amount": "number",
+        },
+    }
+
+    max_retries = 3
+    wait_time = 2
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(
+                invoke_url, headers=headers, json=payload, timeout=30
+            )
+
+            if response.status_code == 429:
+                print(
+                    f"Rate limit hit for {source_name}. Waiting {wait_time}s..."
+                )
+                time.sleep(wait_time)
+                wait_time *= 2
+                continue
+
+            # Catch 422 immediately and print server error response details
+            if response.status_code == 422:
+                print(
+                    f"HTTP 422 Payload Error for {source_name}: {response.text}"
+                )
+                break  # Stop retrying on invalid payload format
+
+            response.raise_for_status()
+            response_data = response.json()
+
+            if isinstance(response_data, list):
+                extracted_items = response_data
+            else:
+                extracted_items = response_data.get(
+                    "items",
+                    response_data.get(
+                        "data", response_data.get("result", [])
+                    ),
+                )
+            break
+
+        except requests.exceptions.RequestException as e:
+            if attempt == max_retries - 1:
+                print(
+                    f"Failed processing {source_name} after {max_retries} attempts: {e}"
+                )
+                break
+            print(
+                f"Network error on {source_name}: {e}. Retrying in {wait_time}s..."
+            )
+            time.sleep(wait_time)
+            wait_time *= 2
+
+    # --- DATABASE INSERTION ---
+    try:
+        conn = pymysql.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+
+        if not extracted_items:
+            print(
+                f"No valid PO data found or extracted for {source_name}. Marking as NO_PO_FOUND."
+            )
+            cursor.execute(
+                """
+                INSERT INTO purchase_orders 
+                (po_number, description, filename, sender_email, received_at)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (
+                    "NO_PO_FOUND",
+                    "No valid PO data extracted",
+                    source_name,
+                    sender_email,
+                    received_at,
+                ),
+            )
+        else:
+            for item in extracted_items:
+                extracted_gst = item.get("gst_number")
+                matched_customer_id = None
+
+                if extracted_gst:
+                    cursor.execute(
+                        "SELECT Customer FROM gst_data WHERE gst_num = %s LIMIT 1",
+                        (extracted_gst,),
+                    )
+                    result = cursor.fetchone()
+                    if result:
+                        matched_customer_id = (
+                            result["Customer"]
+                            if isinstance(result, dict)
+                            else result[0]
+                        )
+
+                cursor.execute(
+                    """
+                    INSERT INTO purchase_orders 
+                    (po_number, po_date, customer_name, gst_number, customer_id, material_code, description, quantity, amount, filename, sender_email, received_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        item.get("PO_number"),
+                        item.get("po_date"),
+                        item.get("Customer_name"),
+                        extracted_gst,
+                        matched_customer_id,
+                        item.get("material_code"),
+                        item.get("Description_of_material"),
+                        item.get("quantity"),
+                        item.get("amount"),
+                        source_name,
+                        sender_email,
+                        received_at,
+                    ),
+                )
+
+        conn.commit()
+        conn.close()
+        print(
+            f"Successfully finished processing database record for {source_name}."
+        )
+
+    except Exception as e:
+        print(f"Database error for {source_name}: {e}")
+
+
+def is_file_processed(source_name):
+  """Pre-checks the database to see if a file or email body was already processed."""
+  try:
+    conn = pymysql.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+    cursor.execute(
+        'SELECT COUNT(*) as count FROM purchase_orders WHERE filename = %s',
+        (source_name,),
+    )
+    exists = cursor.fetchone()['count'] > 0
+    conn.close()
+    return exists
+  except Exception as e:
+    print(f'Database check failed for {source_name}: {e}')
+    return False
+
+
+def check_email():
+  try:
+    mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+    mail.login(EMAIL_ACCOUNT, EMAIL_PASSWORD)
+    mail.select('inbox')
+
+    status, messages = mail.search(None, 'ALL')
+    if status != 'OK':
+      return
+
+    email_ids = messages[0].split()
+
+    latest_10_ids = email_ids[-10:]
+    latest_10_ids.reverse()
+
+    print(
+        f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Checked inbox:"
+        f' Processing the {len(latest_10_ids)} most recent emails.'
+    )
+
+    if not latest_10_ids:
+      mail.logout()
+      return
+
+    for num in latest_10_ids:
+      res, msg_data = mail.fetch(num, '(RFC822)')
+
+      for response_part in msg_data:
+        if isinstance(response_part, tuple):
+          msg = email.message_from_bytes(response_part[1])
+
+          # --- EMAIL FILTERING CHECK (From, To, Cc) ---
+          email_addresses_in_msg = extract_all_email_addresses(msg)
+
+          # Check intersection with allowed list loaded from Excel
+          matched_addresses = email_addresses_in_msg.intersection(
+              ALLOWED_EMAILS
+          )
+
+          if not matched_addresses:
+            print(
+                'Skipping email: No matching address found in From, To, or Cc'
+                ' against Excel whitelist.'
+            )
+            continue
+
+          subject, encoding = decode_header(msg['Subject'])[0]
+          if isinstance(subject, bytes):
+            subject = subject.decode(encoding if encoding else 'utf-8')
+
+          cleaned_subject = clean_text(subject)
+          is_valid_subject = False
+
+          for kw in VALID_SUBJECTS:
+            if kw == 'po':
+              if re.search(r'\bpo\b', cleaned_subject):
+                is_valid_subject = True
+                break
+            else:
+              if kw in cleaned_subject:
+                is_valid_subject = True
+                break
+
+          if not is_valid_subject:
+            print(f"Skipping email: Subject '{subject}' is not a PO.")
+            continue
+
+          sender = msg.get('From')
+          date_received = msg.get('Date')
+
+          found_pdf = False
+
+          if msg.is_multipart():
+            for part in msg.walk():
+              if (
+                  part.get_content_maintype() == 'multipart'
+                  or part.get('Content-Disposition') is None
+              ):
+                continue
+
+              filename = part.get_filename()
+              if filename and filename.lower().endswith('.pdf'):
+                unique_filename = f'{filename}'
+
+                if is_file_processed(unique_filename):
+                  print(
+                      f"Skipping '{unique_filename}': Already exists in"
+                      ' database.'
+                  )
+                  found_pdf = True
+                  continue
+
+                found_pdf = True
+                filepath = os.path.join(DOWNLOAD_DIR, unique_filename)
+
+                with open(filepath, 'wb') as f:
+                  f.write(part.get_payload(decode=True))
+
+                print(f'Downloaded {unique_filename} from {sender}')
+
+                pdf_text = extract_text(filepath)
+                process_text_with_ai(
+                    pdf_text, unique_filename, sender, date_received
+                )
+
+          if not found_pdf:
+            msg_id = msg.get('Message-ID', str(time.time()))
+            clean_msg_id = ''.join(c for c in msg_id if c.isalnum())
+            unique_identifier = f'Email_Body_{clean_msg_id}.txt'
+
+            if is_file_processed(unique_identifier):
+              print(
+                  f"Skipping email body '{unique_identifier}': Already"
+                  ' processed.'
+              )
+              continue
+
+            print(
+                f'No valid PDF found in email from {sender}. Parsing email'
+                ' body instead...'
+            )
+            body_text = get_email_body(msg)
+
+            filepath = os.path.join(DOWNLOAD_DIR, unique_identifier)
+
+            with open(filepath, 'w', encoding='utf-8') as f:
+              f.write(body_text)
+
+            print(f'Saved email body as {unique_identifier}')
+            process_text_with_ai(
+                body_text, unique_identifier, sender, date_received
+            )
+
+    mail.logout()
+  except Exception as e:
+    print(f'Email fetch error: {e}')
+
+
+if __name__ == '__main__':
+  if not os.path.exists(DOWNLOAD_DIR):
+    os.makedirs(DOWNLOAD_DIR)
+
+  print(f'Monitoring inbox {EMAIL_ACCOUNT}...')
+  while True:
+    check_email()
+    time.sleep(300)
