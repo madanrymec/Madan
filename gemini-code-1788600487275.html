@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purchase Register Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<!-- Chart.js & DataLabels Plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+<style>
+  :root {
+    --bg-0: #0d1117; --bg-1: #141b22; --bg-2: #1a232c; --bg-3: #212d38;
+    --panel: #171D25; --panel-alt: #1C2430;
+    --border: #2B3542; --border-soft: #212a35; --line: #2a3744;
+    --text-0: #eef2f5; --text-1: #aab8c2; --text: #E7EAEE;
+    --muted: #8B95A5; --muted-dim: #5E6675;
+    --copper: #C97C43; --copper-bright: #e6985a; --copper-soft: rgba(201,124,67,0.16);
+    --teal: #4FA8A4; --teal-soft: rgba(79,168,164,0.16);
+    --sans: 'Inter', system-ui, sans-serif;
+    --disp: 'Space Grotesk', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+  
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0; background:var(--bg-0); color:var(--text); font-family:var(--sans); -webkit-font-smoothing:antialiased;}
+
+  /* --- Topbar & Sidebar Base Styles (Preserved from previous) --- */
+  .topbar { border-bottom: 1px solid var(--border); background: linear-gradient(180deg, var(--bg-1), var(--bg-0)); padding: 16px 28px; position: sticky; top: 0; z-index: 50; backdrop-filter: blur(6px); width: 100%; }
+  .brand-block { display: flex; justify-content: space-between; align-items: center; width: 100%; position: relative; }
+  .hamburger { font-size: 24px; cursor: pointer; color: var(--copper-bright); user-select: none; z-index: 10; padding-right: 20px; }
+  .brand-text { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; width: max-content; }
+  .brand-text h1 { font-family: var(--disp); font-size: 22px; font-weight: 800; line-height: 1.1; margin: 0;}
+  .brand-text .sub { font-family: var(--sans); font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .header-right { display: flex; align-items: center; gap: 12px; z-index: 10; }
+  .header-right h2 { font-size: 12px; margin: 0; font-weight: bold; color: var(--text-1); font-family: var(--sans); }
+  .brand-mark img { height: 40px; border-radius: 4px; object-fit: contain; background: var(--text-0); }
+
+  /* --- Slicers (Filters) --- */
+  .slicers { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; align-items: center; width: 100%; }
+  .slicer-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 2px; }
+  
+  select.slicer, input.slicer, .select-box {
+      background: var(--bg-2); border: 1px solid var(--border); color: var(--text-0); font-family: var(--sans); font-size: 12.5px;
+      font-weight: 500; padding: 8px 12px; border-radius: 3px; cursor: pointer; flex: 1 1 calc(14% - 8px);
+      min-width: 130px; height: 35px; box-sizing: border-box; outline: none;
+  }
+  select.slicer { padding-right: 28px; appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0L5 6L10 0' fill='none' stroke='%236b7b88' stroke-width='1.4'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; }
+  select.slicer:hover, input.slicer:hover, .select-box:hover { border-color: var(--copper); }
+  
+  .custom-multiselect { position: relative; display: inline-block; flex: 1 1 calc(14% - 8px); min-width: 130px; }
+  .checkbox-menu { display: none; position: absolute; top: 100%; left: 0; margin-top: 4px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 4px; padding: 8px 0; width: 100%; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  .checkbox-menu.show { display: block; }
+  .checkbox-menu label { display: flex; align-items: center; padding: 6px 12px; font-size: 12px; color: var(--text-0); cursor: pointer; gap: 8px; }
+  .checkbox-menu label:hover { background: var(--bg-3); }
+  
+  #applyFiltersBtn, #resetBtn { background: transparent; border: 1px solid var(--border); color: var(--text-2); font-family: var(--mono); font-size: 11px; padding: 8px 13px; border-radius: 3px; cursor: pointer; height: 35px; }
+  #applyFiltersBtn { background: var(--copper); color: var(--bg-0); font-weight: bold; border: none; }
+  #resetBtn:hover { border-color: var(--bad); color: var(--bad); }
+
+  /* --- Dashboard & Plant Pills --- */
+  .wrap { max-width: 1380px; margin: 0 auto; padding: 20px 28px 80px; }
+  .hero { padding: 20px 0 15px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 20px; }
+  .hero-num { font-size: 64px; font-weight: 700; line-height: 1; color: var(--text); font-family: var(--disp); }
+  .hero-label { color: var(--muted); font-size: 15px; font-weight: bold;}
+  
+  .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 26px 0 22px; }
+  .filter-row .fl { color: var(--muted); font-size: 12.5px; margin-right: 4px; font-weight: 600; }
+  .pill { font-family: var(--mono); font-size: 12px; padding: 7px 13px; border: 1px solid var(--border); color: var(--muted); cursor: pointer; user-select: none; background: transparent; transition: all .15s; border-radius: 4px;}
+  .pill:hover { border-color: var(--copper); color: var(--text); }
+  .pill.active { background: var(--copper-soft); border-color: var(--copper); color: var(--copper); }
+
+  .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--border); }
+  .kpi { padding: 20px 18px; border-right: 1px solid var(--border); }
+  .kpi:last-child { border-right: none; }
+  .kpi .v { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text); }
+  .kpi .l { color: var(--muted); font-size: 11.5px; margin-top: 6px; }
+
+  section { padding: 15px 0; }
+  .panel { border: 1px solid var(--border); background: var(--panel); padding: 22px 22px 14px; border-radius: 6px; }
+  .panel-title { font-size: 14px; color: var(--text); font-weight: 600; margin-bottom: 2px; }
+  .panel-sub { font-size: 11.5px; color: var(--muted-dim); margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .chart-box { position: relative; height: 300px; width: 100%; }
+
+  /* Loader */
+  .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease;}
+  .loader-overlay.active { opacity: 1; visibility: visible; }
+  .spinner { width: 45px; height: 45px; border: 4px solid var(--border); border-top-color: var(--copper-bright); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loaderOverlay" class="loader-overlay"><div class="spinner"></div></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-block">
+      <div class="hamburger">☰</div>
+      <div class="brand-text">
+        <h1>Purchase Register</h1>
+        <div class="sub">Procurement Analytics Dashboard</div>
+      </div>
+      <div class="header-right">
+        <h2>KIRLOSKAR ELECTRIC COMPANY</h2>
+      </div>
+    </div>
+  </div>
+  
+  <div class="slicers">
+    <span class="slicer-label">Filter</span>
+    <select class="slicer" id="f-fin-year"><option value="">All Financial Years</option></select>
+    
+    <div class="custom-multiselect" id="monthSelector">
+      <div class="slicer select-box" id="monthSelectBox">All Months</div>
+      <div class="checkbox-menu" id="monthMenu">
+        <label><input type="checkbox" class="month-check" value="April"> April</label>
+        <label><input type="checkbox" class="month-check" value="May"> May</label>
+        <label><input type="checkbox" class="month-check" value="June"> June</label>
+        <label><input type="checkbox" class="month-check" value="July"> July</label>
+        <label><input type="checkbox" class="month-check" value="August"> August</label>
+        <label><input type="checkbox" class="month-check" value="September"> September</label>
+        <label><input type="checkbox" class="month-check" value="October"> October</label>
+        <label><input type="checkbox" class="month-check" value="November"> November</label>
+        <label><input type="checkbox" class="month-check" value="December"> December</label>
+        <label><input type="checkbox" class="month-check" value="January"> January</label>
+        <label><input type="checkbox" class="month-check" value="February"> February</label>
+        <label><input type="checkbox" class="month-check" value="March"> March</label>
+      </div>
+    </div>
+    
+    <select class="slicer" id="f-vendor"><option value="">All Vendors</option></select>
+    
+    <!-- Exact Date Calendar Input -->
+    <input type="date" id="f-date" class="slicer" title="Select Exact Date">
+    
+    <button id="applyFiltersBtn" onclick="refreshDashboard()">Apply</button>
+    <button id="resetBtn" onclick="resetFilters()">Reset</button>
+  </div>
+</div>
+
+<!-- DASHBOARD CONTENT -->
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-label">Total Procurement Spend: </div>
+    <div class="hero-num" id="heroTotal">₹0 Cr</div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi"><div class="v" id="kpiPOs">–</div><div class="l">Purchase Orders</div></div>
+    <div class="kpi"><div class="v" id="kpiMaterials">–</div><div class="l">Materials</div></div>
+    <div class="kpi"><div class="v" id="kpiVendors">–</div><div class="l">Vendors</div></div>
+    <div class="kpi"><div class="v" id="kpiPlants">–</div><div class="l">Plants</div></div>
+    <div class="kpi"><div class="v" id="kpiAvgPO">–</div><div class="l">Avg. PO Value</div></div>
+  </div>
+
+  <!-- Plant Pills Filter Row -->
+  <div class="filter-row" id="filterRow">
+    <span class="fl">Plant</span>
+    <div class="pill active" data-plant="">ALL</div>
+  </div>
+
+  <section>
+    <div class="panel">
+      <div class="panel-title" id="trendTitle">Spend Trend Analysis</div>
+      <div class="panel-sub" id="trendSub">Total spend distributed chronologically</div>
+      <div class="chart-box tall"><canvas id="trendChart"></canvas></div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="panel">
+      <div class="panel-title">Spend by Plant</div>
+      <div class="chart-box wide"><canvas id="plantChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Spend by PO Type</div>
+      <div class="chart-box wide"><canvas id="potypeChart"></canvas></div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="panel">
+      <div class="panel-title">Top 10 Vendors</div>
+      <div class="chart-box tall"><canvas id="vendorChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Top 10 Materials</div>
+      <div class="chart-box tall"><canvas id="materialChart"></canvas></div>
+    </div>
+  </section>
+</div>
+
+<script>
+    // --- Register DataLabels Plugin ---
+    Chart.register(ChartDataLabels);
+
+    const COPPER = '#C97C43';
+    const TEAL = '#4FA8A4';
+    const MUTED = '#8B95A5';
+    const BORDER = '#2B3542';
+
+    Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = MUTED;
+
+    let charts = {};
+    let state = { fin_year: '', months: [], plant: '', vendor: '', exact_date: '' };
+
+    function fmtINR(v) {
+        const val = parseFloat(v) || 0;
+        const cr = val / 1e7;
+        if (Math.abs(cr) >= 1) return cr.toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' Cr';
+        const lakh = val / 1e5;
+        return lakh.toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' L';
+    }
+    
+    function fmtCrFull(v) { 
+        return (parseFloat(v) / 1e7).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' <span style="color:var(--copper);">Cr</span>'; 
+    }
+    
+    function fmtInt(v) { return (parseInt(v) || 0).toLocaleString('en-IN'); }
+    function baseGrid() { return { color: BORDER, drawTicks: false }; }
+
+    // --- Dropdown Logic ---
+    const monthSelectBox = document.getElementById('monthSelectBox');
+    const monthMenu = document.getElementById('monthMenu');
+    const monthChecks = document.querySelectorAll('.month-check');
+
+    monthSelectBox.addEventListener('click', (e) => { e.stopPropagation(); monthMenu.classList.toggle('show'); });
+    monthMenu.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', () => monthMenu.classList.remove('show'));
+
+    function updateMonthText() {
+        const checked = Array.from(monthChecks).filter(c => c.checked).map(c => c.value);
+        state.months = checked;
+        if (checked.length === 0 || checked.length === 12) monthSelectBox.textContent = 'All Months';
+        else if (checked.length <= 2) monthSelectBox.textContent = checked.join(', ');
+        else monthSelectBox.textContent = `${checked.length} Selected`;
+    }
+    monthChecks.forEach(chk => chk.addEventListener('change', updateMonthText));
+
+    // --- Filter API ---
+    async function loadFilters() {
+        try {
+            const res = await fetch('/api/filters/purchase');
+            if (!res.ok) throw new Error("API returned status " + res.status);
+            const data = await res.json();
+
+            const fyDrop = document.getElementById('f-fin-year');
+            const venDrop = document.getElementById('f-vendor');
+            const filterRow = document.getElementById('filterRow');
+
+            if (data.fin_years) {
+                data.fin_years.forEach(y => fyDrop.add(new Option(y, y)));
+                const defaultFY = '2026-2027';
+                if ([...fyDrop.options].some(opt => opt.value === defaultFY)) fyDrop.value = defaultFY;
+            }
+            if (data.vendors) data.vendors.forEach(v => venDrop.add(new Option(v, v)));
+            
+            // Generate Plant Pills dynamically[cite: 2]
+            if (data.plants) {
+                data.plants.forEach(p => {
+                    const pill = document.createElement('div');
+                    pill.className = 'pill';
+                    pill.textContent = p;
+                    pill.dataset.plant = p;
+                    pill.addEventListener('click', () => {
+                        document.querySelectorAll('.pill').forEach(el => el.classList.remove('active'));
+                        pill.classList.add('active');
+                        state.plant = p;
+                        refreshDashboard();
+                    });
+                    filterRow.appendChild(pill);
+                });
+            }
+            
+            // "ALL" Pill listener
+            document.querySelector('.pill[data-plant=""]').addEventListener('click', function() {
+                document.querySelectorAll('.pill').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                state.plant = '';
+                refreshDashboard();
+            });
+
+        } catch (e) { console.error("Filter load error", e); }
+    }
+
+    function resetFilters() {
+        document.getElementById('f-fin-year').value = '2026-2027';
+        document.getElementById('f-vendor').value = '';
+        document.getElementById('f-date').value = '';
+        
+        state.plant = '';
+        document.querySelectorAll('.pill').forEach(el => el.classList.remove('active'));
+        document.querySelector('.pill[data-plant=""]').classList.add('active');
+        
+        monthChecks.forEach(c => c.checked = false);
+        updateMonthText();
+        refreshDashboard();
+    }
+
+    // --- Modular Chart Generators ---
+    function renderTrendChart(dataObj) {
+        if (charts.trendChart) charts.trendChart.destroy();
+        charts.trendChart = new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: dataObj.labels,
+                datasets: [{ data: dataObj.values.map(v => parseFloat(v) || 0), borderColor: COPPER, backgroundColor: 'rgba(201,124,67,0.12)', fill: true, tension: 0.3, pointRadius: 3 }]
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { legend: { display: false }, datalabels: { display: false } }, 
+                scales: { x: { grid: { display: false } }, y: { grid: baseGrid(), ticks: { callback: function(v) { return (v/1e5).toFixed(0) + 'L'; } } } } 
+            }
+        });
+    }
+
+    function renderBarChart(canvasId, dataObj, color, horizontal=false) {
+        if (charts[canvasId]) charts[canvasId].destroy();
+        
+        let scaleOptions = horizontal 
+            ? { x: { grid: baseGrid(), ticks: { callback: function(v) { return (v/1e5).toFixed(0) + 'L'; } } }, y: { grid: { display: false } } }
+            : { x: { grid: { display: false } }, y: { grid: baseGrid(), ticks: { callback: function(v) { return (v/1e5).toFixed(0) + 'L'; } } } };
+
+        charts[canvasId] = new Chart(document.getElementById(canvasId), {
+            type: 'bar',
+            data: {
+                labels: dataObj.labels.map(l => (l && l.length > 20) ? l.substring(0, 18) + '…' : (l || 'Unknown')),
+                datasets: [{ data: dataObj.values.map(v => parseFloat(v) || 0), backgroundColor: color, borderRadius: 2 }]
+            },
+            options: { 
+                indexAxis: horizontal ? 'y' : 'x', 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { display: false }, 
+                    datalabels: {
+                        color: '#ffffff',
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: (value) => ' \u20B9' + fmtINR(value)
+                    }
+                }, 
+                scales: scaleOptions
+            }
+        });
+    }
+
+    // --- Dashboard Data API ---
+    function buildQuery() {
+        const params = new URLSearchParams();
+        const fy = document.getElementById('f-fin-year').value;
+        const vn = document.getElementById('f-vendor').value;
+        const dt = document.getElementById('f-date').value;
+        
+        if (fy) params.append('fin_year', fy);
+        if (vn) params.append('vendor', vn);
+        if (dt) params.append('date', dt);
+        if (state.plant) params.append('plant', state.plant);
+        state.months.forEach(m => params.append('month', m));
+        return params.toString();
+    }
+
+    async function refreshDashboard() {
+        const loader = document.getElementById('loaderOverlay');
+        if (loader) { loader.classList.add('active'); loader.style.display = 'flex'; }
+        
+        try {
+            const qs = buildQuery();
+            const res = await fetch(`/api/purchase/dashboard?${qs}`);
+            if (!res.ok) throw new Error("API returned status " + res.status);
+            const data = await res.json();
+
+            // Render KPIs
+            document.getElementById('heroTotal').innerHTML = fmtCrFull(data.kpis.total_spend);
+            document.getElementById('kpiPOs').textContent = fmtInt(data.kpis.po_count);
+            document.getElementById('kpiMaterials').textContent = fmtInt(data.kpis.material_count);
+            document.getElementById('kpiVendors').textContent = fmtInt(data.kpis.vendor_count);
+            document.getElementById('kpiPlants').textContent = fmtInt(data.kpis.plant_count);
+            document.getElementById('kpiAvgPO').textContent = fmtINR(data.kpis.avg_po_value);
+
+            // Trigger separated chart functions
+            renderTrendChart(data.trend);
+            renderBarChart('plantChart', data.plants, TEAL, false);
+            renderBarChart('potypeChart', data.potypes, COPPER, true);
+            renderBarChart('vendorChart', data.vendors, TEAL, true);
+            renderBarChart('materialChart', data.materials, COPPER, true);
+
+        } catch (e) { console.error("Dashboard error:", e); } 
+        finally { if (loader) { loader.classList.remove('active'); loader.style.display = 'none'; } }
+    }
+
+    window.onload = async () => {
+        await loadFilters();
+        refreshDashboard();
+    };
+</script>
+</body>
+</html>
