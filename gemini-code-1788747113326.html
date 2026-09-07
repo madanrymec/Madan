@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collections Register Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- External Plugins -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<style>
+  :root{
+    --bg:#10141A; --panel:#171D25; --panel-alt:#1C2430;
+    --border:#2B3542; --border-soft:#212A35;
+    --text:#E7EAEE; --muted:#8B95A5; --muted-dim:#5E6675;
+    --copper:#C97C43; --teal:#4FA8A4;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-family:"IBM Plex Sans", sans-serif; font-size:15px; line-height:1.5; }
+  .num{ font-family:"IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Filter Bar ---------- */
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; padding: 16px clamp(20px,5vw,64px); background: var(--panel); border-bottom: 1px solid var(--border); align-items: center; }
+  .filter-bar .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-family: "IBM Plex Mono", monospace; }
+  .slicer { background: var(--panel-alt); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 3px; font-family: "IBM Plex Sans", sans-serif; font-size: 13px; outline: none; cursor: pointer; flex: 1; min-width: 120px; }
+  .slicer:hover { border-color: var(--copper); }
+  select.slicer { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0L5 6L10 0' fill='none' stroke='%236b7b88' stroke-width='1.4'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  .btn { background: var(--copper); color: var(--bg); border: none; padding: 8px 16px; border-radius: 3px; font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn.reset { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+  /* ---------- Header[cite: 3] ---------- */
+  header{ background: linear-gradient(180deg, var(--panel-alt) 0%, var(--bg) 100%); padding: 40px clamp(20px,5vw,64px) 34px; position:relative; overflow:hidden; border-bottom:1px solid var(--border); }
+  header::after{ content:""; position:absolute; inset:0; background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 34px); pointer-events:none; }
+  .head-top{ display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; position:relative; z-index:1; }
+  .head-top h1{ font-family:"Source Serif 4", serif; font-weight:600; font-size: clamp(24px, 3.4vw, 34px); margin:0; }
+  .hero{ margin-top:30px; display:flex; align-items:baseline; gap:22px; flex-wrap:wrap; position:relative; z-index:1; }
+  .hero-figure{ font-family:"Source Serif 4", serif; font-weight:600; font-size: clamp(44px, 8vw, 78px); line-height:1; }
+  .hero-figure sup{ font-size:0.36em; font-weight:400; margin-right:6px; top:-0.5em; color:var(--copper); }
+  .hero-label{ font-size:14px; color:var(--muted); max-width:220px; padding-bottom:8px; }
+  .hero-stats{ display:flex; gap:34px; flex-wrap:wrap; margin-top:22px; position:relative; z-index:1; border-top:1px solid var(--border); padding-top:18px; }
+  .hstat .num{ display:block; font-size:20px; color:var(--text); }
+  .hstat span.lbl{ font-size:12.5px; color:var(--muted); }
+
+  /* ---------- Layout & Panels[cite: 3] ---------- */
+  main{ max-width:1180px; margin:0 auto; padding: 34px clamp(20px,5vw,64px) 60px; }
+  .grid{ display:grid; grid-template-columns: 1.7fr 1fr; gap:22px; margin-bottom:22px; }
+  .grid.two{ grid-template-columns: 1fr 1fr; }
+  @media (max-width: 760px){ .grid, .grid.two{ grid-template-columns: 1fr; } }
+  .panel{ background:var(--panel); border:1px solid var(--border); border-radius:3px; padding: 22px 24px 24px; }
+  .panel h2{ font-family:"Source Serif 4", serif; font-weight:600; font-size:19px; margin:0 0 4px; }
+  .panel .sub{ font-size:12.5px; color:var(--muted); margin:0 0 18px; }
+
+  /* ---------- Ledger Rows & Split Bar[cite: 3] ---------- */
+  .lrow{ display:grid; grid-template-columns: 128px 1fr 84px; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--border-soft); }
+  .lrow:last-child{ border-bottom:none; }
+  .lrow .lname{ font-size:13.5px; }
+  .lrow .ltrack{ height:9px; background: var(--border-soft); border-radius:1px; overflow:hidden; }
+  .lrow .lfill{ height:100%; background:var(--copper); border-radius:1px; }
+  .lrow.teal .lfill{ background:var(--teal); }
+  .lrow .lamt{ text-align:right; font-size:13.5px; }
+  
+  .split-bar{ display:flex; height:34px; border-radius:2px; overflow:hidden; margin-bottom:16px; border:1px solid var(--border); }
+  .split-seg{ display:flex; align-items:center; justify-content:center; color:var(--bg); font-size:12.5px; font-weight:600; }
+  .split-legend{ display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .leg-item{ display:flex; align-items:center; gap:8px; font-size:13px; }
+  .swatch{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+  /* ---------- Tables[cite: 3] ---------- */
+  table{ width:100%; border-collapse:collapse; }
+  thead th{ text-align:left; font-size:11.5px; font-weight:500; color:var(--muted); padding:0 0 8px; border-bottom:1px solid var(--border); }
+  thead th.r{ text-align:right; }
+  tbody td{ padding:9px 0; border-bottom:1px solid var(--border-soft); font-size:13.5px; vertical-align:middle; }
+  tbody tr:last-child td{ border-bottom:none; }
+  td.r{ text-align:right; }
+  td.rank{ color:var(--muted); width:26px; }
+
+  /* Loader */
+  .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 17, 23, 0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; }
+  .loader-overlay.active { opacity: 1; visibility: visible; }
+  .spinner { width: 45px; height: 45px; border: 4px solid var(--border); border-top-color: var(--copper); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loaderOverlay" class="loader-overlay"><div class="spinner"></div></div>
+
+<div class="filter-bar">
+    <span class="lbl">Filter</span>
+    <select class="slicer" id="f-year"><option value="">All Years</option></select>
+    <select class="slicer" id="f-month"><option value="">All Months</option></select>
+    <input type="text" id="f-date" class="slicer" placeholder="Select Date 📅">
+    <select class="slicer" id="f-profit-center"><option value="">All Profit Centers</option></select>
+    <select class="slicer" id="f-sales-office"><option value="">All Sales Offices</option></select>
+    <button class="btn" onclick="refreshDashboard()">Apply</button>
+    <button class="btn reset" onclick="resetFilters()">Reset</button>
+</div>
+
+<header>
+  <div class="head-top">
+    <h1>Collections Register</h1>
+  </div>
+  <div class="hero">
+    <div class="hero-figure"><sup>₹</sup><span id="heroTotal">0</span> Cr</div>
+    <div class="hero-label">total realised against customer receipts</div>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><span class="num" id="kpiReceipts">0</span><span class="lbl">receipts posted</span></div>
+    <div class="hstat"><span class="num" id="kpiUnits">0</span><span class="lbl">operating units</span></div>
+    <div class="hstat"><span class="num" id="kpiOffices">0</span><span class="lbl">collection branches</span></div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="panel">
+      <h2 id="trendTitle">Daily receipts</h2>
+      <p class="sub">Amount realised by posting date, ₹ crore</p>
+      <div style="height:240px; position:relative;"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Collection vs advance</h2>
+      <p class="sub">Split of realised value by payment type</p>
+      <div class="split-bar" id="splitBar"></div>
+      <div class="split-legend" id="splitLegend"></div>
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border-soft);">
+        <p class="sub" style="margin-bottom:10px;">By document type</p>
+        <div id="doctypeRows"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="panel">
+      <h2>By operating unit</h2>
+      <p class="sub">Realised value, ₹ crore</p>
+      <div id="unitRows"></div>
+    </div>
+    <div class="panel">
+      <h2>By collection branch</h2>
+      <p class="sub">Realised value, ₹ crore — top branches</p>
+      <div id="branchRows"></div>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1fr;">
+    <div class="panel">
+      <h2>By product group</h2>
+      <p class="sub">Realised value, ₹ crore</p>
+      <div id="prodRows"></div>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="panel">
+      <h2>Largest payers</h2>
+      <p class="sub">Top 10 customers by value realised</p>
+      <table>
+        <thead><tr><th></th><th>Customer</th><th class="r">Receipts</th><th class="r">₹ crore</th></tr></thead>
+        <tbody id="custBody"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Collection accounts</h2>
+      <p class="sub">Realised value by bank account, ₹ crore</p>
+      <table>
+        <thead><tr><th>Account</th><th class="r">₹ crore</th></tr></thead>
+        <tbody id="bankBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+    Chart.defaults.font.family = '"IBM Plex Mono", monospace';
+    Chart.defaults.color = '#8B95A5';
+    let trendChartInstance = null;
+
+    // Initialize exact date calendar
+    flatpickr("#f-date", { dateFormat: "Y-m-d", allowInput: false, disableMobile: "true" });
+
+    function fmt(n) { return (parseFloat(n) || 0).toFixed(2); }
+    function fmtCr(v) { return ((parseFloat(v) || 0) / 1e7).toFixed(2); }
+
+    async function loadFilters() {
+        try {
+            const res = await fetch('/api/filters/collections');
+            const data = await res.json();
+            
+            const yrDrop = document.getElementById('f-year');
+            const mthDrop = document.getElementById('f-month');
+            const pcDrop = document.getElementById('f-profit-center');
+            const soDrop = document.getElementById('f-sales-office');
+            
+            if(data.years) data.years.forEach(y => yrDrop.add(new Option(y, y)));
+            if(data.months) data.months.forEach(m => mthDrop.add(new Option(m, m)));
+            if(data.profit_centers) data.profit_centers.forEach(pc => pcDrop.add(new Option(pc, pc)));
+            if(data.sales_offices) data.sales_offices.forEach(so => soDrop.add(new Option(so, so)));
+
+            // Set Initial Load to Current Month & Year
+            const date = new Date();
+            const currentYear = date.getFullYear().toString();
+            const currentMonth = date.toLocaleString('default', { month: 'long' });
+
+            if ([...yrDrop.options].some(opt => opt.value === currentYear)) yrDrop.value = currentYear;
+            if ([...mthDrop.options].some(opt => opt.value === currentMonth)) mthDrop.value = currentMonth;
+
+        } catch(e) { console.error("Filter error", e); }
+    }
+
+    function resetFilters() {
+        const date = new Date();
+        document.getElementById('f-year').value = date.getFullYear().toString();
+        document.getElementById('f-month').value = date.toLocaleString('default', { month: 'long' });
+        document.getElementById('f-date').value = '';
+        document.getElementById('f-profit-center').value = '';
+        document.getElementById('f-sales-office').value = '';
+        refreshDashboard();
+    }
+
+    // Ledger Row Renderer[cite: 3]
+    function renderRows(containerId, dataObj, cls) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        if(!dataObj || !dataObj.values.length) return;
+        
+        const max = Math.max(...dataObj.values.map(v => parseFloat(v) || 0));
+        container.innerHTML = dataObj.labels.map((l, i) => {
+            const v = parseFloat(dataObj.values[i]) || 0;
+            const cr = v / 1e7;
+            const w = max ? (v/max*100).toFixed(1) : 0;
+            return `<div class="lrow ${cls||''}">
+                <div class="lname">${l || 'Unknown'}</div>
+                <div class="ltrack"><div class="lfill" style="width:${w}%"></div></div>
+                <div class="lamt num">${fmt(cr)}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // Split Bar Renderer[cite: 3]
+    function renderSplitBar(dataObj) {
+        const bar = document.getElementById('splitBar');
+        const legend = document.getElementById('splitLegend');
+        const colors = ['#C97C43', '#4FA8A4'];
+        
+        const vals = dataObj.values.map(v => parseFloat(v) || 0);
+        const total = vals.reduce((a, b) => a + b, 0);
+        
+        bar.innerHTML = dataObj.labels.map((l, i) => {
+            const pct = total ? (vals[i]/total*100).toFixed(1) : 0;
+            return `<div class="split-seg" style="width:${pct}%; background:${colors[i%2]}">${pct}%</div>`;
+        }).join('');
+        
+        legend.innerHTML = dataObj.labels.map((l, i) =>
+            `<div class="leg-item"><span class="swatch" style="background:${colors[i%2]}"></span>${l} — <span class="num">₹${fmt(vals[i]/1e7)} Cr</span></div>`
+        ).join('');
+    }
+
+    async function refreshDashboard() {
+        const loader = document.getElementById('loaderOverlay');
+        if (loader) loader.classList.add('active');
+        
+        try {
+            const params = new URLSearchParams();
+            ['year', 'month', 'date', 'profit_center', 'sales_office'].forEach(id => {
+                const val = document.getElementById(`f-${id.replace('_', '-')}`).value;
+                if(val) params.append(id, val);
+            });
+            
+            const res = await fetch(`/api/collections/dashboard?${params.toString()}`);
+            const data = await res.json();
+
+            // KPIs
+            document.getElementById('heroTotal').innerText = fmtCr(data.kpis.total_amt);
+            document.getElementById('kpiReceipts').innerText = parseInt(data.kpis.receipts).toLocaleString('en-IN');
+            document.getElementById('kpiUnits').innerText = data.kpis.units;
+            document.getElementById('kpiOffices').innerText = data.kpis.offices;
+
+            // Trend Chart
+            if(trendChartInstance) trendChartInstance.destroy();
+            const isDaily = !!document.getElementById('f-month').value || !!document.getElementById('f-date').value;
+            document.getElementById('trendTitle').innerText = isDaily ? 'Daily receipts' : 'Monthly receipts';
+            
+            trendChartInstance = new Chart(document.getElementById('trendChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.trend.labels,
+                    datasets: [{
+                        data: data.trend.values.map(v => (parseFloat(v)||0)/1e7),
+                        backgroundColor: '#C97C43', borderRadius: 2
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: '#2B3542' } } } }
+            });
+
+            // Ledger Rows
+            renderSplitBar(data.paytype);
+            renderRows('doctypeRows', data.doctype, 'teal');
+            renderRows('unitRows', data.unit);
+            renderRows('branchRows', data.branch);
+            renderRows('prodRows', data.prod);
+
+            // Tables[cite: 3]
+            document.getElementById('custBody').innerHTML = (data.payers || []).map((c, i) => `
+                <tr><td class="rank num">${i+1}</td><td>${c.label || 'Unknown'}</td><td class="r num">${c.txns}</td><td class="r num">${fmtCr(c.val)}</td></tr>
+            `).join('');
+
+            document.getElementById('bankBody').innerHTML = (data.bank || []).map(b => `
+                <tr><td>${b.label || 'Unknown'}</td><td class="r num">${fmtCr(b.val)}</td></tr>
+            `).join('');
+
+        } catch(e) { console.error("Dashboard error:", e); }
+        finally { if (loader) loader.classList.remove('active'); }
+    }
+
+    window.onload = async () => {
+        await loadFilters();
+        refreshDashboard();
+    };
+</script>
+</body>
+</html>
