@@ -1,0 +1,159 @@
+i need to design one scheduler on in python to fetch the data from odata api and store data in sql.
+My rquirement is, delete the current month data, and insert, beacuse api is having current month data which is appending , while storing the data sequentially,
+to avoid overwrite, we can delete the current month data of this fin_year, for that consider, Month(Post_Date). and There is no proper sequence in  api excel and my table schema, 
+i will provide detail mapping , below.
+and for financial year, in our api data its '2026-2026' , but i need it as '2026-2027' , before inserting to table, because my existing data's are in correct format.
+And few helper functions i need , i, e trailing minus for decimal data types and mysql supported date data types. before inserting data.
+my api link is 'https://kecapi.kirloskar-electric.com/sap/opu/odata/sap/ZPURREG_SRV/ZPURREGSet?$format=xlsx'
+its password protected, the "username": "corpodata", "password": "Kec12345", and  
+for inserting table name is
+DB_CONFIG = {
+    "host": os.environ.get("DB_HOST", "localhost"),
+    "user": os.environ.get("DB_USER", "root"),
+    "password": os.environ.get("DB_PASSWORD", ""),
+    "database": os.environ.get("DB_NAME", "dashboard"), 
+    "table name" : "purchase_registry"
+		
+}
+This consists 63 columns and in an average of daily 1 000 + data is there, so kindly look in all aspects, to avoid crash or deadlock situation, and data misplacement.
+and at the monthend, i need to preserve data. for next month, next cycle.
+My scheduler frequency is every 4 hours once. and running port is 5100 and host is 192.7.200.48
+ the table mapping and schema is
+
+excel	sql
+date	        As_on_Date
+Purchasing Doc.	po_number
+Item	item
+Order Type	po_type 
+Currency	Currency
+Inv. Doc. No.	IR_No
+Inv. Doc. No.	GR_No
+Fiscal Year	Year
+Procedure	T
+Event/ Type	Event
+Inv. status	St
+Desc.Status	Desc_Status
+Desc Blocked	Desc_Block
+Document Date	Doc_Date
+Posting Date	Post_Date
+Reference	Ven_Inv_No
+Vendor	Vendor_cd
+Name 1	Vendor_Name 
+Own explanatn	Payment_terms_Desc
+Incoterms 2	Inco_terms_Desc
+House no/street	House_No_Street
+VAT Reg. No.	Vat_Reg_No
+Currency	Crcy
+Business Area	BusA
+Valuation Area	ValA 
+Doc.Header Text	HeaderText
+Reversed with	Revwith
+FI doc. no.	DocumentNo
+Fiscal Year	Year1
+Material	Material
+Short Text	Short_Text 
+Material Group	Mat_Group
+Valuation Type	Val_Type
+Tax code	Tx
+Text	Description
+Quantity	Quantity
+Order Unit	OUn
+Valuation Class	ValCl1
+Description	ValCl2
+Amount	Amount
+Amount in LC	Base_Amount
+Status	Custom_Duty
+Amount	Cess_Custom
+Amount	SP_Custom
+Amount	CVD_Amount
+Amount	Cess_CVD
+Amount	Others
+Amount	Add_Duty
+Amount	Land_Charges
+Amount	Freight
+Amount	Excise
+Amount	Ed_Cess
+Amount	C_S_T
+Amount	VAT
+Amount	VAT_ptg
+Amount	H_S_CESS
+Amount	OTHERS_2
+Unpl. del. csts	Del_costs
+Amount	GL_Amount
+Cost element	G_L_Acct
+Amount	Price_Diff
+Amount	W_tax_amnt
+Amount	Total
+Finance Year	fin_Year 
+MONTH	Month_year,
+
+the below one is my table structure.
+CREATE TABLE `purchase_registry` (
+  `As_on_Date` date DEFAULT NULL,	
+  `fin_Year` varchar(20) DEFAULT NULL,
+  `po_number` varchar(30) DEFAULT NULL,
+  `item` varchar(10) DEFAULT NULL,
+  `po_type` varchar(10) DEFAULT NULL,
+  `Currency` varchar(10) DEFAULT NULL,
+  `IR_No` varchar(20) DEFAULT NULL,
+  `GR_No` varchar(20) DEFAULT NULL,
+  `Year` varchar(20) DEFAULT NULL,
+  `T` varchar(20) DEFAULT NULL,
+  `Event` varchar(20) DEFAULT NULL,
+  `St` varchar(20) DEFAULT NULL,
+  `Desc_Status` varchar(50) DEFAULT NULL,
+  `Desc_Block` varchar(50) DEFAULT NULL,
+  `Doc_Date` date DEFAULT NULL,
+  `Post_Date` date DEFAULT NULL,
+  `Ven_Inv_No` varchar(55) DEFAULT NULL,
+  `Vendor_cd` varchar(20) DEFAULT NULL,
+  `Vendor_Name` varchar(100) DEFAULT NULL,
+  `Payment_terms_Desc` varchar(100) DEFAULT NULL,
+  `Inco_terms_Desc` varchar(100) DEFAULT NULL,
+  `House_No_Street` varchar(200) DEFAULT NULL,
+  `Vat_Reg_No` varchar(100) DEFAULT NULL,
+  `Crcy` varchar(10) DEFAULT NULL,
+  `BusA` varchar(50) DEFAULT NULL,
+  `ValA` varchar(10) DEFAULT NULL,
+  `HeaderText` text DEFAULT NULL,
+  `Revwith` varchar(50) DEFAULT NULL,
+  `DocumentNo` varchar(50) DEFAULT NULL,
+  `Year1` varchar(10) DEFAULT NULL,
+  `Material` varchar(100) DEFAULT NULL,
+  `Short_Text` text DEFAULT NULL,
+  `Mat_Group` varchar(20) DEFAULT NULL,
+  `Val_Type` varchar(20) DEFAULT NULL,
+  `Tx` varchar(10) DEFAULT NULL,
+  `Description` varchar(100) DEFAULT NULL,
+  `Quantity` decimal(12,3) DEFAULT NULL,
+  `OUn` varchar(10) DEFAULT NULL,
+  `ValCl1` varchar(200) DEFAULT NULL,
+  `ValCl2` varchar(200) DEFAULT NULL,
+  `Amount` decimal(13,2) DEFAULT NULL,
+  `Base_Amount` decimal(13,2) DEFAULT NULL,
+  `Custom_Duty` decimal(13,2) DEFAULT NULL,
+  `Cess_Custom` decimal(13,2) DEFAULT NULL,
+  `SP_Custom` decimal(13,2) DEFAULT NULL,
+  `CVD_Amount` decimal(13,2) DEFAULT NULL,
+  `Cess_CVD` decimal(13,2) DEFAULT NULL,
+  `Others` decimal(12,2) DEFAULT NULL,
+  `Add_Duty` decimal(12,2) DEFAULT NULL,
+  `Land_Charges` decimal(12,2) DEFAULT NULL,
+  `Freight` decimal(12,2) DEFAULT NULL,
+  `Excise` decimal(12,2) DEFAULT NULL,
+  `Ed_Cess` decimal(12,2) DEFAULT NULL,
+  `C_S_T` decimal(12,2) DEFAULT NULL,
+  `VAT` decimal(12,2) DEFAULT NULL,
+  `VAT_ptg` decimal(10,2) DEFAULT NULL,
+  `H_S_CESS` decimal(12,2) DEFAULT NULL,
+  `OTHERS_2` decimal(12,2) DEFAULT NULL,
+  `Del_costs` decimal(12,2) DEFAULT NULL,
+  `GL_Amount` decimal(12,2) DEFAULT NULL,
+  `G_L_Acct` varchar(10) DEFAULT NULL,
+  `Price_Diff` decimal(12,2) DEFAULT NULL,
+  `W_tax_amnt` decimal(12,2) DEFAULT NULL,
+  `Total` decimal(12,2) DEFAULT NULL,
+  `Month_year` varchar(30) DEFAULT NULL
+) ,
+Consider all aspects, give me best code, and dont make any mistakes.
+ 
