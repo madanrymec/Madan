@@ -1,0 +1,1645 @@
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        emp_id_input = request.form['username']
+        password_input = request.form['password']
+
+        conn = get_user_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+            SELECT emp_id, emp_name, permission 
+            FROM user_mast 
+            WHERE emp_id = %s AND BINARY password = %s AND active_status = 'active'
+        """
+        cursor.execute(query, (emp_id_input, password_input))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            # Set session data
+            session['logged_in'] = True
+            session['emp_id'] = user['emp_id'].strip()
+            session['username'] = user['emp_name']
+
+            perm = user['permission']
+
+            if not perm or perm == 'NULL':
+                return redirect(url_for('home'))
+
+            if perm.startswith('unit_'):
+                target_route = f"unit_head.{perm}"
+            elif perm.startswith('finance_'):
+                target_route = f"finance_head.{perm}"
+            else:
+                target_route = f"product_head.{perm}"
+
+            try:
+                # return redirect(url_for('product_head.dashboard_hvm'))
+                return redirect(url_for(target_route))
+            except Exception as e:
+                print(f"Routing Error for {target_route}: {e}")
+                return redirect(url_for('home'))
+        else:
+            error = "Invalid Employee ID or Password"
+
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    session.pop('username', None)
+    return redirect(url_for('login'))
+
+
+
+def build_filter_query(table_type="data"):
+    """
+    Dynamically builds the WHERE clause and parameters based on frontend filters.
+    Optimized for MySQL using %s placeholders.
+    """
+    filters = []
+    params = []
+
+    # Extract multiple selections
+    regions = request.args.getlist('region')
+    offices = request.args.getlist('sales_office')
+    products = request.args.getlist('product')
+    units = request.args.getlist('unit')
+    fin_years = request.args.getlist('fin_year')
+    months = request.args.getlist('month')
+
+    # Region Handling
+    if regions:
+        placeholders = ','.join(['%s'] * len(regions))
+        filters.append(f"Sales_Region_Name IN ({placeholders})")
+        params.extend(regions)
+
+    # Sales Office Handling
+    if offices:
+        placeholders = ','.join(['%s'] * len(offices))
+        filters.append(f"Sales_office IN ({placeholders})")
+        params.extend(offices)
+
+    # Product handling
+    if products:
+        placeholders = ','.join(['%s'] * len(products))
+        if table_type == "data":
+            mapped_prod_sql = """
+                CASE 
+                    WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
+                    WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
+                    ELSE Prod 
+                END
+            """
+            filters.append(f"({mapped_prod_sql}) IN ({placeholders})")
+        else:
+            filters.append(f"Product IN ({placeholders})")
+        params.extend(products)
+
+    # Unit Handling (NEW)
+    if units:
+        placeholders = ','.join(['%s'] * len(units))
+        if table_type == "data":
+            mapped_unit_sql = """
+                CASE 
+                    WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16'
+                    WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                    ELSE Unit 
+                END
+            """
+            filters.append(f"({mapped_unit_sql}) IN ({placeholders})")
+        else:
+            mapped_unit_target_sql = """
+                CASE 
+                    WHEN Product = 'TRANSFORMERS PUNE' THEN 'UN16'
+                    ELSE Unit 
+                END
+            """
+            filters.append(f"({mapped_unit_target_sql}) IN ({placeholders})")
+        params.extend(units)
+
+    # Financial Year Handling
+    if fin_years:
+        placeholders = ','.join(['%s'] * len(fin_years))
+        filters.append(f"fin_year IN ({placeholders})")
+        params.extend(fin_years)
+
+    # Month Handling
+    if months and table_type == "data":
+        placeholders = ','.join(['%s'] * len(months))
+        filters.append(f"MONTHNAME(Billing_Date) IN ({placeholders})")
+        params.extend(months)
+
+    # Exclude Inter Unit Transfers strictly for billing_data
+    if table_type == "data":
+        filters.append("Dist_Channel_TEXT != 'Inter Unit Transfer' AND Prod IS NOT NULL")
+
+    where_clause = " AND ".join(filters) if filters else "1=1"
+    return "WHERE " + where_clause, params
+
+# ==========================================
+# PAGE ROUTE
+# ==========================================
+
+
+@app.route('/home')
+def home():
+    # Assuming login logic is handled elsewhere, defaulting to a static render for now
+    username = session.get('username', 'Guest')
+    return render_template('home.html', username=username)
+
+
+# ==========================================
+# API ENDPOINTS
+# ==========================================
+
+@app.route('/api/filters', methods=['GET'])
+def get_filters():
+    """Fetches distinct filter options, handling cascading dependencies (Region->Office, Unit->Product)."""
+    regions_selected = request.args.getlist('region')
+    units_selected = request.args.getlist('unit')
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT DISTINCT Sales_Region_Name 
+                FROM billing_data 
+                WHERE Dist_Channel_TEXT != 'Inter Unit Transfer' AND Sales_Region_Name IS NOT NULL
+            """)
+            regions = [r['Sales_Region_Name'] for r in cursor.fetchall() if r['Sales_Region_Name']]
+
+            cursor.execute("""
+                SELECT DISTINCT fin_year 
+                FROM billing_data 
+                WHERE Dist_Channel_TEXT != 'Inter Unit Transfer' AND fin_year IS NOT NULL
+            """)
+            fin_years = [r['fin_year'] for r in cursor.fetchall() if r['fin_year']]
+
+            unit_query = """
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16'
+                        WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                        ELSE Unit 
+                    END as unit
+                FROM billing_data 
+                WHERE Dist_Channel_TEXT != 'Inter Unit Transfer' AND Unit IS NOT NULL
+            """
+            cursor.execute(unit_query)
+            excluded_units = {'UN07', 'UN15'}
+            units = [r['unit'] for r in cursor.fetchall() if r['unit'] and r['unit'] not in excluded_units]
+
+            # 2. Dependent Filter: Sales Office (Filtered by Region)
+            office_query = """
+                SELECT DISTINCT Sales_office 
+                FROM billing_data 
+                WHERE Dist_Channel_TEXT != 'Inter Unit Transfer' AND Sales_office IS NOT NULL
+            """
+            office_params = []
+            if regions_selected:
+                placeholders = ','.join(['%s'] * len(regions_selected))
+                office_query += f" AND Sales_Region_Name IN ({placeholders})"
+                office_params.extend(regions_selected)
+
+            cursor.execute(office_query, office_params)
+            offices = [r['Sales_office'] for r in cursor.fetchall() if r['Sales_office']]
+
+            # 3. Dependent Filter: Products (Filtered by Unit using dynamic mapping)
+            prod_query = """
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
+                        WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
+                        ELSE Prod 
+                    END as mapped_prod
+                FROM billing_data
+                WHERE Dist_Channel_TEXT != 'Inter Unit Transfer' AND Prod IS NOT NULL
+            """
+            prod_params = []
+            if units_selected:
+                placeholders = ','.join(['%s'] * len(units_selected))
+                mapped_unit_sql = """
+                    CASE 
+                        WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16'
+                        WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                        ELSE Unit 
+                    END
+                """
+                prod_query += f" AND ({mapped_unit_sql}) IN ({placeholders})"
+                prod_params.extend(units_selected)
+
+            cursor.execute(prod_query, prod_params)
+            products = [r['mapped_prod'] for r in cursor.fetchall() if r['mapped_prod']]
+
+    return jsonify({
+        "regions": regions,
+        "offices": offices,
+        "fin_years": fin_years,
+        "products": products,
+        "units": units
+    })
+
+
+@app.route('/api/kpis', methods=['GET'])
+def get_kpis():
+    """Returns Overall Sales and Total Target for the KPI grid and Achievement Gauge."""
+    data_where, data_params = build_filter_query("data")
+    target_where, target_params = build_filter_query("target")
+
+    # Determine proration factor based on selected months
+    months = request.args.getlist('month')
+    proration_factor = len(months) / 12.0 if months else 1.0
+
+    # 1. Query Actuals from billing_data (Optimized)
+    data_query = f"""
+        SELECT SUM(Net_Value) as overall_sales
+        FROM billing_data
+        {data_where}
+    """
+
+    # 2. Query Targets from billing_target
+    target_query = f"""
+        SELECT (SUM(Target) * 100000 * {proration_factor}) as total_target
+        FROM billing_target1
+        {target_where}
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # Fetch Actuals
+            cursor.execute(data_query, data_params)
+            result = cursor.fetchone() or {}
+
+            # Fetch Targets
+            cursor.execute(target_query, target_params)
+            target_result = cursor.fetchone() or {}
+
+    # Map results and safely handle NULLs
+    result['overall_sales'] = result.get('overall_sales') or 0
+    result['total_target'] = target_result.get('total_target') or 0
+
+    return jsonify(result)
+
+
+@app.route('/api/sales-trend', methods=['GET'])
+def get_sales_trend():
+    """Returns Net Revenue Trend over time (Both Weekly and Monthly aggregation)."""
+    where_clause, params = build_filter_query("data")
+
+    # 1. Monthly Query (For MoM Growth)
+    monthly_query = f"""
+        SELECT 
+            DATE_FORMAT(Billing_Date, '%%Y-%%m') as time_period,
+            SUM(Net_Value) as total_revenue
+        FROM billing_data
+        {where_clause}
+        GROUP BY time_period
+        ORDER BY time_period ASC
+    """
+
+    weekly_query = f"""
+        SELECT 
+            DATE_FORMAT(MIN(Billing_Date), '%%d %%b %%y') as time_period,
+            SUM(Net_Value) as total_revenue
+        FROM billing_data
+        {where_clause}
+        GROUP BY YEARWEEK(Billing_Date, 1)
+        ORDER BY MIN(Billing_Date) ASC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # Execute Monthly
+            cursor.execute(monthly_query, params)
+            monthly_results = cursor.fetchall()
+
+            # Execute Weekly
+            cursor.execute(weekly_query, params)
+            weekly_results = cursor.fetchall()
+
+    # Return both datasets cleanly
+    return jsonify({
+        "monthly": monthly_results,
+        "weekly": weekly_results
+    })
+
+@app.route('/api/products-revenue', methods=['GET'])
+def get_products_revenue():
+    """Returns Revenue Contribution by Product Line using the LV Motors plant logic."""
+    where_clause, params = build_filter_query("data")
+
+    query = f"""
+        SELECT 
+            CASE 
+                WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
+                WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
+                ELSE Prod 
+            END as mapped_product,
+            SUM(Net_Value) as revenue,
+            SUM(Billing_Qty) as quantity
+        FROM billing_data
+        {where_clause}
+        GROUP BY mapped_product
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            results = cursor.fetchall()
+
+    return jsonify(results)
+
+
+@app.route('/api/sales-by-office', methods=['GET'])
+def get_sales_by_office():
+    """Returns Top 12 Sales Offices by Revenue."""
+    where_clause, params = build_filter_query("data")
+
+    # Added LIMIT 12 to optimize DB performance for large datasets
+    office_query = f"""
+        SELECT Sales_office, SUM(Net_Value) as revenue
+        FROM billing_data {where_clause}
+        GROUP BY Sales_office 
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(office_query, params)
+            offices = cursor.fetchall()
+
+    return jsonify(offices)
+
+
+@app.route('/api/sales-by-region', methods=['GET'])
+def get_sales_by_region():
+    """Returns Revenue by Region."""
+    where_clause, params = build_filter_query("data")
+
+    region_query = f"""
+        SELECT Sales_Region_Name, SUM(Net_Value) as revenue
+        FROM billing_data {where_clause}
+        GROUP BY Sales_Region_Name 
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(region_query, params)
+            regions = cursor.fetchall()
+
+    return jsonify(regions)
+
+
+
+@app.route('/api/aop-achievement', methods=['GET'])
+def get_aop_achievement():
+    """
+    Calculates Sales Achieved VS AOP.
+    Queries billing_data and billing_target separately and maps them via Python dictionary.
+    Includes dynamic prorating for target revenue based on month selections.
+    """
+    data_where, data_params = build_filter_query("data")
+    target_where, target_params = build_filter_query("target")
+
+    # Determine proration factor based on selected months
+    # If 1 month is selected, target is multiplied by (1/12). If none, it remains (1).
+    months = request.args.getlist('month')
+    proration_factor = len(months) / 12.0 if months else 1.0
+
+    # 1. Fetch Actuals from billing_data
+    # (Corrected 'TRANSFORMERS PUNE' spelling to match the database/image)
+    actuals_query = f"""
+        SELECT 
+            CASE 
+                WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
+                WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
+                ELSE Prod 
+            END as mapped_product,
+            CASE 
+                WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16'
+                WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                ELSE Unit 
+            END as mapped_unit,
+            SUM(Net_Value) as actual_revenue
+        FROM billing_data
+        {data_where}
+        GROUP BY mapped_product, mapped_unit
+        ORDER BY mapped_unit ASC
+    """
+
+    # 2. Fetch Targets from billing_target
+    # (Applied proration_factor to the target revenue calculation)
+    targets_query = f"""
+        SELECT 
+            Product,
+            CASE 
+                WHEN Product = 'TRANSFORMERS PUNE' THEN 'UN16'
+                ELSE Unit 
+            END as mapped_unit,
+            (SUM(Target) * 100000 * {proration_factor}) as target_revenue
+        FROM billing_target1
+        {target_where}
+        GROUP BY Product, mapped_unit
+        ORDER BY mapped_unit ASC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(targets_query, target_params)
+            targets_raw = cursor.fetchall()
+
+            cursor.execute(actuals_query, data_params)
+            actuals_raw = cursor.fetchall()
+
+    # 3. Python Mapping (O(N) Complexity - No SQL JOIN used)
+    merged_data = {}
+
+    # Initialize dictionary with targets
+    for row in targets_raw:
+        product = row['Product']
+        unit = row['mapped_unit']
+        key = f"{product}|{unit}"
+
+        merged_data[key] = {
+            "product": product,
+            "unit": unit,
+            "target": float(row['target_revenue'] or 0),
+            "actual": 0.0,
+            "achievement_percentage": 0.0
+        }
+
+    # Map actuals onto the dictionary
+    for row in actuals_raw:
+        product = row['mapped_product']
+        unit = row['mapped_unit']
+        key = f"{product}|{unit}"
+
+        if key not in merged_data:
+            merged_data[key] = {
+                "product": product,
+                "unit": unit,
+                "target": 0.0,
+                "actual": 0.0,
+                "achievement_percentage": 0.0
+            }
+
+        merged_data[key]["actual"] += float(row['actual_revenue'] or 0)
+
+    # 4. Calculate Final Achievement Percentages
+    final_results = []
+    for data in merged_data.values():
+        if data["target"] > 0:
+            data["achievement_percentage"] = round((data["actual"] / data["target"]) * 100, 2)
+        else:
+            data["achievement_percentage"] = 100.0 if data["actual"] > 0 else 0.0
+
+        final_results.append(data)
+
+    return jsonify(final_results)
+
+
+@app.route('/api/un07-sales', methods=['GET'])
+def get_un07_sales():
+    filters = ["Unit = 'UN07'"]
+    params = []
+
+    fin_years = request.args.getlist('fin_year')
+    months = request.args.getlist('month')
+
+    if fin_years:
+        placeholders = ','.join(['%s'] * len(fin_years))
+        filters.append(f"fin_year IN ({placeholders})")
+        params.extend(fin_years)
+
+    if months:
+        placeholders = ','.join(['%s'] * len(months))
+        filters.append(f"MONTHNAME(Billing_Date) IN ({placeholders})")
+        params.extend(months)
+
+    where_clause = " AND ".join(filters)
+
+    query = f"""
+        SELECT SUM(Net_Value) as un07_sales 
+        FROM billing_data 
+        WHERE {where_clause}
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            result = cursor.fetchone()
+
+    un07_sales = result.get('un07_sales') if result and result.get('un07_sales') else 0
+
+    return jsonify({"un07_sales": float(un07_sales)})
+
+# ==========================================
+# QUERY BUILDER (Fixed & Corrected)
+# ==========================================
+def build_filter_orders_query(table_type="order_data"):
+    """
+    Dynamically builds the WHERE clause and parameters specifically for Orders based on frontend filters.
+    """
+    filters = []
+    params = []
+
+    order_regions = request.args.getlist('region')
+    order_offices = request.args.getlist('sales_office')
+    order_products = request.args.getlist('product')
+    order_units = request.args.getlist('unit')  # NEW: Extract Unit filter
+    fin_years = request.args.getlist('fin_year')
+    months = request.args.getlist('month')
+
+    # Region
+    if order_regions:
+        placeholders = ','.join(['%s'] * len(order_regions))
+        filters.append(f"Sales_Region IN ({placeholders})")
+        params.extend(order_regions)
+
+    # Sales Office
+    if order_offices:
+        placeholders = ','.join(['%s'] * len(order_offices))
+        filters.append(f"Sales_office IN ({placeholders})")
+        params.extend(order_offices)
+
+    # Product handling
+    if order_products:
+        placeholders = ','.join(['%s'] * len(order_products))
+        if table_type == "order_data":
+            mapped_prod_sql = """
+                CASE 
+                    WHEN Product1 = 'LV Motors' AND Product2 = 'LV Motors (Standard)' THEN 'LV MOTORS(S)'
+                    ELSE Product1 
+                END
+            """
+            filters.append(f"({mapped_prod_sql}) IN ({placeholders})")
+        else:
+            filters.append(f"Product1 IN ({placeholders})")
+        params.extend(order_products)
+
+    # Unit Handling (NEW)
+    if order_units:
+        placeholders = ','.join(['%s'] * len(order_units))
+        if table_type == "order_data":
+            mapped_unit_sql = """
+                CASE 
+                    WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                    WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                    ELSE Unit 
+                END
+            """
+            filters.append(f"({mapped_unit_sql}) IN ({placeholders})")
+        else:
+            # order_target mapping
+            mapped_unit_target_sql = """
+                CASE 
+                    WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                    ELSE Unit 
+                END
+            """
+            filters.append(f"({mapped_unit_target_sql}) IN ({placeholders})")
+        params.extend(order_units)
+
+    if fin_years:
+        placeholders = ','.join(['%s'] * len(fin_years))
+        filters.append(f"fin_year IN ({placeholders})")
+        params.extend(fin_years)
+
+    if months and table_type == "order_data":
+        placeholders = ','.join(['%s'] * len(months))
+        filters.append(f"MONTHNAME(Created_Date) IN ({placeholders})")
+        params.extend(months)
+
+    if table_type == "order_data":
+        filters.append("Product1 IS NOT NULL")
+
+    where_clause = " AND ".join(filters) if filters else "1=1"
+    return "WHERE " + where_clause, params
+
+# ==========================================
+# PAGE ROUTE
+# ==========================================
+@app.route('/orders')
+def order():
+    username = session.get('username', 'Guest')
+    return render_template('orders_dashboard.html', username=username)
+
+
+# ==========================================
+# API ENDPOINTS (Points to build_filter_orders_query)
+# ==========================================
+
+@app.route('/api/filters/orders', methods=['GET'])
+def get_orders_filters():
+    """Fetches distinct filter options for Orders, handling cascading dependencies (Region->Office, Unit->Product)."""
+    regions_selected = request.args.getlist('region')
+    units_selected = request.args.getlist('unit')
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # 1. Independent Filters (Regions, Fin Years, Units)
+            cursor.execute("SELECT DISTINCT Sales_Region FROM order_data WHERE Sales_Region IS NOT NULL")
+            regions = [r['Sales_Region'] for r in cursor.fetchall() if r['Sales_Region']]
+
+            cursor.execute("SELECT DISTINCT fin_year FROM order_data WHERE fin_year IS NOT NULL")
+            fin_years = [r['fin_year'] for r in cursor.fetchall() if r['fin_year']]
+
+            unit_query = """
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                        WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                        ELSE Unit 
+                    END as unit
+                FROM order_data 
+                WHERE Unit IS NOT NULL
+            """
+            cursor.execute(unit_query)
+            excluded_units = {'UN07', 'UN15'}
+            units = [r['unit'] for r in cursor.fetchall() if r['unit'] and r['unit'] not in excluded_units]
+
+            # 2. Dependent Filter: Sales Office (Filtered by Region)
+            office_query = "SELECT DISTINCT Sales_office FROM order_data WHERE Sales_office IS NOT NULL"
+            office_params = []
+            if regions_selected:
+                placeholders = ','.join(['%s'] * len(regions_selected))
+                office_query += f" AND Sales_Region IN ({placeholders})"
+                office_params.extend(regions_selected)
+
+            cursor.execute(office_query, office_params)
+            offices = [r['Sales_office'] for r in cursor.fetchall() if r['Sales_office']]
+
+            # 3. Dependent Filter: Products (Filtered by Unit)
+            prod_query = """
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN Product1 = 'LV Motors' AND Product2 = 'LV Motors (Standard)' THEN 'LV MOTORS(S)'
+                        ELSE Product1 
+                    END as mapped_prod
+                FROM order_data
+                WHERE Product1 IS NOT NULL
+            """
+            prod_params = []
+            if units_selected:
+                placeholders = ','.join(['%s'] * len(units_selected))
+                mapped_unit_sql = """
+                    CASE 
+                        WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                        WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                        ELSE Unit 
+                    END
+                """
+                prod_query += f" AND ({mapped_unit_sql}) IN ({placeholders})"
+                prod_params.extend(units_selected)
+
+            cursor.execute(prod_query, prod_params)
+            products = [r['mapped_prod'] for r in cursor.fetchall() if r['mapped_prod']]
+
+    return jsonify({
+        "regions": regions,
+        "offices": offices,
+        "fin_years": fin_years,
+        "products": products,
+        "units": units
+    })
+
+@app.route('/api/order/kpis', methods=['GET'])
+def get_orders_kpis():
+    """Returns Overall Sales, Total Target, and Customers Billed for the Orders Dashboard."""
+    data_where, data_params = build_filter_orders_query("order_data")
+    target_where, target_params = build_filter_orders_query("order_target")
+
+    months = request.args.getlist('month')
+    proration_factor = len(months) / 12.0 if months else 1.0
+
+    # 1. Query Actuals
+    data_query = f"""
+        SELECT 
+            SUM(Net_Value) as overall_sales,
+            COUNT(DISTINCT Customer) as customers_billed
+        FROM order_data
+        {data_where}
+    """
+
+    # 2. Query Targets
+    target_query = f"""
+        SELECT 
+            (SUM(Target) * 100000 * {proration_factor}) as total_target
+        FROM order_target1
+        {target_where}
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(data_query, data_params)
+            result = cursor.fetchone() or {}
+
+            cursor.execute(target_query, target_params)
+            target_result = cursor.fetchone() or {}
+
+    result['overall_sales'] = result.get('overall_sales') or 0
+    result['total_target'] = target_result.get('total_target') or 0
+    result['customers_billed'] = result.get('customers_billed') or 0
+
+    return jsonify(result)
+
+
+@app.route('/api/orders-trend', methods=['GET'])
+def get_orders_trend():
+    """Returns Net Revenue Trend over time for Orders (Both Weekly and Monthly aggregation)."""
+    where_clause, params = build_filter_orders_query("order_data")
+
+    # 1. Monthly Query (For MoM Growth)
+    monthly_query = f"""
+        SELECT 
+            DATE_FORMAT(Created_Date, '%%Y-%%m') as time_period,
+            SUM(Net_Value) as total_revenue
+        FROM order_data
+        {where_clause}
+        GROUP BY time_period
+        ORDER BY time_period ASC
+    """
+
+    weekly_query = f"""
+        SELECT 
+            DATE_FORMAT(MIN(Created_Date), '%%d %%b %%y') as time_period,
+            SUM(Net_Value) as total_revenue
+        FROM order_data
+        {where_clause}
+        GROUP BY YEARWEEK(Created_Date, 1)
+        ORDER BY MIN(Created_Date) ASC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # Execute Monthly Query
+            cursor.execute(monthly_query, params)
+            monthly_results = cursor.fetchall()
+
+            # Execute Weekly Query
+            cursor.execute(weekly_query, params)
+            weekly_results = cursor.fetchall()
+
+    return jsonify({
+        "monthly": monthly_results,
+        "weekly": weekly_results
+    })
+
+
+@app.route('/api/orders/products-revenue', methods=['GET'])
+def get_orders_products_revenue():
+    # FIXED FUNCTION CALL
+    where_clause, params = build_filter_orders_query("order_data")
+
+    query = f"""
+        SELECT 
+            CASE 
+                WHEN Product1 = 'LV Motors' AND Product2 = 'LV Motors (Standard)' THEN 'LV MOTORS(S)'
+                ELSE Product1
+            END AS mapped_product,
+            SUM(Net_Value) as revenue,
+            SUM(Order_Qty) as quantity
+        FROM order_data
+        {where_clause}
+        GROUP BY mapped_product
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            results = cursor.fetchall()
+
+    return jsonify(results)
+
+
+@app.route('/api/orders/sales-by-office', methods=['GET'])
+def get_orders_sales_by_office():
+    # FIXED FUNCTION CALL
+    where_clause, params = build_filter_orders_query("order_data")
+
+    office_query = f"""
+        SELECT Sales_office, SUM(Net_Value) as revenue
+        FROM order_data {where_clause}
+        GROUP BY Sales_office 
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(office_query, params)
+            offices = cursor.fetchall()
+
+    return jsonify(offices)
+
+
+@app.route('/api/order/sales-by-region', methods=['GET'])
+def get_order_sales_by_region():
+    # FIXED FUNCTION CALL
+    where_clause, params = build_filter_orders_query("order_data")
+
+    region_query = f"""
+        SELECT Sales_Region, SUM(Net_Value) as revenue
+        FROM order_data {where_clause}
+        GROUP BY Sales_Region 
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(region_query, params)
+            regions = cursor.fetchall()
+
+    return jsonify(regions)
+
+
+@app.route('/api/orders/aop-achievement', methods=['GET'])
+def get_orders_aop_achievement():
+    # FIXED FUNCTION CALLS HERE
+    data_where, data_params = build_filter_orders_query("order_data")
+    target_where, target_params = build_filter_orders_query("order_target")
+
+    months = request.args.getlist('month')
+    proration_factor = len(months) / 12.0 if months else 1.0
+
+    actuals_query = f"""
+            SELECT 
+                CASE 
+                   WHEN Product1 = 'LV Motors' AND Product2 = 'LV Motors (Standard)' THEN 'LV MOTORS(S)'
+                    ELSE Product1
+                END AS mapped_product,
+                CASE 
+                    WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                    WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                    ELSE Unit 
+                END as mapped_unit,
+                SUM(Net_Value) as actual_revenue
+            FROM order_data
+            {data_where}
+            GROUP BY mapped_product, mapped_unit
+            ORDER BY mapped_unit ASC
+        """
+
+    targets_query = f"""
+            SELECT 
+                Product1, 
+                Unit AS mapped_unit, 
+                (SUM(Target) * 100000 * {proration_factor}) as target_revenue 
+            FROM order_target1
+            {target_where}
+            GROUP BY Product1, mapped_unit
+            ORDER BY mapped_unit ASC
+        """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(targets_query, target_params)
+            targets_raw = cursor.fetchall()
+
+            cursor.execute(actuals_query, data_params)
+            actuals_raw = cursor.fetchall()
+
+    merged_data = {}
+
+    for row in targets_raw:
+        product = row['Product1']
+        unit = row['mapped_unit']
+        key = f"{product}|{unit}"
+
+        merged_data[key] = {
+            "product": product,
+            "unit": unit,
+            "order_target": float(row['target_revenue'] or 0),
+            "actual": 0.0,
+            "achievement_percentage": 0.0
+        }
+
+    for row in actuals_raw:
+        product = row['mapped_product']
+        unit = row['mapped_unit']
+        key = f"{product}|{unit}"
+
+        if key not in merged_data:
+            merged_data[key] = {
+                "product": product,
+                "unit": unit,
+                "order_target": 0.0,
+                "actual": 0.0,
+                "achievement_percentage": 0.0
+            }
+
+        merged_data[key]["actual"] += float(row['actual_revenue'] or 0)
+
+    final_results = []
+    for data in merged_data.values():
+        if data["order_target"] > 0:
+            data["achievement_percentage"] = round((data["actual"] / data["order_target"]) * 100, 2)
+        else:
+            data["achievement_percentage"] = 100.0 if data["actual"] > 0 else 0.0
+
+        final_results.append(data)
+
+    return jsonify(final_results)
+
+#-----------------------------------------
+#PURCHASE REGISTRY
+#------------------------------------------
+
+@app.route('/purchase_registry')
+def purchase_registry():
+    username = session.get('username', 'Guest')
+    return render_template('purchase_reg.html', username=username)
+
+
+def build_purchase_filter(exclude_vendor=False):
+    """Helper function to build SQL WHERE clause for Purchase queries, supporting date ranges and cascading vendor filter."""
+    filters = []
+    params = []
+
+    fin_years = request.args.getlist('fin_year')
+    months = request.args.getlist('month')
+    plants = request.args.getlist('plant')
+    vendors = request.args.getlist('vendor')
+    exact_date = request.args.get('date')
+
+    if fin_years:
+        placeholders = ','.join(['%s'] * len(fin_years))
+        filters.append(f"fin_Year IN ({placeholders})")
+        params.extend(fin_years)
+
+    if months:
+        month_map = {
+            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+        }
+        month_nums = [str(month_map[m]) for m in months if m in month_map]
+        if month_nums:
+            placeholders = ','.join(['%s'] * len(month_nums))
+            filters.append(f"MONTH(Post_Date) IN ({placeholders})")
+            params.extend(month_nums)
+
+    if plants:
+        placeholders = ','.join(['%s'] * len(plants))
+        filters.append(f"ValA IN ({placeholders})")
+        params.extend(plants)
+
+    # Omit vendor constraint when updating the vendor dropdown itself
+    if not exclude_vendor and vendors:
+        placeholders = ','.join(['%s'] * len(vendors))
+        filters.append(f"Vendor_Name IN ({placeholders})")
+        params.extend(vendors)
+
+    # Date Range Logic
+    if exact_date:
+        if " to " in exact_date:
+            start_date, end_date = exact_date.split(" to ")
+            filters.append("DATE(Post_Date) BETWEEN %s AND %s")
+            params.extend([start_date, end_date])
+        else:
+            filters.append("DATE(Post_Date) = %s")
+            params.append(exact_date)
+
+    where_clause = "WHERE " + " AND ".join(filters) if filters else ""
+    return where_clause, params
+
+
+@app.route('/api/filters/purchase', methods=['GET'])
+def get_purchase_filters():
+    """Fetches unique values for the Purchase Dashboard filters with cascading vendor lookup."""
+    # Build filter using date parameters and plant, excluding vendor
+    vendor_where, vendor_params = build_purchase_filter(exclude_vendor=True)
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # Independent: Financial Years & Plants
+            cursor.execute("SELECT DISTINCT fin_Year FROM purchase_registry WHERE fin_Year IS NOT NULL ORDER BY fin_Year DESC")
+            fin_years = [r['fin_Year'] for r in cursor.fetchall() if r['fin_Year']]
+
+            cursor.execute("SELECT DISTINCT ValA FROM purchase_registry WHERE ValA IS NOT NULL ORDER BY ValA ASC")
+            plants = [r['ValA'] for r in cursor.fetchall() if r['ValA']]
+
+            # Dependent: Vendors matching selected Year, Month, Date Range, and Plant
+            if vendor_where:
+                vendor_query = f"SELECT DISTINCT Vendor_Name FROM purchase_registry {vendor_where} AND Vendor_Name IS NOT NULL ORDER BY Vendor_Name ASC"
+            else:
+                vendor_query = "SELECT DISTINCT Vendor_Name FROM purchase_registry WHERE Vendor_Name IS NOT NULL ORDER BY Vendor_Name ASC"
+
+            cursor.execute(vendor_query, vendor_params)
+            vendors = [r['Vendor_Name'] for r in cursor.fetchall() if r['Vendor_Name']]
+
+    return jsonify({"fin_years": fin_years, "plants": plants, "vendors": vendors})
+
+
+def execute_bar_query(query, params):
+    """Helper function to execute and format standard Bar Chart API responses."""
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            data = cursor.fetchall()
+    return jsonify({"labels": [r['label'] for r in data], "values": [r['val'] or 0 for r in data]})
+
+
+@app.route('/api/purchase/dashboard/kpis', methods=['GET'])
+def get_purchase_kpis():
+    where, params = build_purchase_filter()
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(f"SELECT SUM(Total) as val FROM purchase_registry {where}", params)
+            total_spend = (cursor.fetchone() or {}).get('val') or 0
+
+            cursor.execute(f"SELECT COUNT(DISTINCT po_number) as val FROM purchase_registry {where}", params)
+            po_count = (cursor.fetchone() or {}).get('val') or 0
+
+            cursor.execute(f"SELECT COUNT(DISTINCT Material) as val FROM purchase_registry {where}", params)
+            material_count = (cursor.fetchone() or {}).get('val') or 0
+
+            cursor.execute(f"SELECT COUNT(DISTINCT Vendor_Name) as val FROM purchase_registry {where}", params)
+            vendor_count = (cursor.fetchone() or {}).get('val') or 0
+
+            cursor.execute(f"SELECT COUNT(DISTINCT ValA) as val FROM purchase_registry {where}", params)
+            plant_count = (cursor.fetchone() or {}).get('val') or 0
+
+    avg_po = (total_spend / po_count) if po_count else 0
+    return jsonify({
+        "total_spend": total_spend, "po_count": po_count,
+        "material_count": material_count, "vendor_count": vendor_count,
+        "plant_count": plant_count, "avg_po_value": avg_po
+    })
+
+
+@app.route('/api/purchase/dashboard/trend', methods=['GET'])
+def get_purchase_trend():
+    where, params = build_purchase_filter()
+    months = request.args.getlist('month')
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            if len(months) == 1:
+                query = f"""SELECT FLOOR((DAY(Post_Date)-1)/7)+1 AS week_num, SUM(Total) AS val 
+                            FROM purchase_registry {where} 
+                            GROUP BY FLOOR((DAY(Post_Date)-1)/7)+1 ORDER BY FLOOR((DAY(Post_Date)-1)/7)+1"""
+            else:
+                query = f"""SELECT MONTH(Post_Date) AS month_num, SUM(Total) AS val 
+                            FROM purchase_registry {where} 
+                            GROUP BY MONTH(Post_Date) ORDER BY MONTH(Post_Date)"""
+            cursor.execute(query, params)
+            raw_data = cursor.fetchall()
+
+    trend_data = []
+    if len(months) == 1:
+        for r in raw_data:
+            trend_data.append({"label": f"Week {r['week_num']}", "val": r['val']})
+    else:
+        month_names = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug", 9: "Sep",
+                       10: "Oct", 11: "Nov", 12: "Dec"}
+        for r in raw_data:
+            trend_data.append({"label": month_names.get(r['month_num'], "Unknown"), "val": r['val']})
+
+    return jsonify({"labels": [r['label'] for r in trend_data], "values": [r['val'] or 0 for r in trend_data]})
+
+
+@app.route('/api/purchase/dashboard/plants', methods=['GET'])
+def get_purchase_plants():
+    where, params = build_purchase_filter()
+    return execute_bar_query(
+        f"SELECT ValA as label, SUM(Total) as val FROM purchase_registry {where} GROUP BY ValA ORDER BY SUM(Total) DESC",
+        params)
+
+
+@app.route('/api/purchase/dashboard/potypes', methods=['GET'])
+def get_purchase_potypes():
+    where, params = build_purchase_filter()
+    return execute_bar_query(
+        f"SELECT po_type as label, SUM(Total) as val FROM purchase_registry {where} GROUP BY po_type ORDER BY SUM(Total) DESC",
+        params)
+
+
+@app.route('/api/purchase/dashboard/vendors', methods=['GET'])
+def get_purchase_vendors():
+    where, params = build_purchase_filter()
+    return execute_bar_query(
+        f"SELECT Vendor_Name as label, SUM(Total) as val FROM purchase_registry {where} GROUP BY Vendor_Name ORDER BY SUM(Total) DESC LIMIT 10",
+        params)
+
+
+@app.route('/api/purchase/dashboard/materials', methods=['GET'])
+def get_purchase_materials():
+    where, params = build_purchase_filter()
+    return execute_bar_query(
+        f"SELECT Short_Text as label, SUM(Total) as val FROM purchase_registry {where} GROUP BY Short_Text ORDER BY SUM(Total) DESC LIMIT 10",
+        params)
+
+
+@app.route('/api/purchase/dashboard/table', methods=['GET'])
+def get_purchase_table():
+    where, params = build_purchase_filter()
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(f"SELECT SUM(Total) as val FROM purchase_registry {where}", params)
+            total_spend = (cursor.fetchone() or {}).get('val') or 0
+
+            cursor.execute(f"""
+                SELECT ValA as plant, SUM(Total) as total, COUNT(DISTINCT po_number) as pos, COUNT(DISTINCT Vendor_Name) as vendors 
+                FROM purchase_registry {where} GROUP BY ValA ORDER BY SUM(Total) DESC
+            """, params)
+            table_data = cursor.fetchall()
+
+    for row in table_data:
+        row['total'] = row['total'] or 0
+        row['share'] = (row['total'] / total_spend * 100) if total_spend else 0
+        row['avgpo'] = (row['total'] / row['pos']) if row['pos'] else 0
+
+    return jsonify(table_data)
+
+@app.route('/api/export/purchase_excel', methods=['GET'])
+def export_purchase_excel():
+    """Exports the filtered purchase registry data to an Excel file."""
+    # 1. Fetch the dynamic WHERE clause
+    where_clause, params = build_purchase_filter()
+    query = f"SELECT * FROM purchase_registry {where_clause}"
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+
+        if not results:
+            return "No data found for the selected filters.", 404
+
+        # 2. Load dictionary into Pandas DataFrame
+        df = pd.DataFrame(results)
+
+        # 3. Clean up Date formats to prevent Excel serialization errors
+        if 'Post_Date' in df.columns:
+            df['Post_Date'] = pd.to_datetime(df['Post_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        # 4. Write to BytesIO stream
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Purchase_Export')
+        output.seek(0)
+
+        # 5. Generate dynamic filename
+        fin_years = request.args.getlist('fin_year')
+        fy_str = "_".join(fin_years) if fin_years else "All_Years"
+        filename = f"Purchase_Registry_Export_{fy_str}.xlsx"
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        print(f"Export Error: {e}")
+        return f"Error exporting data: {str(e)}", 500
+
+
+ ###--- collection Data ----#####
+
+@app.route('/api/filters/collections', methods=['GET'])
+def get_collections_filters():
+    """Fetches unique values for the Collections Dashboard filters, with cascading Unit -> Profit Center."""
+    unit_selected = request.args.getlist('unit')
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # Independent Filters
+            cursor.execute(
+                "SELECT DISTINCT YEAR(Posting_Date) as yr FROM collections_data WHERE Posting_Date IS NOT NULL ORDER BY yr DESC")
+            years = [str(r['yr']) for r in cursor.fetchall()]
+
+            cursor.execute(
+                "SELECT DISTINCT MONTHNAME(Posting_Date) as mth FROM collections_data WHERE Posting_Date IS NOT NULL")
+            months = [r['mth'] for r in cursor.fetchall()]
+
+            cursor.execute("SELECT DISTINCT Unit_Code FROM collections_data WHERE Unit_Code IS NOT NULL")
+            units = [r['Unit_Code'] for r in cursor.fetchall()]
+
+            cursor.execute("SELECT DISTINCT Coll_BR_DESC FROM collections_data WHERE Coll_BR_DESC IS NOT NULL")
+            sales_offices = [r['Coll_BR_DESC'] for r in cursor.fetchall()]
+
+            # Dependent Filter: Profit Center (Filtered by Unit)
+            pc_query = "SELECT DISTINCT Profit_Centre FROM collections_data WHERE Profit_Centre IS NOT NULL"
+            pc_params = []
+            if unit_selected:
+                placeholders = ','.join(['%s'] * len(unit_selected))
+                pc_query += f" AND Unit_Code IN ({placeholders})"
+                pc_params.extend(unit_selected)
+
+            cursor.execute(pc_query, pc_params)
+            profit_centers = [r['Profit_Centre'] for r in cursor.fetchall()]
+
+    return jsonify({
+        "years": years,
+        "months": months,
+        "units": units,
+        "profit_centers": profit_centers,
+        "sales_offices": sales_offices
+    })
+
+
+def build_collections_filter():
+    """Builds SQL WHERE clause for Collections queries, supporting date ranges and units."""
+    filters = []
+    params = []
+
+    years = request.args.getlist('year')
+    months = request.args.getlist('month')
+    exact_date = request.args.get('date')
+    units = request.args.getlist('unit')  # NEW
+    profit_centers = request.args.getlist('profit_center')
+    sales_offices = request.args.getlist('sales_office')
+
+    if years:
+        placeholders = ','.join(['%s'] * len(years))
+        filters.append(f"YEAR(Posting_Date) IN ({placeholders})")
+        params.extend(years)
+
+    if months:
+        month_map = {"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8,
+                     "September": 9, "October": 10, "November": 11, "December": 12}
+        month_nums = [str(month_map[m]) for m in months if m in month_map]
+        if month_nums:
+            placeholders = ','.join(['%s'] * len(month_nums))
+            filters.append(f"MONTH(Posting_Date) IN ({placeholders})")
+            params.extend(month_nums)
+
+    if exact_date:
+        if " to " in exact_date:
+            start_date, end_date = exact_date.split(" to ")
+            filters.append("DATE(Posting_Date) BETWEEN %s AND %s")
+            params.extend([start_date, end_date])
+        else:
+            filters.append("DATE(Posting_Date) = %s")
+            params.append(exact_date)
+
+    if units:
+        placeholders = ','.join(['%s'] * len(units))
+        filters.append(f"Unit_Code IN ({placeholders})")
+        params.extend(units)
+
+    if profit_centers:
+        placeholders = ','.join(['%s'] * len(profit_centers))
+        filters.append(f"Profit_Centre IN ({placeholders})")
+        params.extend(profit_centers)
+
+    if sales_offices:
+        placeholders = ','.join(['%s'] * len(sales_offices))
+        filters.append(f"Coll_BR_DESC IN ({placeholders})")
+        params.extend(sales_offices)
+
+    where_clause = "WHERE " + " AND ".join(filters) if filters else ""
+    return where_clause, params
+
+
+@app.route('/api/collections/dashboard', methods=['GET'])
+def get_collections_dashboard_data():
+    where, params = build_collections_filter()
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # 1. KPIs
+            cursor.execute(f"""
+                SELECT 
+                    SUM(Cheque_Amt) as total_amt,
+                    COUNT(Document_Number) as receipts,
+                    COUNT(DISTINCT Unit_Code) as units,
+                    COUNT(DISTINCT Coll_BR_DESC) as offices
+                FROM collections_data {where}
+            """, params)
+            kpis = cursor.fetchone() or {}
+            total_amt = kpis.get('total_amt') or 0
+
+            # 2. Spend Trend (Fixed pymysql %d formatting error by escaping with %%)
+            months = request.args.getlist('month')
+            exact_date = request.args.get('date')
+
+            if exact_date or months:
+                trend_query = f"""
+                    SELECT DATE_FORMAT(Posting_Date, '%%d %%b') as label, SUM(Cheque_Amt) as val 
+                    FROM collections_data {where} 
+                    GROUP BY DATE(Posting_Date) 
+                    ORDER BY DATE(Posting_Date)
+                """
+            else:
+                trend_query = f"""
+                    SELECT MONTH(Posting_Date) as month_num, SUM(Cheque_Amt) as val 
+                    FROM collections_data {where} 
+                    GROUP BY MONTH(Posting_Date) 
+                    ORDER BY MONTH(Posting_Date)
+                """
+            cursor.execute(trend_query, params)
+            trend_data_raw = cursor.fetchall()
+
+            trend_data = []
+            if exact_date or months:
+                trend_data = trend_data_raw
+            else:
+                month_names = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug", 9: "Sep",
+                               10: "Oct", 11: "Nov", 12: "Dec"}
+                for r in trend_data_raw:
+                    trend_data.append({"label": month_names.get(r['month_num'], "Unknown"), "val": r['val']})
+
+            # 3. Categorical Splits
+            queries = {
+                "paytype": f"SELECT PAYMENT_TYPE as label, SUM(Cheque_Amt) as val FROM collections_data {where} GROUP BY PAYMENT_TYPE ORDER BY val DESC",
+                "doctype": f"SELECT Doc_Type as label, SUM(Cheque_Amt) as val FROM collections_data {where} GROUP BY Doc_Type ORDER BY val DESC",
+                "unit": f"SELECT Unit_Code as label, SUM(Cheque_Amt) as val FROM collections_data {where} GROUP BY Unit_Code ORDER BY val DESC",
+                "branch": f"SELECT Coll_BR_DESC as label, SUM(Cheque_Amt) as val FROM collections_data {where} GROUP BY Coll_BR_DESC ORDER BY val DESC",
+                "prod": f"SELECT Prod_GRP_Code as label, SUM(Cheque_Amt) as val FROM collections_data {where} GROUP BY Prod_GRP_Code ORDER BY val DESC",
+                "bank": f"SELECT Bank_Desc as label, SUM(Cheque_Amt) as val FROM collections_data {where} GROUP BY Bank_Desc ORDER BY val DESC",
+                "payers": f"SELECT Cust_Name as label, COUNT(Document_Number) as txns, SUM(Cheque_Amt) as val FROM collections_data {where} GROUP BY Cust_Name ORDER BY val DESC LIMIT 10"
+            }
+
+            results = {}
+            for key, q in queries.items():
+                cursor.execute(q, params)
+                results[key] = cursor.fetchall()
+
+    return jsonify({
+        "kpis": {
+            "total_amt": total_amt,
+            "receipts": kpis.get('receipts') or 0,
+            "units": kpis.get('units') or 0,
+            "offices": kpis.get('offices') or 0
+        },
+        "trend": {"labels": [r['label'] for r in trend_data], "values": [r['val'] or 0 for r in trend_data]},
+        "paytype": {"labels": [r['label'] for r in results['paytype']],
+                    "values": [r['val'] or 0 for r in results['paytype']]},
+        "doctype": {"labels": [r['label'] for r in results['doctype']],
+                    "values": [r['val'] or 0 for r in results['doctype']]},
+        "unit": {"labels": [r['label'] for r in results['unit']], "values": [r['val'] or 0 for r in results['unit']]},
+        "branch": {"labels": [r['label'] for r in results['branch']],
+                   "values": [r['val'] or 0 for r in results['branch']]},
+        "prod": {"labels": [r['label'] for r in results['prod']], "values": [r['val'] or 0 for r in results['prod']]},
+        "bank": results['bank'],
+        "payers": results['payers']
+    })
+
+@app.route('/api/export/collections_excel', methods=['GET'])
+def export_collections_excel():
+    """Exports the filtered collections data to an Excel file."""
+    # 1. Fetch the dynamic WHERE clause
+    where_clause, params = build_collections_filter()
+    query = f"SELECT * FROM collections_data {where_clause}"
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+
+        if not results:
+            return "No data found for the selected filters.", 404
+
+        # 2. Load dictionary into Pandas DataFrame
+        df = pd.DataFrame(results)
+
+        # 3. Clean up Date formats to prevent Excel serialization errors
+        if 'Posting_Date' in df.columns:
+            df['Posting_Date'] = pd.to_datetime(df['Posting_Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        # 4. Write to BytesIO stream
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Collections_Export')
+        output.seek(0)
+
+        # 5. Generate dynamic filename based on the selected year
+        years = request.args.getlist('year')
+        yr_str = "_".join(years) if years else "All_Years"
+        filename = f"Collections_Export_{yr_str}.xlsx"
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        print(f"Export Error: {e}")
+        return f"Error exporting data: {str(e)}", 500
+
+
+
+PROFIT_CENTER_MAP_1 = {
+    'CFD CORP': ['CORPEXP', 'DUBAIEXP'],
+    'Bran O_S': ['KOLEXP', 'FAREXP', 'LUDEXP', 'HYDEXP', 'MUMEXP', 'AHDEXP', 'PUNEXP', 'RPREXP', 'INDEXP', 'CHEEXP',
+                 'CTREXP', 'KOCEXP', 'NPREXP', 'DELEXP', 'BBHEXP', 'BPLEXP', 'BRANAHD',
+                 'BRANCHE', 'BRANDEL', 'BRANHYD', 'BRANKOL', 'BRANLUK', 'BRANPUN', 'DEHEXP', 'DUREXP', 'GTYEXP',
+                 'JABEXP', 'JAMEXP', 'JPREXP', 'JSREXP', 'LUCEXP', 'MADEXP', 'NASEXP', 'PATEXP', 'RUREXP', 'SRTEXP',
+                 'VADEXP', 'VIZEXP'],
+    'Unit-1 Govanahalli': ['UN01ACM', 'UN01DCM', 'UN01ACG', 'UN01COM', 'UN15MCS', 'UN01MBS', 'UN01TRN'],
+    'Unit-2 HUBLI-Special': ['UN02ACM', 'UN02ACG', 'UN02COM', ],
+    'Unit-25ACM ACM-STD Motors': ['UN25ACM'],
+    'Unit-25ACG ACG&EVM': ['UN25ACG', 'UN25EVM', 'UN25COM'],
+    'Unit-7 TUMKUR': ['UN07ACM', 'UN07STG', 'UN07DIE', 'UN07WST', 'UN07COM', 'UN07DCM'],
+    'UN05 Mysore Unit': [ 'UN05OFT', 'UN04ELE', ],
+    'UN10 SWG': ['UN10SWG',],
+    'Unit-16 PUNE': ['UN16CRT', 'UN16OFT', 'UN17CRT', ],
+    'DG Set HUBLI': ['UN06DGS'],
+    'Unit-12-20 Spares&Service': ['UN12SPS', 'UN20SPA', 'UN12SSD']
+}
+
+@app.route('/mis_unit_report')
+def mis_unit_report():
+    conn = get_db_connection()
+    years = []
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT Fiscal_Year FROM erm_data ORDER BY Fiscal_Year DESC")
+            years = [row['Fiscal_Year'] for row in cursor.fetchall()]
+        except Exception:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT Fiscal_Year FROM erm_data ORDER BY Fiscal_Year DESC")
+            years = [row[0] for row in cursor.fetchall()]
+        finally:
+            cursor.close()
+            conn.close()
+
+    selected_year = request.args.get('fin_year', years[0] if years else "")
+
+    return render_template(
+        'MIS_UNIT.html',
+        years=years,
+        selected_year=selected_year,
+        username=session.get('username', 'User')
+    )
+
+
+@app.route('/pending_orders')
+def pending_orders_page():
+    today = datetime.now().strftime('%Y-%m-%d')
+    return render_template('Pending_Orders.html', username=session.get('username', 'User'), order_date=today).
+
+
+@app.route('/api/mis/unit-monthly-sales')
+def get_unit_monthly_sales():
+    selected_year = request.args.get('fin_year') or request.args.get('fiscal_year')
+    selected_unit = request.args.get('unit')
+
+    if not selected_year or not selected_unit:
+        return jsonify({"error": "Both Fiscal Year and Unit filters are required"}), 400
+
+    profit_centers = PROFIT_CENTER_MAP_1.get(selected_unit, [])
+    if not profit_centers:
+        return jsonify({"error": f"Selected Unit allocation matching code not found: {selected_unit}"}), 400
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        is_dict = True
+    except AttributeError:
+        cursor = conn.cursor()
+        is_dict = False
+
+    try:
+        net_sales_accounts = [
+            700001, 700004, 700002, 700003, 700006, 700011, 700009,
+            700021, 700018, 700006, 700014, 700007, 700034, 700033,
+            700008, 700010, 700013, 700012, 700015, 700016, 700017, 700019,
+            700022, 700020, 700023, 700024, 700025, 700026, 700027, 700028,
+            700029, 700030, 700031, 7000434
+        ]
+
+        # Dynamic query string parameters composition array
+        pc_placeholders = ", ".join(["%s"] * len(profit_centers))
+        account_placeholders = ", ".join(["%s"] * len(net_sales_accounts))
+
+        # Core Query: Extract transaction totals grouped by chronological calendar month index
+        query = f"""
+            SELECT 
+                MONTH(Posting_Date) AS month_idx,
+                Account_Number,
+                SUM(LC_Amount)/100000 AS total_amount
+            FROM erm_data
+            WHERE Fiscal_Year = %s
+              AND Profit_Center IN ({pc_placeholders})
+              AND Account_Number IN ({account_placeholders})
+            GROUP BY MONTH(Posting_Date), Account_Number
+        """
+
+        query_params = [selected_year] + profit_centers + net_sales_accounts
+        cursor.execute(query, tuple(query_params))
+        rows = cursor.fetchall()
+        fiscal_months = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3]
+
+        # Initialize flat dictionary keys mapping tracking slots cleanly
+        monthly_totals = {m: 0.0 for m in fiscal_months}
+        account_breakdown = {}
+
+        for row in rows:
+            if is_dict:
+                m_idx = int(row['month_idx'])
+                acct = int(row['Account_Number'])
+                amt = float(row['total_amount'] or 0.0)
+            else:
+                m_idx = int(row[0])
+                acct = int(row[1])
+                amt = float(row[2] or 0.0)
+
+            # Apply absolute inversion sign process as requested in step 2
+            pos_amt = amt
+
+            if m_idx in monthly_totals:
+                monthly_totals[m_idx] += pos_amt
+
+                if acct not in account_breakdown:
+                    account_breakdown[acct] = {m: 0.0 for m in fiscal_months}
+                    account_breakdown[acct]['GRAND TOTAL'] = 0.0
+
+                account_breakdown[acct][m_idx] += pos_amt
+                account_breakdown[acct]['GRAND TOTAL'] += pos_amt
+
+        # Final map reconstruction to map indices cleanly to readable key names
+        month_name_map = {
+            4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September",
+            10: "October", 11: "November", 12: "December", 1: "January", 2: "February", 3: "March"
+        }
+
+        formatted_monthly_totals = {}
+        grand_total = 0.0
+        for m in fiscal_months:
+            name = month_name_map[m]
+            val = monthly_totals[m]
+            formatted_monthly_totals[name] = val
+            grand_total += val
+
+        formatted_monthly_totals['GRAND TOTAL'] = grand_total
+
+        # Re-map ledger sub-accounts breakdowns structure similarly
+        formatted_account_breakdown = {}
+        for acct, m_map in account_breakdown.items():
+            formatted_account_breakdown[acct] = {}
+            for m in fiscal_months:
+                name = month_name_map[m]
+                formatted_account_breakdown[acct][name] = m_map[m]
+            formatted_account_breakdown[acct]['GRAND TOTAL'] = m_map['GRAND TOTAL']
+
+        return jsonify({
+            "row_title": "Net Sales",
+            "monthly_totals": formatted_monthly_totals,
+            "dropdown_accounts": formatted_account_breakdown
+        })
+
+
+
+    except Exception as e:
+        print(f"[UNIT MONTHLY MIS API CRASH]: {e}")
+        return jsonify({"error": "Internal Processing Error"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+UNIT_HEAD_MAPPINGS = {
+    'unit_1_dashboard':  ['UN01'],
+    'unit_2_dashboard':  ['UN02', 'UN25', 'UN06'],
+    'unit_5_dashboard':  ['UN05'],
+    'unit_16_dashboard': ['UN16'],
+    'unit_20_dashboard': ['UN20']
+}
+
+FINANCE_HEAD_MAPPINGS = {
+    'finance_1_dashboard': ['UN01ACM', 'UN01DCM', 'UN01ACG', 'UN01COM', 'UN01MBS', 'UN01TRN', 'UN07ACM', 'UN07STG', 'UN07DIE', 'UN07WST', 'UN07COM', 'UN07DCM', 'UN15MCS'],
+    'finance_2_dashboard': ['UN02ACM', 'UN02ACG', 'UN02COM', 'UN25ACM', 'UN25ACG', 'UN25EVM', 'UN25COM', 'UN06DGS'],
+    'finance_5_dashboard': ['UN05OFT', 'UN04ELE', 'UN10SWG'],
+    'finance_16_dashboard': ['UN16CRT', 'UN16OFT', 'UN17CRT']
+}
+The Flow Of Menu is Like this.
+
+<div id="mySidebar" class="sidebar">
+     <a href="javascript:void(0)" class="dropdown-btn">Orders<span style="float:right;">▼</span></a>
+    <div class="dropdown-container">
+        <a href="{{ url_for('order_ytd_dashboard') }}" class="sub-link">Order Book</a>
+        <a href="{{ url_for('pending_orders_page') }}" class="sub-link">Pending Orders</a>
+    </div>
+    <a href="javascript:void(0)" class="dropdown-btn">Sales <span style="float:right;">▼</span></a>
+    <div class="dropdown-container">
+        <a href="{{ url_for('ytd_dashboard') }}" class="sub-link">Billing</a>
+    </div>
+    <a href="javascript:void(0)" class="dropdown-btn">Purchase Orders<span style="float:right;">▼</span></a>
+        <div class="dropdown-container">
+            <a href="{{ url_for('purchase_registry') }}" class="sub-link">Purchase Register</a>
+        </div>
+    <a href="javascript:void(0)" class="dropdown-btn">Finance <span style="float:right;">▼</span></a>
+    <div class="dropdown-container">
+        <a href="{{url_for('collection_report') }}" class="sub-link">Collections</a>
+         <a href="{{ url_for('mis_report') }}" class="sub-link">P&L </a>
+        <a href="{{ url_for('mis_unit_report') }}" class="sub-link">Units Wise P&L</a>
+    </div>
+</div>
+
+My requirement is Unit Heads can access all pages i,e Orders Dashboard, Pending Orders, Sales Dashboard, Purchase Register,  Collections Report, MIS_Unit Report.
+The Finance Heads Can only Access to Collections Report, MIS_Unit Report.
+So Kindly Understant What i specified Earlier, make necessary Changes and Give me Updated Code Whatever and Wherever Chanes Happen.
