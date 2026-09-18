@@ -1,0 +1,347 @@
+backend.
+import os
+from datetime import datetime
+from flask import Flask, request, jsonify, render_template, send_from_directory
+from werkzeug.utils import secure_filename
+import pymysql
+import pymysql.cursors
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from twilio.rest import Client
+
+app = Flask(__name__)
+
+LEGACY_PDF_FOLDER = r'D:\Customer_portal\static\uploads'
+
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '',
+    'database': 'warranty',
+    'cursorclass': pymysql.cursors.DictCursor
+}
+
+DB_CONFIG_2 = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '',
+    'database': 'qr_data',
+    'cursorclass': pymysql.cursors.DictCursor
+}
+
+# SMTP Configs
+SMTP_SERVER, SMTP_PORT = "smtp.gmail.com", 587
+SMTP_USER = "madan.hs@kirloskarelectric.com"
+SMTP_PASS = "ghxu ojxx gnch lqtz"
+
+def get_db():
+    return pymysql.connect(**DB_CONFIG)
+
+def get_db2():
+    return pymysql.connect(**DB_CONFIG_2)
+
+# Helper function to handle email sending with the attachment
+def send_email_with_pdf(to_email, customer_name, pdf_path):
+    if not to_email:
+        return
+
+    if not os.path.exists(pdf_path):
+        print(f"[ERROR] PDF file not found at: {pdf_path}")
+        return
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = SMTP_USER
+        msg['To'] = to_email
+        msg['Subject'] = "Your  Product Warranty Card"
+
+        body = f"Dear {customer_name if customer_name else 'Customer'},\n\nPlease find your attached warranty card."
+        msg.attach(MIMEText(body, 'plain'))
+
+        with open(pdf_path, 'rb') as f:
+            part = MIMEApplication(f.read(), _subtype="pdf")
+            part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(pdf_path))
+            msg.attach(part)
+
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
+        server.quit()
+        print(f"[SUCCESS] Email sent to {to_email} with file {pdf_path}")
+    except Exception as e:
+        print(f"[ERROR] Email Dispatch Failed: {e}")
+
+
+@app.route('/')
+def customer_page():
+    return render_template('customer.html')
+
+# API: Customer Verify
+@app.route('/api/customer/verify', methods=['POST'])
+def customer_verify():
+    data = request.json or {}
+    invoice = data.get('invoice_number', '').strip()
+    serial = data.get('serial_number', '').strip()
+
+    if not invoice or not serial:
+        return jsonify({"success": False, "message": "Both Invoice and Serial Number are required."}), 400
+
+    conn2 = get_db2()
+    try:
+        with conn2.cursor() as cursor2:
+            cursor2.execute(
+                "SELECT * FROM machine_documents WHERE invoice_number=%s AND serial_number=%s",
+                (invoice, serial)
+            )
+            product = cursor2.fetchone()
+
+            if not product:
+                return jsonify({"success": False, "message": "Serial or Invoice Number not found in our records."}), 404
+
+            if not product.get('warranty_card'):
+                return jsonify({"success": False, "message": "The warranty card has not been uploaded yet."}), 400
+
+        return jsonify({"success": True, "serial_number": serial})
+    finally:
+        conn2.close()
+
+# API: Customer Registration / Fetch Document
+@app.route('/api/customer/register', methods=['POST'])
+def customer_register():
+    data = request.json or {}
+    serial_number = data.get('serial_number', '').strip()
+    name = data.get('customer_name', '').strip() or None
+    email = data.get('email', '').strip() or None
+    mobile = data.get('mobile', '').strip() or None
+
+    if not serial_number:
+        return jsonify({"success": False, "message": "Serial Number is missing."}), 400
+
+    conn2 = get_db2()
+    conn1 = get_db()
+    try:
+        with conn2.cursor() as cursor2:
+            cursor2.execute("SELECT * FROM machine_documents WHERE serial_number = %s", (serial_number,))
+            product = cursor2.fetchone()
+
+            if not product or not product.get('warranty_card'):
+                return jsonify({"success": False, "message": "Invalid product record or missing warranty card filename."}), 404
+
+            pdf_filename = product['warranty_card']
+
+        with conn1.cursor() as cursor1:
+            sql = """
+                INSERT INTO customer_registrations (serial_number, customer_name, customer_email, customer_mobile, registered_at)
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor1.execute(sql, (serial_number, name, email, mobile, datetime.now()))
+            conn1.commit()
+        pdf_path = os.path.join(LEGACY_PDF_FOLDER, pdf_filename)
+        if email:
+            send_email_with_pdf(email, name, pdf_path)
+
+        return jsonify({
+            "success": True,
+            "message": "Document retrieved successfully!",
+            "download_url": f"/download/{pdf_filename}"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
+    finally:
+        conn2.close()
+        conn1.close()
+
+# Serves download from D:\Customer_portal\static\uploads
+@app.route('/download/<path:filename>')
+def download_pdf(filename):
+    return send_from_directory(LEGACY_PDF_FOLDER, filename, as_attachment=True)
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='192.7.200.48', port=5055)
+
+
+Frontend.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Warranty Portal</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #ffffff; padding: 35px; border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.08); width: 100%; max-width: 420px; position: relative; }
+        h2 { text-align: center; color: #333; margin-top: 0; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        label { font-size: 14px; font-weight: 600; color: #444; display: block; margin-bottom: 6px; }
+        input { width: 100%; padding: 11px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        input:focus { border-color: #007bff; outline: none; }
+        button { width: 100%; padding: 12px; background: #007bff; border: none; color: white; font-size: 16px; font-weight: 600; border-radius: 5px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #0056b3; }
+        .alert { padding: 12px; margin-top: 15px; border-radius: 5px; display: none; font-size: 14px; text-align: center; }
+        .hidden { display: none !important; }
+
+        /* Spinner Styles */
+        .loader-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.85);
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 10px; z-index: 10;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #f3f3f3; border-top: 4px solid #007bff;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="card">
+    <!-- Loader element -->
+    <div id="loader" class="loader-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <h2>Warranty Registration</h2>
+
+    <!-- STEP 1: Verify Invoice & Serial -->
+    <div id="step1">
+        <div class="form-group">
+            <label>Invoice Number</label>
+            <input type="text" id="invoice_number" placeholder="e.g. INV-2026-001">
+        </div>
+        <div class="form-group">
+            <label>Serial Number</label>
+            <input type="text" id="serial_number" placeholder="e.g. SN-998877">
+        </div>
+        <button onclick="verifyProduct()">Verify Details</button>
+        <div class="form-group">
+            <label>Customer Name</label>
+            <input type="text" id="customer_name" placeholder="Enter Your Name">
+        </div>
+        <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="email" placeholder="yourname@example.com">
+        </div>
+        <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="tel" id="mobile" placeholder="0123456789">
+        </div>
+        <button onclick="registerWarranty()">Submit & Get Warranty Card</button>
+    </div>
+
+    <!-- STEP 2: Customer Details -->
+    <div id="step2" class="hidden">
+<!--        <div class="form-group">-->
+<!--            <label>Customer Name</label>-->
+<!--            <input type="text" id="customer_name" placeholder="Enter Your Name">-->
+<!--        </div>-->
+<!--        <div class="form-group">-->
+<!--            <label>Email Address</label>-->
+<!--            <input type="email" id="email" placeholder="yourname@example.com">-->
+<!--        </div>-->
+<!--        <div class="form-group">-->
+<!--            <label>Mobile Number</label>-->
+<!--            <input type="tel" id="mobile" placeholder="0123456789">-->
+<!--        </div>-->
+<!--        <button onclick="registerWarranty()">Submit & Get Warranty Card</button>-->
+    </div>
+
+    <!-- STEP 3: Success Screen -->
+    <div id="step3" class="hidden" style="text-align: center;">
+        <h3 style="color: #28a745; margin-bottom: 10px;">Request Completed!</h3>
+        <p style="color: #666; font-size: 14px; line-height: 1.5;">Your warranty card details have been sent to your registered email address.</p>
+    </div>
+
+    <div id="statusAlert" class="alert"></div>
+</div>
+
+<script>
+    let verifiedSerialNumber = null;
+
+    function toggleLoader(show) {
+        document.getElementById('loader').classList.toggle('hidden', !show);
+    }
+
+    function showAlert(msg, isSuccess = false) {
+        const el = document.getElementById('statusAlert');
+        el.style.display = 'block';
+        el.innerText = msg;
+        el.style.background = isSuccess ? '#d4edda' : '#f8d7da';
+        el.style.color = isSuccess ? '#155724' : '#721c24';
+    }
+
+    async function verifyProduct() {
+        const invoice_number = document.getElementById('invoice_number').value.trim();
+        const serial_number = document.getElementById('serial_number').value.trim();
+
+        if (!invoice_number || !serial_number) {
+            showAlert("Please enter both Invoice Number and Serial Number.", false);
+            return;
+        }
+
+        toggleLoader(true);
+        try {
+            const res = await fetch('/api/customer/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ invoice_number, serial_number })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                verifiedSerialNumber = data.serial_number;
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+                showAlert('Product verified! Enter details to proceed.', true);
+            } else {
+                showAlert(data.message, false);
+            }
+        } catch (err) {
+            showAlert("Server error during verification. Please try again.", false);
+        } finally {
+            toggleLoader(false);
+        }
+    }
+
+    async function registerWarranty() {
+        const customer_name = document.getElementById('customer_name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const mobile = document.getElementById('mobile').value.trim();
+
+        toggleLoader(true);
+        try {
+            const res = await fetch('/api/customer/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    serial_number: verifiedSerialNumber,
+                    customer_name,
+                    email,
+                    mobile
+                })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3').classList.remove('hidden');
+                document.getElementById('statusAlert').style.display = 'none';
+            } else {
+                showAlert(data.message, false);
+            }
+        } catch (err) {
+            showAlert("Server error during processing. Please try again.", false);
+        } finally {
+            toggleLoader(false);
+        }
+    }
+</script>
+</body>
+</html>
+
+
