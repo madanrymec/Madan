@@ -1,0 +1,62 @@
+       T E S T   P R E F I L L E D   I N F O R M A T I O N   >INDUCTION MACHINES<
+
+       TYPE  : SC315L                     NAME  : RS MOTOR            
+       ORDER : 123                        M-NO. : 23                  
+       CODE  : LVM03                      DATE  : 24.09.26
+
+       3~ INDUCTION MOTOR  [DELTA (D)]
+         415.0 V     167.5 A      90.0 kW     593.5 RPM    50.0 HZ
+
+       P/PN         1/4       2/4       3/4       4/4       5/4
+
+       COS PHI     0.417     0.637     0.741     0.789     0.808
+
+       ETA (%)     88.11     92.74     93.89     94.09     93.80
+
+       SLIP      0.00253   0.00513   0.00781   0.01075   0.01413
+
+
+       U/UN      IA/IN     MA/MN     MK/MN     STATOR (K/S)  ROTOR (K/S)
+
+       1.00       5.98      2.79      2.23          1.98         22.79
+
+       1.10       3.44      2.78      2.73
+
+       (LINE 2 INCLUDES VOLTAGE DROP ACROSS SERIES REACTANCE IF CONFIGURED)
+
+
+       S H O R T - C I R C U I T   C H A R A C T E R I S T I C
+
+            U1(V)     IA(A)    MA(NM)      COSA    PA(KW)   SA(KVA)    KKA
+             71.9      49.5        30      0.378       2.3       6.2    0.50
+            143.8      98.7       119      0.376       9.2      24.6    0.50
+            179.7     123.2       186      0.376      14.4      38.3    0.50
+            215.6     147.7       267      0.376      20.7      55.2    0.50
+            251.6     172.2       363      0.375      28.2      75.0    0.50
+            287.5     196.7       474      0.375      36.8      98.0    0.50
+            323.5     221.2       599      0.375      46.5     123.9    0.50
+            359.4     245.8       740      0.375      57.4     153.0    0.50
+            395.3     270.5       896      0.375      69.5     185.2    0.50
+            431.3     295.2      1067      0.376      82.8     220.5    0.50
+            467.2     319.9      1253      0.376      97.3     258.9    0.50
+            503.2     345.1      1457      0.376     113.2     300.7    0.50
+            575.0     395.9      1917      0.378     148.9     394.3    0.50
+            646.9     450.5      2478      0.381     192.5     504.8    0.50
+            718.8     510.8      3173      0.388     246.4     635.9    0.50
+
+
+       N O - L O A D   (WARM MACHINE)
+
+            I0(A)      COS0    P0(KW)   PFE(KW)  P_MECH(KW)
+            43.64      0.051     2.753     1.788     0.600
+
+
+       DT1 =  55.4 K    DT2 =  30.9 K    Residual Field Time Constant:  0.56 S
+
+       Phase Resistances at 20°C in Ohms:  0.0494 /  0.0000
+
+       No-Load Acceleration Time at Rated Voltage:  14.2 S  at J_motor =     9.91 KG*M2
+
+       Parameters for Explosion-Proof (EEx-e) Certification:
+             Z1     FW1      M1      N2   Q_BAR(mm2)   KR        a   1+TAU/2
+            132.   0.902       3.     70.    133.5   5.360  0.0094     1.036
