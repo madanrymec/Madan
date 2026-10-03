@@ -1,0 +1,409 @@
+def build_filter_orders_query(table_type="order_data"):
+    """
+    Dynamically builds the WHERE clause and parameters specifically for Orders based on frontend filters.
+    """
+    filters = []
+    params = []
+
+    order_regions = request.args.getlist('region')
+    order_offices = request.args.getlist('sales_office')
+    order_products = request.args.getlist('product')
+    order_units = request.args.getlist('unit')  # NEW: Extract Unit filter
+    fin_years = request.args.getlist('fin_year')
+    months = request.args.getlist('month')
+
+    # Region
+    if order_regions:
+        placeholders = ','.join(['%s'] * len(order_regions))
+        filters.append(f"Sales_Region IN ({placeholders})")
+        params.extend(order_regions)
+
+    # Sales Office
+    if order_offices:
+        placeholders = ','.join(['%s'] * len(order_offices))
+        filters.append(f"Sales_office IN ({placeholders})")
+        params.extend(order_offices)
+
+    # Product handling
+    if order_products:
+        placeholders = ','.join(['%s'] * len(order_products))
+        if table_type == "order_data":
+            mapped_prod_sql = """
+                CASE 
+                    WHEN Product1 = 'LV Motors' AND Product2 = 'LV Motors (Standard)' THEN 'LV MOTORS(S)'
+                    ELSE Product1 
+                END
+            """
+            filters.append(f"({mapped_prod_sql}) IN ({placeholders})")
+        else:
+            filters.append(f"Product1 IN ({placeholders})")
+        params.extend(order_products)
+
+    # Unit Handling (NEW)
+    if order_units:
+        placeholders = ','.join(['%s'] * len(order_units))
+        if table_type == "order_data":
+            mapped_unit_sql = """
+                CASE 
+                    WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                    WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                    ELSE Unit 
+                END
+            """
+            filters.append(f"({mapped_unit_sql}) IN ({placeholders})")
+        else:
+            # order_target mapping
+            mapped_unit_target_sql = """
+                CASE 
+                    WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                    ELSE Unit 
+                END
+            """
+            filters.append(f"({mapped_unit_target_sql}) IN ({placeholders})")
+        params.extend(order_units)
+
+    if fin_years:
+        placeholders = ','.join(['%s'] * len(fin_years))
+        filters.append(f"fin_year IN ({placeholders})")
+        params.extend(fin_years)
+
+    if months and table_type == "order_data":
+        placeholders = ','.join(['%s'] * len(months))
+        filters.append(f"MONTHNAME(Created_Date) IN ({placeholders})")
+        params.extend(months)
+
+    if table_type == "order_data":
+        filters.append("Product1 IS NOT NULL")
+
+    where_clause = " AND ".join(filters) if filters else "1=1"
+    return "WHERE " + where_clause, params
+
+# ==========================================
+# PAGE ROUTE
+# ==========================================
+@app.route('/orders')
+def order():
+    username = session.get('username', 'Guest')
+    return render_template('orders_dashboard.html', username=username)
+
+
+# ==========================================
+# API ENDPOINTS (Points to build_filter_orders_query)
+# ==========================================
+
+@app.route('/api/filters/orders', methods=['GET'])
+def get_orders_filters():
+    """Fetches distinct filter options for Orders, handling cascading dependencies (Region->Office, Unit->Product)."""
+    regions_selected = request.args.getlist('region')
+    units_selected = request.args.getlist('unit')
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # 1. Independent Filters (Regions, Fin Years, Units)
+            cursor.execute("SELECT DISTINCT Sales_Region FROM order_data WHERE Sales_Region IS NOT NULL")
+            regions = [r['Sales_Region'] for r in cursor.fetchall() if r['Sales_Region']]
+
+            cursor.execute("SELECT DISTINCT fin_year FROM order_data WHERE fin_year IS NOT NULL")
+            fin_years = [r['fin_year'] for r in cursor.fetchall() if r['fin_year']]
+
+            unit_query = """
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                        WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                        ELSE Unit 
+                    END as unit
+                FROM order_data 
+                WHERE Unit IS NOT NULL
+            """
+            cursor.execute(unit_query)
+            excluded_units = {'UN07', 'UN15'}
+            units = [r['unit'] for r in cursor.fetchall() if r['unit'] and r['unit'] not in excluded_units]
+
+            # 2. Dependent Filter: Sales Office (Filtered by Region)
+            office_query = "SELECT DISTINCT Sales_office FROM order_data WHERE Sales_office IS NOT NULL"
+            office_params = []
+            if regions_selected:
+                placeholders = ','.join(['%s'] * len(regions_selected))
+                office_query += f" AND Sales_Region IN ({placeholders})"
+                office_params.extend(regions_selected)
+
+            cursor.execute(office_query, office_params)
+            offices = [r['Sales_office'] for r in cursor.fetchall() if r['Sales_office']]
+
+            # 3. Dependent Filter: Products (Filtered by Unit)
+            prod_query = """
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN Product1 = 'LV Motors' AND Product2 = 'LV Motors (Standard)' THEN 'LV MOTORS(S)'
+                        ELSE Product1 
+                    END as mapped_prod
+                FROM order_data
+                WHERE Product1 IS NOT NULL
+            """
+            prod_params = []
+            if units_selected:
+                placeholders = ','.join(['%s'] * len(units_selected))
+                mapped_unit_sql = """
+                    CASE 
+                        WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                        WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                        ELSE Unit 
+                    END
+                """
+                prod_query += f" AND ({mapped_unit_sql}) IN ({placeholders})"
+                prod_params.extend(units_selected)
+
+            cursor.execute(prod_query, prod_params)
+            products = [r['mapped_prod'] for r in cursor.fetchall() if r['mapped_prod']]
+
+    return jsonify({
+        "regions": regions,
+        "offices": offices,
+        "fin_years": fin_years,
+        "products": products,
+        "units": units
+    })
+
+@app.route('/api/order/kpis', methods=['GET'])
+def get_orders_kpis():
+    """Returns Overall Sales, Total Target, and Customers Billed for the Orders Dashboard."""
+    data_where, data_params = build_filter_orders_query("order_data")
+    target_where, target_params = build_filter_orders_query("order_target")
+
+    months = request.args.getlist('month')
+    proration_factor = len(months) / 12.0 if months else 1.0
+
+    # 1. Query Actuals
+    data_query = f"""
+        SELECT 
+            SUM(Net_Value) as overall_sales,
+            COUNT(DISTINCT Customer) as customers_billed
+        FROM order_data
+        {data_where}
+    """
+
+    # 2. Query Targets
+    target_query = f"""
+        SELECT 
+            (SUM(Target) * 100000 * {proration_factor}) as total_target
+        FROM order_target1
+        {target_where}
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(data_query, data_params)
+            result = cursor.fetchone() or {}
+
+            cursor.execute(target_query, target_params)
+            target_result = cursor.fetchone() or {}
+
+    result['overall_sales'] = result.get('overall_sales') or 0
+    result['total_target'] = target_result.get('total_target') or 0
+    result['customers_billed'] = result.get('customers_billed') or 0
+
+    return jsonify(result)
+
+
+@app.route('/api/orders-trend', methods=['GET'])
+def get_orders_trend():
+    """Returns Net Revenue Trend over time for Orders (Both Weekly and Monthly aggregation)."""
+    where_clause, params = build_filter_orders_query("order_data")
+
+    # 1. Monthly Query (For MoM Growth)
+    monthly_query = f"""
+        SELECT 
+            DATE_FORMAT(Created_Date, '%%Y-%%m') as time_period,
+            SUM(Net_Value) as total_revenue
+        FROM order_data
+        {where_clause}
+        GROUP BY time_period
+        ORDER BY time_period ASC
+    """
+
+    weekly_query = f"""
+        SELECT 
+            DATE_FORMAT(MIN(Created_Date), '%%d %%b %%y') as time_period,
+            SUM(Net_Value) as total_revenue
+        FROM order_data
+        {where_clause}
+        GROUP BY YEARWEEK(Created_Date, 1)
+        ORDER BY MIN(Created_Date) ASC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            # Execute Monthly Query
+            cursor.execute(monthly_query, params)
+            monthly_results = cursor.fetchall()
+
+            # Execute Weekly Query
+            cursor.execute(weekly_query, params)
+            weekly_results = cursor.fetchall()
+
+    return jsonify({
+        "monthly": monthly_results,
+        "weekly": weekly_results
+    })
+
+
+@app.route('/api/orders/products-revenue', methods=['GET'])
+def get_orders_products_revenue():
+    # FIXED FUNCTION CALL
+    where_clause, params = build_filter_orders_query("order_data")
+
+    query = f"""
+        SELECT 
+            CASE 
+                WHEN Product1 = 'LV Motors' AND Product2 = 'LV Motors (Standard)' THEN 'LV MOTORS(S)'
+                ELSE Product1
+            END AS mapped_product,
+            SUM(Net_Value) as revenue,
+            SUM(Order_Qty) as quantity
+        FROM order_data
+        {where_clause}
+        GROUP BY mapped_product
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            results = cursor.fetchall()
+
+    return jsonify(results)
+
+
+@app.route('/api/orders/sales-by-office', methods=['GET'])
+def get_orders_sales_by_office():
+    # FIXED FUNCTION CALL
+    where_clause, params = build_filter_orders_query("order_data")
+
+    office_query = f"""
+        SELECT Sales_office, SUM(Net_Value) as revenue
+        FROM order_data {where_clause}
+        GROUP BY Sales_office 
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(office_query, params)
+            offices = cursor.fetchall()
+
+    return jsonify(offices)
+
+
+@app.route('/api/order/sales-by-region', methods=['GET'])
+def get_order_sales_by_region():
+    # FIXED FUNCTION CALL
+    where_clause, params = build_filter_orders_query("order_data")
+
+    region_query = f"""
+        SELECT Sales_Region, SUM(Net_Value) as revenue
+        FROM order_data {where_clause}
+        GROUP BY Sales_Region 
+        ORDER BY revenue DESC
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(region_query, params)
+            regions = cursor.fetchall()
+
+    return jsonify(regions)
+
+
+@app.route('/api/orders/aop-achievement', methods=['GET'])
+def get_orders_aop_achievement():
+    # FIXED FUNCTION CALLS HERE
+    data_where, data_params = build_filter_orders_query("order_data")
+    target_where, target_params = build_filter_orders_query("order_target")
+
+    months = request.args.getlist('month')
+    proration_factor = len(months) / 12.0 if months else 1.0
+
+    actuals_query = f"""
+            SELECT 
+                CASE 
+                   WHEN Product1 = 'LV Motors' AND Product2 = 'LV Motors (Standard)' THEN 'LV MOTORS(S)'
+                    ELSE Product1
+                END AS mapped_product,
+                CASE 
+                    WHEN Product1 = 'Transformer Pune' THEN 'UN16'
+                    WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
+                    ELSE Unit 
+                END as mapped_unit,
+                SUM(Net_Value) as actual_revenue
+            FROM order_data
+            {data_where}
+            GROUP BY mapped_product, mapped_unit
+            ORDER BY mapped_unit ASC
+        """
+
+    targets_query = f"""
+            SELECT 
+                Product1, 
+                Unit AS mapped_unit, 
+                (SUM(Target) * 100000 * {proration_factor}) as target_revenue 
+            FROM order_target1
+            {target_where}
+            GROUP BY Product1, mapped_unit
+            ORDER BY mapped_unit ASC
+        """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(targets_query, target_params)
+            targets_raw = cursor.fetchall()
+
+            cursor.execute(actuals_query, data_params)
+            actuals_raw = cursor.fetchall()
+
+    merged_data = {}
+
+    for row in targets_raw:
+        product = row['Product1']
+        unit = row['mapped_unit']
+        key = f"{product}|{unit}"
+
+        merged_data[key] = {
+            "product": product,
+            "unit": unit,
+            "order_target": float(row['target_revenue'] or 0),
+            "actual": 0.0,
+            "achievement_percentage": 0.0
+        }
+
+    for row in actuals_raw:
+        product = row['mapped_product']
+        unit = row['mapped_unit']
+        key = f"{product}|{unit}"
+
+        if key not in merged_data:
+            merged_data[key] = {
+                "product": product,
+                "unit": unit,
+                "order_target": 0.0,
+                "actual": 0.0,
+                "achievement_percentage": 0.0
+            }
+
+        merged_data[key]["actual"] += float(row['actual_revenue'] or 0)
+
+    final_results = []
+    for data in merged_data.values():
+        if data["order_target"] > 0:
+            data["achievement_percentage"] = round((data["actual"] / data["order_target"]) * 100, 2)
+        else:
+            data["achievement_percentage"] = 100.0 if data["actual"] > 0 else 0.0
+
+        final_results.append(data)
+
+    return jsonify(final_results),
+In the same way modify order data, The Product IS DC Machines, RRM, And I need Instead of Actual vs Target by Unit I need one Table called Sales Engineers Table
+like SI nO. sales_engineer_name sales_office Net Value Target Achivement,
+For Reference
+SELECT Sales_Engg_Name, Sales_office, SUM(Net_Value) AS actual
+        FROM order_data, Now i dont target values, keep it as 0 , dont show any error.
