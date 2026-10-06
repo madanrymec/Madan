@@ -1,17 +1,118 @@
-# ---LV Motors(NS)----
-@prod_app.route('/dashboard/lvm_nec')
-def dashboard_lvm_nec():
-    return render_template('Product5/ytd.html', username=session['username'])
+ERROR
+Traceback (most recent call last):                                                        
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)                                         
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6206, in get_products_revenue_lv
+    cursor.execute(query, params)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
+    query = self.mogrify(query, args)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
+    query = query % self._escape_args(args, conn)
+TypeError: not all arguments converted during string formatting
+192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/sales-trend/lv?fin_year=2026-2027 HTTP/1.1" 500 -
+Traceback (most recent call last):
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6171, in get_sales_trend_lv
+    cursor.execute(monthly_query, params)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
+    query = self.mogrify(query, args)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
+    query = query % self._escape_args(args, conn)
+TypeError: not all arguments converted during string formatting
+192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/sales-by-office/lv?fin_year=2026-2027 HTTP/1.1" 500 -
+192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/sales-by-region/lv?fin_year=2026-2027 HTTP/1.1" 500 -
+Traceback (most recent call last):
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6228, in get_sales_by_office_lv
+    cursor.execute(office_query, params)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
+    query = self.mogrify(query, args)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
+    query = query % self._escape_args(args, conn)
+TypeError: not all arguments converted during string formatting
+192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/aop-achievement/lv?fin_year=2026-2027 HTTP/1.1" 500 -
+Traceback (most recent call last):
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6248, in get_sales_by_region_lv
+    cursor.execute(region_query, params)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
+    query = self.mogrify(query, args)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
+    query = query % self._escape_args(args, conn)
+TypeError: not all arguments converted during string formatting
+192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/kpis/lv?fin_year=2026-2027 HTTP/1.1" 500 -
+Traceback (most recent call last):
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6309, in get_aop_achievement_lv
+    cursor.execute(targets_query, target_params)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
+    query = self.mogrify(query, args)
+  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
+    query = query % self._escape_args(args, conn)
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
+TypeError: not all arguments converted during string formatting
+
 
 def build_filter_query_lv(table_type="data"):
-    """
-    Dynamically builds the WHERE clause and parameters based on frontend filters.
-    Includes dynamic product and region restrictions based on the Sales Office selected (Ludhiana exception).
-    """
     filters = []
     params = []
 
-    # Extract multiple selections
     regions = request.args.getlist('region')
     offices = request.args.getlist('sales_office')
     products = request.args.getlist('product')
@@ -20,94 +121,98 @@ def build_filter_query_lv(table_type="data"):
     months = request.args.getlist('month')
 
     # --- DYNAMIC AUTHORIZATION LOGIC ---
-    # Check if Ludhiana is selected (case-insensitive)
     ludhiana_selected = [o for o in offices if o.strip().lower() == 'ludhiana']
 
     if ludhiana_selected:
-        # If Ludhiana is selected: Allow ALL products and regions, but FORCE data to only be Ludhiana.
+        # Override to only show Ludhiana
         offices = ludhiana_selected
     else:
-        # Default behavior: Restrict to ONLY 'LV MOTORS' and specific Regions
-        allowed_products = ['LV MOTORS']
-        product_placeholders = ','.join(['%s'] * len(allowed_products))
-
+        # Baseline Restriction (Strictly LV Motors)
         if table_type == "data":
-            filters.append(f"Prod IN ({product_placeholders})")
+            filters.append("Prod = 'LV MOTORS'")
         else:
-            filters.append(f"Product IN ({product_placeholders})")
+            filters.append("Product IN('LV MOTORS(S)','LV MOTORS(NS)')")
+        params.append('LV MOTORS')
 
-        params.extend(allowed_products)
-
-        # Region Restriction
         allowed_regions = ['North India', 'East India', 'Central India']
         region_placeholders = ','.join(['%s'] * len(allowed_regions))
         filters.append(f"Sales_Region_Name IN ({region_placeholders})")
         params.extend(allowed_regions)
-    # ------------------------------------
 
-    # Region Handling
+    # UI Filters
     if regions:
         placeholders = ','.join(['%s'] * len(regions))
         filters.append(f"Sales_Region_Name IN ({placeholders})")
         params.extend(regions)
 
-    # Sales Office Handling
     if offices:
         placeholders = ','.join(['%s'] * len(offices))
         filters.append(f"Sales_office IN ({placeholders})")
         params.extend(offices)
 
-    # Product handling
+    # --- PYTHON MAPPING FOR PRODUCTS ---
     if products:
-        placeholders = ','.join(['%s'] * len(products))
         if table_type == "data":
-            mapped_prod_sql = """
-                CASE 
-                    WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
-                    WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
-                    ELSE Prod 
-                END
-            """
-            filters.append(f"({mapped_prod_sql}) IN ({placeholders})")
+            prod_conditions = []
+            standard_prods = []
+            for p in products:
+                if p == 'LV MOTORS (NS)':
+                    prod_conditions.append("(Prod = 'LV MOTORS' AND Plant = 'AC02')")
+                elif p == 'LV MOTORS (S)':
+                    prod_conditions.append("(Prod = 'LV MOTORS' AND Plant = 'AC25')")
+                else:
+                    standard_prods.append(p)
+
+            if standard_prods:
+                placeholders = ','.join(['%s'] * len(standard_prods))
+                prod_conditions.append(f"Prod IN ({placeholders})")
+                params.extend(standard_prods)
+
+            if prod_conditions:
+                filters.append("(" + " OR ".join(prod_conditions) + ")")
         else:
+            placeholders = ','.join(['%s'] * len(products))
             filters.append(f"Product IN ({placeholders})")
-        params.extend(products)
+            params.extend(products)
 
-    # Unit Handling
+    # --- PYTHON MAPPING FOR UNITS ---
     if units:
-        placeholders = ','.join(['%s'] * len(units))
-        if table_type == "data":
-            mapped_unit_sql = """
-                CASE 
-                    WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16'
-                    WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
-                    ELSE Unit 
-                END
-            """
-            filters.append(f"({mapped_unit_sql}) IN ({placeholders})")
-        else:
-            mapped_unit_target_sql = """
-                CASE 
-                    WHEN Product = 'TRANSFORMERS PUNE' THEN 'UN16'
-                    ELSE Unit 
-                END
-            """
-            filters.append(f"({mapped_unit_target_sql}) IN ({placeholders})")
-        params.extend(units)
+        unit_conditions = []
+        standard_units = []
 
-    # Financial Year Handling
+        if table_type == "data":
+            for u in units:
+                if u == 'UN16':
+                    unit_conditions.append("(Unit = 'UN16' OR Prod = 'TRANSFORMERS PUNE')")
+                elif u == 'UN25':
+                    unit_conditions.append("(Unit = 'UN25' OR Plant IN ('AC25', 'AG25'))")
+                else:
+                    standard_units.append(u)
+        else:
+            for u in units:
+                if u == 'UN16':
+                    unit_conditions.append("(Unit = 'UN16' OR Product = 'TRANSFORMERS PUNE')")
+                else:
+                    standard_units.append(u)
+
+        if standard_units:
+            placeholders = ','.join(['%s'] * len(standard_units))
+            unit_conditions.append(f"Unit IN ({placeholders})")
+            params.extend(standard_units)
+
+        if unit_conditions:
+            filters.append("(" + " OR ".join(unit_conditions) + ")")
+
     if fin_years:
         placeholders = ','.join(['%s'] * len(fin_years))
         filters.append(f"fin_year IN ({placeholders})")
         params.extend(fin_years)
 
-    # Month Handling
     if months and table_type == "data":
         placeholders = ','.join(['%s'] * len(months))
         filters.append(f"MONTHNAME(Billing_Date) IN ({placeholders})")
         params.extend(months)
 
-    # Exclude Inter Unit Transfers strictly for billing_data
     if table_type == "data":
         filters.append("Dist_Channel_TEXT != 'Inter Unit Transfer' AND Prod IS NOT NULL")
 
@@ -117,7 +222,7 @@ def build_filter_query_lv(table_type="data"):
 
 @prod_app.route('/api/filters/lv', methods=['GET'])
 def get_filters_lv():
-    """Fetches distinct filter options, applying the dynamic Ludhiana / Product / Region boundaries."""
+    """Fetches distinct filter options using strict indexing to prevent DB lag."""
     regions_selected = request.args.getlist('region')
     units_selected = request.args.getlist('unit')
     offices_selected = request.args.getlist('sales_office')
@@ -126,50 +231,41 @@ def get_filters_lv():
     is_ludhiana = any(o.strip().lower() == 'ludhiana' for o in offices_selected)
 
     if is_ludhiana:
-        # If Ludhiana is active, allow all products and regions to populate the dropdowns, but bound to Ludhiana
+        # User selected Ludhiana: Fetch everything for Ludhiana
         base_where = "Dist_Channel_TEXT != 'Inter Unit Transfer' AND Sales_office = 'Ludhiana'"
     else:
-        # Otherwise, restrict dropdowns to LV MOTORS and specific Regions.
-        # We explicitly add `OR Sales_office = 'Ludhiana'` so Ludhiana always remains a visible option to click.
-        base_where = "Dist_Channel_TEXT != 'Inter Unit Transfer' AND ((Prod = 'LV MOTORS' AND Sales_Region_Name IN ('North India', 'East India', 'Central India')) OR Sales_office = 'Ludhiana')"
+        # Default load: Query strictly for LV Motors (Fast Indexed Query)
+        base_where = "Dist_Channel_TEXT != 'Inter Unit Transfer' AND Prod = 'LV MOTORS' AND Sales_Region_Name IN ('North India', 'East India', 'Central India')"
 
     with get_db_connection() as conn:
-        with conn.cursor() as cursor:  # Added dictionary=True
-            # 1. Independent Filters
-            cursor.execute(f"""
-                SELECT DISTINCT Sales_Region_Name 
-                FROM billing_data 
-                WHERE {base_where} AND Sales_Region_Name IS NOT NULL
-            """)
-            regions = [r['Sales_Region_Name'] for r in cursor.fetchall() if r['Sales_Region_Name']]
+        with conn.cursor() as cursor:
+            # 1. Regions
+            cursor.execute(
+                f"SELECT DISTINCT Sales_Region_Name FROM billing_data WHERE {base_where} AND Sales_Region_Name IS NOT NULL")
+            regions = [r.get('Sales_Region_Name') for r in cursor.fetchall() if r.get('Sales_Region_Name')]
 
-            cursor.execute(f"""
-                SELECT DISTINCT fin_year 
-                FROM billing_data 
-                WHERE {base_where} AND fin_year IS NOT NULL
-            """)
-            fin_years = [r['fin_year'] for r in cursor.fetchall() if r['fin_year']]
+            # 2. Fin Years
+            cursor.execute(f"SELECT DISTINCT fin_year FROM billing_data WHERE {base_where} AND fin_year IS NOT NULL")
+            fin_years = [r.get('fin_year') for r in cursor.fetchall() if r.get('fin_year')]
 
-            unit_query = f"""
-                SELECT DISTINCT 
-                    CASE 
-                        WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16'
-                        WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
-                        ELSE Unit 
-                    END as unit
-                FROM billing_data 
-                WHERE {base_where} AND Unit IS NOT NULL
-            """
-            cursor.execute(unit_query)
+            # 3. Units (Mapped entirely in Python to avoid SQL CASE delays)
+            cursor.execute(f"SELECT DISTINCT Unit, Prod, Plant FROM billing_data WHERE {base_where}")
+            raw_units = cursor.fetchall()
+            unit_set = set()
+            for r in raw_units:
+                u = r.get('Unit')
+                pl = r.get('Plant')
+
+                if pl in ('AC25', 'AG25'):
+                    unit_set.add('UN25')
+                elif u:
+                    unit_set.add(u)
+
             excluded_units = {'UN07', 'UN15'}
-            units = [r['unit'] for r in cursor.fetchall() if r['unit'] and r['unit'] not in excluded_units]
+            units = [u for u in unit_set if u not in excluded_units]
 
-            # 2. Dependent Filter: Sales Office (Filtered by Region)
-            office_query = f"""
-                SELECT DISTINCT Sales_office 
-                FROM billing_data 
-                WHERE {base_where} AND Sales_office IS NOT NULL
-            """
+            # 4. Dependent Office Filter
+            office_query = f"SELECT DISTINCT Sales_office FROM billing_data WHERE {base_where} AND Sales_office IS NOT NULL"
             office_params = []
             if regions_selected:
                 placeholders = ','.join(['%s'] * len(regions_selected))
@@ -177,34 +273,32 @@ def get_filters_lv():
                 office_params.extend(regions_selected)
 
             cursor.execute(office_query, office_params)
-            offices = [r['Sales_office'] for r in cursor.fetchall() if r['Sales_office']]
+            offices = [r.get('Sales_office') for r in cursor.fetchall() if r.get('Sales_office')]
 
-            # 3. Dependent Filter: Products (Filtered by Unit)
-            prod_query = f"""
-                SELECT DISTINCT 
-                    CASE 
-                        WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
-                        WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
-                        ELSE Prod 
-                    END as mapped_prod
-                FROM billing_data
-                WHERE {base_where} AND Prod IS NOT NULL
-            """
-            prod_params = []
-            if units_selected:
-                placeholders = ','.join(['%s'] * len(units_selected))
-                mapped_unit_sql = """
-                    CASE 
-                        WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16'
-                        WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
-                        ELSE Unit 
-                    END
-                """
-                prod_query += f" AND ({mapped_unit_sql}) IN ({placeholders})"
-                prod_params.extend(units_selected)
+            # --- THE SPEED FIX: Python Injection ---
+            # If Ludhiana isn't in the list, manually add it so the user can still select it
+            if not is_ludhiana:
+                if 'Ludhiana' not in offices:
+                    offices.append('Ludhiana')
+                    offices.sort()
+            # ---------------------------------------
 
-            cursor.execute(prod_query, prod_params)
-            products = [r['mapped_prod'] for r in cursor.fetchall() if r['mapped_prod']]
+            # 5. Products (Mapped in Python)
+            cursor.execute(f"SELECT DISTINCT Prod, Plant FROM billing_data WHERE {base_where} AND Prod IS NOT NULL")
+            raw_prods = cursor.fetchall()
+            prod_set = set()
+            for r in raw_prods:
+                p = r.get('Prod')
+                pl = r.get('Plant')
+
+                if p == 'LV MOTORS' and pl == 'AC02':
+                    prod_set.add('LV MOTORS (NS)')
+                elif p == 'LV MOTORS' and pl == 'AC25':
+                    prod_set.add('LV MOTORS (S)')
+                elif p:
+                    prod_set.add(p)
+
+            products = list(prod_set)
 
     return jsonify({
         "regions": regions,
@@ -213,8 +307,6 @@ def get_filters_lv():
         "products": products,
         "units": units
     })
-
-
 @prod_app.route('/api/kpis/lv', methods=['GET'])
 def get_kpis_lv():
     """Returns Overall Sales and Total Target for the KPI grid and Achievement Gauge."""
@@ -337,6 +429,7 @@ def get_sales_by_office_lv():
         FROM billing_data {where_clause}
         GROUP BY Sales_office 
         ORDER BY revenue DESC
+        LIMIT 12
     """
 
     with get_db_connection() as conn:
@@ -474,49 +567,3 @@ def get_aop_achievement_lv():
 
     return jsonify(final_results)
 
-@prod_app.route('/api/export/sales_excel/lv', methods=['GET'])
-def export_sales_excel_lv():
-    """Exports the filtered billing_data to an Excel file."""
-    where_clause, params = build_filter_query_lv("data")
-    query = f"SELECT * FROM billing_data {where_clause}"
-
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query, params)
-                results = cursor.fetchall()
-
-        if not results:
-            return "No data found for the selected filters.", 404
-
-        # 3. Load the dictionary list directly into Pandas
-        # This completely fixes the "repeating headers" bug and the DBAPI2 warning
-        df = pd.DataFrame(results)
-
-        # 4. Clean up Date formats before exporting
-        date_cols = ['Created_Date', 'Released_date', 'Billing_Date', 'eWay_Billdate', 'LR_Date', 'PO_Date']
-        for col in date_cols:
-            if col in df.columns:
-                df[col] = pd.to_datetime(df[col], errors='coerce').dt.strftime('%d-%m-%Y')
-
-        # 5. Write to BytesIO stream
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Sales_Export')
-        output.seek(0)
-
-        # 6. Generate dynamic filename based on selected Financial Year
-        fin_years = request.args.getlist('fin_year')
-        fy_str = "_".join(fin_years) if fin_years else "All_Years"
-        filename = f"Sales_Export_{fy_str}.xlsx"
-
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=filename
-        )
-
-    except Exception as e:
-        print(f"Export Error: {e}")
-        return f"Error exporting data: {str(e)}", 500
