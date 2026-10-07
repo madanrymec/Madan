@@ -1,569 +1,218 @@
-ERROR
-Traceback (most recent call last):                                                        
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
-    return self.wsgi_app(environ, start_response)                                         
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
-    response = self.handle_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
-    response = self.full_dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
-    rv = self.dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6206, in get_products_revenue_lv
-    cursor.execute(query, params)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
-    query = self.mogrify(query, args)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
-    query = query % self._escape_args(args, conn)
-TypeError: not all arguments converted during string formatting
-192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/sales-trend/lv?fin_year=2026-2027 HTTP/1.1" 500 -
-Traceback (most recent call last):
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
-    return self.wsgi_app(environ, start_response)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
-    response = self.handle_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
-    response = self.full_dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
-    rv = self.dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6171, in get_sales_trend_lv
-    cursor.execute(monthly_query, params)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
-    query = self.mogrify(query, args)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
-    query = query % self._escape_args(args, conn)
-TypeError: not all arguments converted during string formatting
-192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/sales-by-office/lv?fin_year=2026-2027 HTTP/1.1" 500 -
-192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/sales-by-region/lv?fin_year=2026-2027 HTTP/1.1" 500 -
-Traceback (most recent call last):
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
-    return self.wsgi_app(environ, start_response)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
-    response = self.handle_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
-    response = self.full_dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
-    rv = self.dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6228, in get_sales_by_office_lv
-    cursor.execute(office_query, params)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
-    query = self.mogrify(query, args)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
-    query = query % self._escape_args(args, conn)
-TypeError: not all arguments converted during string formatting
-192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/aop-achievement/lv?fin_year=2026-2027 HTTP/1.1" 500 -
-Traceback (most recent call last):
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
-    return self.wsgi_app(environ, start_response)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
-    response = self.handle_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
-    response = self.full_dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
-    rv = self.dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6248, in get_sales_by_region_lv
-    cursor.execute(region_query, params)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
-    query = self.mogrify(query, args)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
-    query = query % self._escape_args(args, conn)
-TypeError: not all arguments converted during string formatting
-192.7.200.48 - - [06/Oct/2026 16:57:07] "GET /api/kpis/lv?fin_year=2026-2027 HTTP/1.1" 500 -
-Traceback (most recent call last):
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
-    return self.wsgi_app(environ, start_response)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1514, in wsgi_app
-    response = self.handle_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1511, in wsgi_app
-    response = self.full_dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 919, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
-    rv = self.dispatch_request()
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 902, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-  File "D:\Project_Backups\BackUp\18-05\YTDDashBoard\Products\product_head.py", line 6309, in get_aop_achievement_lv
-    cursor.execute(targets_query, target_params)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 157, in execute
-    query = self.mogrify(query, args)
-  File "C:\Program Files\Python310\lib\site-packages\pymysql\cursors.py", line 135, in mogrify
-    query = query % self._escape_args(args, conn)
-TypeError: not all arguments converted during string formatting
-Traceback (most recent call last):
-  File "C:\Program Files\Python310\lib\site-packages\flask\app.py", line 1536, in __call__
-TypeError: not all arguments converted during string formatting
-
-
-def build_filter_query_lv(table_type="data"):
-    filters = []
-    params = []
-
-    regions = request.args.getlist('region')
-    offices = request.args.getlist('sales_office')
-    products = request.args.getlist('product')
-    units = request.args.getlist('unit')
-    fin_years = request.args.getlist('fin_year')
-    months = request.args.getlist('month')
-
-    # --- DYNAMIC AUTHORIZATION LOGIC ---
-    ludhiana_selected = [o for o in offices if o.strip().lower() == 'ludhiana']
-
-    if ludhiana_selected:
-        # Override to only show Ludhiana
-        offices = ludhiana_selected
-    else:
-        # Baseline Restriction (Strictly LV Motors)
-        if table_type == "data":
-            filters.append("Prod = 'LV MOTORS'")
-        else:
-            filters.append("Product IN('LV MOTORS(S)','LV MOTORS(NS)')")
-        params.append('LV MOTORS')
-
-        allowed_regions = ['North India', 'East India', 'Central India']
-        region_placeholders = ','.join(['%s'] * len(allowed_regions))
-        filters.append(f"Sales_Region_Name IN ({region_placeholders})")
-        params.extend(allowed_regions)
-
-    # UI Filters
-    if regions:
-        placeholders = ','.join(['%s'] * len(regions))
-        filters.append(f"Sales_Region_Name IN ({placeholders})")
-        params.extend(regions)
-
-    if offices:
-        placeholders = ','.join(['%s'] * len(offices))
-        filters.append(f"Sales_office IN ({placeholders})")
-        params.extend(offices)
-
-    # --- PYTHON MAPPING FOR PRODUCTS ---
-    if products:
-        if table_type == "data":
-            prod_conditions = []
-            standard_prods = []
-            for p in products:
-                if p == 'LV MOTORS (NS)':
-                    prod_conditions.append("(Prod = 'LV MOTORS' AND Plant = 'AC02')")
-                elif p == 'LV MOTORS (S)':
-                    prod_conditions.append("(Prod = 'LV MOTORS' AND Plant = 'AC25')")
-                else:
-                    standard_prods.append(p)
-
-            if standard_prods:
-                placeholders = ','.join(['%s'] * len(standard_prods))
-                prod_conditions.append(f"Prod IN ({placeholders})")
-                params.extend(standard_prods)
-
-            if prod_conditions:
-                filters.append("(" + " OR ".join(prod_conditions) + ")")
-        else:
-            placeholders = ','.join(['%s'] * len(products))
-            filters.append(f"Product IN ({placeholders})")
-            params.extend(products)
-
-    # --- PYTHON MAPPING FOR UNITS ---
-    if units:
-        unit_conditions = []
-        standard_units = []
-
-        if table_type == "data":
-            for u in units:
-                if u == 'UN16':
-                    unit_conditions.append("(Unit = 'UN16' OR Prod = 'TRANSFORMERS PUNE')")
-                elif u == 'UN25':
-                    unit_conditions.append("(Unit = 'UN25' OR Plant IN ('AC25', 'AG25'))")
-                else:
-                    standard_units.append(u)
-        else:
-            for u in units:
-                if u == 'UN16':
-                    unit_conditions.append("(Unit = 'UN16' OR Product = 'TRANSFORMERS PUNE')")
-                else:
-                    standard_units.append(u)
-
-        if standard_units:
-            placeholders = ','.join(['%s'] * len(standard_units))
-            unit_conditions.append(f"Unit IN ({placeholders})")
-            params.extend(standard_units)
-
-        if unit_conditions:
-            filters.append("(" + " OR ".join(unit_conditions) + ")")
-
-    if fin_years:
-        placeholders = ','.join(['%s'] * len(fin_years))
-        filters.append(f"fin_year IN ({placeholders})")
-        params.extend(fin_years)
-
-    if months and table_type == "data":
-        placeholders = ','.join(['%s'] * len(months))
-        filters.append(f"MONTHNAME(Billing_Date) IN ({placeholders})")
-        params.extend(months)
-
-    if table_type == "data":
-        filters.append("Dist_Channel_TEXT != 'Inter Unit Transfer' AND Prod IS NOT NULL")
-
-    where_clause = " AND ".join(filters) if filters else "1=1"
-    return "WHERE " + where_clause, params
-
-
-@prod_app.route('/api/filters/lv', methods=['GET'])
-def get_filters_lv():
-    """Fetches distinct filter options using strict indexing to prevent DB lag."""
-    regions_selected = request.args.getlist('region')
-    units_selected = request.args.getlist('unit')
-    offices_selected = request.args.getlist('sales_office')
-
-    # --- DYNAMIC DROPDOWN BOUNDARY LOGIC ---
-    is_ludhiana = any(o.strip().lower() == 'ludhiana' for o in offices_selected)
-
-    if is_ludhiana:
-        # User selected Ludhiana: Fetch everything for Ludhiana
-        base_where = "Dist_Channel_TEXT != 'Inter Unit Transfer' AND Sales_office = 'Ludhiana'"
-    else:
-        # Default load: Query strictly for LV Motors (Fast Indexed Query)
-        base_where = "Dist_Channel_TEXT != 'Inter Unit Transfer' AND Prod = 'LV MOTORS' AND Sales_Region_Name IN ('North India', 'East India', 'Central India')"
-
-    with get_db_connection() as conn:
-        with conn.cursor() as cursor:
-            # 1. Regions
-            cursor.execute(
-                f"SELECT DISTINCT Sales_Region_Name FROM billing_data WHERE {base_where} AND Sales_Region_Name IS NOT NULL")
-            regions = [r.get('Sales_Region_Name') for r in cursor.fetchall() if r.get('Sales_Region_Name')]
-
-            # 2. Fin Years
-            cursor.execute(f"SELECT DISTINCT fin_year FROM billing_data WHERE {base_where} AND fin_year IS NOT NULL")
-            fin_years = [r.get('fin_year') for r in cursor.fetchall() if r.get('fin_year')]
-
-            # 3. Units (Mapped entirely in Python to avoid SQL CASE delays)
-            cursor.execute(f"SELECT DISTINCT Unit, Prod, Plant FROM billing_data WHERE {base_where}")
-            raw_units = cursor.fetchall()
-            unit_set = set()
-            for r in raw_units:
-                u = r.get('Unit')
-                pl = r.get('Plant')
-
-                if pl in ('AC25', 'AG25'):
-                    unit_set.add('UN25')
-                elif u:
-                    unit_set.add(u)
-
-            excluded_units = {'UN07', 'UN15'}
-            units = [u for u in unit_set if u not in excluded_units]
-
-            # 4. Dependent Office Filter
-            office_query = f"SELECT DISTINCT Sales_office FROM billing_data WHERE {base_where} AND Sales_office IS NOT NULL"
-            office_params = []
-            if regions_selected:
-                placeholders = ','.join(['%s'] * len(regions_selected))
-                office_query += f" AND Sales_Region_Name IN ({placeholders})"
-                office_params.extend(regions_selected)
-
-            cursor.execute(office_query, office_params)
-            offices = [r.get('Sales_office') for r in cursor.fetchall() if r.get('Sales_office')]
-
-            # --- THE SPEED FIX: Python Injection ---
-            # If Ludhiana isn't in the list, manually add it so the user can still select it
-            if not is_ludhiana:
-                if 'Ludhiana' not in offices:
-                    offices.append('Ludhiana')
-                    offices.sort()
-            # ---------------------------------------
-
-            # 5. Products (Mapped in Python)
-            cursor.execute(f"SELECT DISTINCT Prod, Plant FROM billing_data WHERE {base_where} AND Prod IS NOT NULL")
-            raw_prods = cursor.fetchall()
-            prod_set = set()
-            for r in raw_prods:
-                p = r.get('Prod')
-                pl = r.get('Plant')
-
-                if p == 'LV MOTORS' and pl == 'AC02':
-                    prod_set.add('LV MOTORS (NS)')
-                elif p == 'LV MOTORS' and pl == 'AC25':
-                    prod_set.add('LV MOTORS (S)')
-                elif p:
-                    prod_set.add(p)
-
-            products = list(prod_set)
-
-    return jsonify({
-        "regions": regions,
-        "offices": offices,
-        "fin_years": fin_years,
-        "products": products,
-        "units": units
-    })
-@prod_app.route('/api/kpis/lv', methods=['GET'])
-def get_kpis_lv():
-    """Returns Overall Sales and Total Target for the KPI grid and Achievement Gauge."""
-    data_where, data_params = build_filter_query_lv("data")
-    target_where, target_params = build_filter_query_lv("target")
-
-    # Determine proration factor based on selected months
-    months = request.args.getlist('month')
-    proration_factor = len(months) / 12.0 if months else 1.0
-
-    # 1. Query Actuals from billing_data (Optimized)
-    data_query = f"""
-        SELECT SUM(Net_Value) as overall_sales
-        FROM billing_data
-        {data_where}
-    """
-
-    # 2. Query Targets from billing_target
-    target_query = f"""
-        SELECT (SUM(Target) * 100000 * {proration_factor}) as total_target
-        FROM billing_target1
-        {target_where}
-    """
-
-    with get_db_connection() as conn:
-        with conn.cursor() as cursor:
-            # Fetch Actuals
-            cursor.execute(data_query, data_params)
-            result = cursor.fetchone() or {}
-
-            # Fetch Targets
-            cursor.execute(target_query, target_params)
-            target_result = cursor.fetchone() or {}
-
-    # Map results and safely handle NULLs
-    result['overall_sales'] = result.get('overall_sales') or 0
-    result['total_target'] = target_result.get('total_target') or 0
-
-    return jsonify(result)
-
-
-@prod_app.route('/api/sales-trend/lv', methods=['GET'])
-def get_sales_trend_lv():
-    """Returns Net Revenue Trend over time (Both Weekly and Monthly aggregation)."""
-    where_clause, params = build_filter_query_lv("data")
-
-    # 1. Monthly Query (For MoM Growth)
-    monthly_query = f"""
-        SELECT 
-            DATE_FORMAT(Billing_Date, '%%Y-%%m') as time_period,
-            SUM(Net_Value) as total_revenue
-        FROM billing_data
-        {where_clause}
-        GROUP BY time_period
-        ORDER BY time_period ASC
-    """
-
-    weekly_query = f"""
-        SELECT 
-            DATE_FORMAT(MIN(Billing_Date), '%%d %%b %%y') as time_period,
-            SUM(Net_Value) as total_revenue
-        FROM billing_data
-        {where_clause}
-        GROUP BY YEARWEEK(Billing_Date, 1)
-        ORDER BY MIN(Billing_Date) ASC
-    """
-
-    with get_db_connection() as conn:
-        with conn.cursor() as cursor:
-            # Execute Monthly
-            cursor.execute(monthly_query, params)
-            monthly_results = cursor.fetchall()
-
-            # Execute Weekly
-            cursor.execute(weekly_query, params)
-            weekly_results = cursor.fetchall()
-
-    # Return both datasets cleanly
-    return jsonify({
-        "monthly": monthly_results,
-        "weekly": weekly_results
-    })
-
-@prod_app.route('/api/products-revenue/lv', methods=['GET'])
-def get_products_revenue_lv():
-    """Returns Revenue Contribution by Product Line using the LV Motors plant logic."""
-    where_clause, params = build_filter_query_lv("data")
-
-    query = f"""
-        SELECT 
-            CASE 
-                WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
-                WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
-                ELSE Prod 
-            END as mapped_product,
-            SUM(Net_Value) as revenue,
-            SUM(Billing_Qty) as quantity
-        FROM billing_data
-        {where_clause}
-        GROUP BY mapped_product
-        ORDER BY revenue DESC
-    """
-
-    with get_db_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query, params)
-            results = cursor.fetchall()
-
-    return jsonify(results)
-
-
-@prod_app.route('/api/sales-by-office/lv', methods=['GET'])
-def get_sales_by_office_lv():
-    """Returns Top 12 Sales Offices by Revenue."""
-    where_clause, params = build_filter_query_lv("data")
-
-    # Added LIMIT 12 to optimize DB performance for large datasets
-    office_query = f"""
-        SELECT Sales_office, SUM(Net_Value) as revenue
-        FROM billing_data {where_clause}
-        GROUP BY Sales_office 
-        ORDER BY revenue DESC
-        LIMIT 12
-    """
-
-    with get_db_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(office_query, params)
-            offices = cursor.fetchall()
-
-    return jsonify(offices)
-
-
-@prod_app.route('/api/sales-by-region/lv', methods=['GET'])
-def get_sales_by_region_lv():
-    """Returns Revenue by Region."""
-    where_clause, params = build_filter_query_lv("data")
-
-    region_query = f"""
-        SELECT Sales_Region_Name, SUM(Net_Value) as revenue
-        FROM billing_data {where_clause}
-        GROUP BY Sales_Region_Name 
-        ORDER BY revenue DESC
-    """
-
-    with get_db_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(region_query, params)
-            regions = cursor.fetchall()
-
-    return jsonify(regions)
-
-
-
-@prod_app.route('/api/aop-achievement/lv', methods=['GET'])
-def get_aop_achievement_lv():
-    """
-    Calculates Sales Achieved VS AOP.
-    Queries billing_data and billing_target separately and maps them via Python dictionary.
-    Includes dynamic prorating for target revenue based on month selections.
-    """
-    data_where, data_params = build_filter_query_lv("data")
-    target_where, target_params = build_filter_query_lv("target")
-
-    # Determine proration factor based on selected months
-    # If 1 month is selected, target is multiplied by (1/12). If none, it remains (1).
-    months = request.args.getlist('month')
-    proration_factor = len(months) / 12.0 if months else 1.0
-
-    # 1. Fetch Actuals from billing_data
-    # (Corrected 'TRANSFORMERS PUNE' spelling to match the database/image)
-    actuals_query = f"""
-        SELECT 
-            CASE 
-                WHEN Prod = 'LV MOTORS' AND Plant = 'AC02' THEN 'LV MOTORS (NS)'
-                WHEN Prod = 'LV MOTORS' AND Plant = 'AC25' THEN 'LV MOTORS (S)'
-                ELSE Prod 
-            END as mapped_product,
-            CASE 
-                WHEN Prod = 'TRANSFORMERS PUNE' THEN 'UN16'
-                WHEN Plant IN ('AC25', 'AG25') THEN 'UN25'
-                ELSE Unit 
-            END as mapped_unit,
-            SUM(Net_Value) as actual_revenue
-        FROM billing_data
-        {data_where}
-        GROUP BY mapped_product, mapped_unit
-        ORDER BY mapped_unit ASC
-    """
-
-    # 2. Fetch Targets from billing_target
-    # (Applied proration_factor to the target revenue calculation)
-    targets_query = f"""
-        SELECT 
-            Product,
-            CASE 
-                WHEN Product = 'TRANSFORMERS PUNE' THEN 'UN16'
-                ELSE Unit 
-            END as mapped_unit,
-            (SUM(Target) * 100000 * {proration_factor}) as target_revenue
-        FROM billing_target1
-        {target_where}
-        GROUP BY Product, mapped_unit
-        ORDER BY mapped_unit ASC
-    """
-
-    with get_db_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(targets_query, target_params)
-            targets_raw = cursor.fetchall()
-
-            cursor.execute(actuals_query, data_params)
-            actuals_raw = cursor.fetchall()
-
-    # 3. Python Mapping (O(N) Complexity - No SQL JOIN used)
-    merged_data = {}
-
-    # Initialize dictionary with targets
-    for row in targets_raw:
-        product = row['Product']
-        unit = row['mapped_unit']
-        key = f"{product}|{unit}"
-
-        merged_data[key] = {
-            "product": product,
-            "unit": unit,
-            "target": float(row['target_revenue'] or 0),
-            "actual": 0.0,
-            "achievement_percentage": 0.0
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Dashboard - Kirloskar Electric</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/kirloskar.png') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-0: #0d1117;
+            --bg-1: #141b22;
+            --bg-2: #1a232c;
+            --line: #2a3744;
+            --text-0: #eef2f5;
+            --text-1: #aab8c2;
+            --accent: #3fb8a6; /* Teal */
+            --accent-alt: #e6985a; /* Copper Bright */
+
+            --radius-main: 160px;
+            --node-size: 96px;
         }
 
-    # Map actuals onto the dictionary
-    for row in actuals_raw:
-        product = row['mapped_product']
-        unit = row['mapped_unit']
-        key = f"{product}|{unit}"
+        body, html {
+            margin: 0; padding: 0; height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-0);
+            background-image: radial-gradient(circle at center, var(--bg-1) 0%, var(--bg-0) 100%);
+            color: var(--text-0); overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
 
-        if key not in merged_data:
-            merged_data[key] = {
-                "product": product,
-                "unit": unit,
-                "target": 0.0,
-                "actual": 0.0,
-                "achievement_percentage": 0.0
+        .brand-container {
+                position: fixed;
+                top: 0px;
+                right: 20px;
+                display: flex;
+                flex-direction: row; /* Ensures img comes first, text comes second */
+                align-items: center;
+                gap: 15px;
+                z-index: 50;
+                pointer-events: none;
+            }
+               .brand-container img {
+                    height: 57px;
+                    width: 45px;
+                    border: 2px solid #ffffff;
+                }
+            .brand-text {
+                font-family: 'Space Grotesk', sans-serif;
+                font-weight: 700;
+                font-size: 14px;
+                letter-spacing: 1px;
+                color: var(--text-1);
+                line-height: 1.2;
+            }
+            .brand-text span {
+                color: var(--accent-alt);
+                font-size: 11px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
             }
 
-        merged_data[key]["actual"] += float(row['actual_revenue'] or 0)
+        .watermark {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-family: 'Space Grotesk', sans-serif; font-size: clamp(3rem, 10vw, 8rem);
+            letter-spacing: 12px; color: rgba(255, 255, 255, 0.02); font-weight: 900;
+            text-align: center; pointer-events: none; z-index: 0; line-height: 1.1;
+        }
 
-    # 4. Calculate Final Achievement Percentages
-    final_results = []
-    for data in merged_data.values():
-        if data["target"] > 0:
-            data["achievement_percentage"] = round((data["actual"] / data["target"]) * 100, 2)
-        else:
-            data["achievement_percentage"] = 100.0 if data["actual"] > 0 else 0.0
+        .radial-nav { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; z-index: 10; }
 
-        final_results.append(data)
+        /* Finance Center Toggle */
+        .center-orb {
+            position: absolute; width: 120px; height: 120px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
+            border: 2px solid var(--accent-alt);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--accent-alt); cursor: pointer; z-index: 100;
+            box-shadow: 0 0 30px rgba(230, 152, 90, 0.2);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .center-orb i { font-size: 34px; margin-bottom: 5px; transition: transform 0.4s ease; }
+        .center-orb span { font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
 
-    return jsonify(final_results)
+        .center-orb:hover { transform: scale(1.05); box-shadow: 0 0 40px rgba(230, 152, 90, 0.4); }
+        .radial-nav.is-open .center-orb { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 40px rgba(63, 184, 166, 0.3); }
 
+        .nav-node {
+            position: absolute; width: var(--node-size); height: var(--node-size);
+            margin: calc(var(--node-size) / -2) 0 0 calc(var(--node-size) / -2);
+            border-radius: 50%; z-index: 50; opacity: 0; pointer-events: none;
+            transform: rotate(var(--angle)) translateX(0px) rotate(calc(-1 * var(--angle))) scale(0);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+        }
+
+        .radial-nav.is-open .nav-node {
+            opacity: 1; pointer-events: auto;
+            transform: rotate(var(--angle)) translateX(var(--radius-main)) rotate(calc(-1 * var(--angle))) scale(1);
+        }
+
+        .node-inner {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 100%; height: 100%; background: rgba(20, 27, 34, 0.85);
+            border: 1px solid var(--line); border-radius: 50%; color: var(--text-1);
+            text-decoration: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px); transition: all 0.3s ease;
+        }
+        .node-inner i { font-size: 24px; margin-bottom: 6px; }
+        .node-inner span { font-size: 12px; font-weight: 600; text-align: center; }
+
+        .node-inner:hover {
+            border-color: var(--accent); color: var(--text-0);
+            box-shadow: 0 0 25px rgba(63, 184, 166, 0.4); transform: scale(1.1);
+        }
+
+        .orbit-ring {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            border-radius: 50%; border: 1px dashed rgba(255,255,255,0.05); pointer-events: none;
+            opacity: 0; transition: all 0.8s ease;
+        }
+        .radial-nav.is-open .orbit-ring {
+            width: calc(var(--radius-main) * 2); height: calc(var(--radius-main) * 2);
+            opacity: 1; transform: translate(-50%, -50%) scale(1);
+        }
+
+        .logout-btn { position: fixed; bottom: 30px; right: 30px; color: var(--text-1); text-decoration: none; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: color 0.2s; z-index: 50; }
+        .logout-btn:hover { color: var(--accent-alt); }
+    </style>
+</head>
+<body>
+
+    {% set perm = session.get('permission') %}
+    {% set col_url = '#' %}
+    {% set mis_url = '#' %}
+
+    {% if perm == 'finance_1_dashboard' %}
+        {% set col_url = url_for('finance_head.finance_1_dashboard') %}
+        {% set mis_url = url_for('finance_head.unit_1_fin_mis_report') %}
+    {% elif perm == 'finance_2_dashboard' %}
+        {% set col_url = url_for('finance_head.finance_2_dashboard') %}
+        {% set mis_url = url_for('finance_head.unit_2_fin_mis_report') %}
+    {% elif perm == 'finance_5_dashboard' %}
+        {% set col_url = url_for('finance_head.finance_5_dashboard') %}
+        {% set mis_url = url_for('finance_head.unit_5_fin_mis_report') %}
+    {% elif perm == 'finance_16_dashboard' %}
+        {% set col_url = url_for('finance_head.finance_16_dashboard') %}
+        {% set mis_url = url_for('finance_head.unit_16_fin_mis_report') %}
+    {% endif %}
+
+     <div class="brand-container">
+        <div class="brand-text">
+            KIRLOSKAR ELECTRIC COMPANY
+        </div>
+        <img src="static/images/KEC_LOGO.jpg" alt="Logo" onerror="this.style.display='none'">
+    </div>
+
+    <div class="watermark">FINANCE<br>PORTAL</div>
+
+    <div class="radial-nav" id="radialNav">
+        <div class="orbit-ring"></div>
+
+        <!-- Center Finance Icon (Acts as the toggle) -->
+        <div class="center-orb" onclick="toggleMenu()">
+            <i class="fa-solid fa-coins"></i>
+            <span>Finance</span>
+        </div>
+
+        <!-- Node 1: Collections (Left side) -->
+        <div class="nav-node" style="--angle: 180deg;">
+            <a href="{{ col_url }}" class="node-inner">
+                <i class="fa-solid fa-money-bill-transfer"></i>
+                <span>Collections</span>
+            </a>
+        </div>
+
+        <!-- Node 2: MIS (Right side) -->
+        <div class="nav-node" style="--angle: 0deg;">
+            <a href="{{ mis_url }}" class="node-inner">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>P&L</span>
+            </a>
+        </div>
+    </div>
+
+    <a href="{{ url_for('logout') }}" class="logout-btn">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+    </a>
+
+<script>
+    const nav = document.getElementById('radialNav');
+
+    // Automatically open the menu shortly after loading for a nice entrance effect
+    window.onload = () => {
+        setTimeout(() => {
+            nav.classList.add('is-open');
+        }, 300);
+    };
+
+    function toggleMenu() {
+        nav.classList.toggle('is-open');
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+        const isClickInside = nav.contains(event.target);
+        if (!isClickInside && nav.classList.contains('is-open')) {
+            nav.classList.remove('is-open');
+        }
+    });
+</script>
+</body>
+</html>
