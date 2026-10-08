@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="icon" type="image/x-icon" href="static/images/kirloskar.png">
+
+    <!-- External CSS & Libraries -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="Styleforhtmldata.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Scripts -->
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f9; /* Soft light grey background */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loginBox {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px;
+            padding: 60px 40px 40px 40px;
+            background: #ffffff; /* Clean white card */
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); /* Soft subtle shadow */
+            border: 1px solid #e1e8ed;
+        }
+
+        .usr {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            position: absolute;
+            top: -40px;
+            left: calc(50% - 40px);
+            background: #ffffff;
+            border: 3px solid #0056b3; /* Deep primary blue ring */
+            padding: 3px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin: 10px 0 25px 0;
+            padding: 0;
+            color: #0056b3; /* Primary Blue */
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .loginBox p {
+           margin: 0 0 6px 0;
+            padding: 0;
+            font-weight: 600;
+            color: #495057; /* Slate Grey text */
+            font-size: 13px;
+        }
+
+        .loginBox p.error {
+            color: #d9534f;
+            background-color: #fdf7f7;
+            border: 1px solid #f5c6cb;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: normal;
+        }
+
+        .loginBox input[type="text"],
+        .loginBox input[type="password"] {
+            width: 100%;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background: #f8f9fa;
+            outline: none;
+            height: 42px;
+            padding: 0 35px 0 12px;
+            color: #333333;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .loginBox input[type="text"]:focus,
+        .loginBox input[type="password"]:focus {
+            border-color: #0056b3;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
+        }
+
+        ::placeholder {
+            color: #6c757d;
+            opacity: 0.7;
+        }
+
+        .password-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .field-icon {
+            float: right;
+            position: absolute;
+            right: 12px;
+            top: 14px;
+            cursor: pointer;
+            color: #6c757d; /* Medium grey icon */
+            z-index: 2;
+        }
+
+        .field-icon:hover {
+            color: #0056b3;
+        }
+
+        .loginBox input[type="submit"] {
+            width: 100%;
+            border: none;
+            outline: none;
+            height: 42px;
+           color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            background: #0056b3; /* Primary Blue Button */
+            cursor: pointer;
+            border-radius: 6px;
+            margin-top: 10px;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .loginBox input[type="submit"]:hover {
+            background: #004085; /* Darker blue on hover */
+        }
+
+        .loginBox input[type="submit"]:active {
+            transform: scale(0.99);
+        }
+
+        /* Mobile Adjustments */
+        @media only screen and (max-width: 500px) {
+            .loginBox {
+                width: 90%;
+                padding: 50px 25px 30px 25px;
+            }
+        }
+
+        @media only screen and (max-height: 565px) {
+            .loginBox {
+                padding: 40px 20px 20px 20px;
+            }
+            .usr {
+                height: 60px;
+                width: 60px;
+                top: -30px;
+                left: calc(50% - 30px);
+            }
+            h2 {
+                font-size: 20px;
+                margin-bottom: 15px;
+            }
+            .loginBox input[type="text"],
+            .loginBox input[type="password"],
+            .loginBox input[type="submit"] {
+                height: 36px;
+                font-size: 13px;
+                margin-bottom: 12px;
+            }
+            .field-icon {
+                top: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="loginBox">
+        <img src="static/images/user_icon.png" class="usr" alt="User Icon">
+        <h2>Login Here</h2>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <p>User Name</p>
+            <input type="text" id="username" name="username" placeholder="Enter User Name" required autocomplete="off">
+
+            <p>Password</p>
+            <div class="password-container">
+                <input type="password" id="password" name="password" placeholder="Enter Password" required>
+                <span toggle="#password-field" class="fa fa-eye-slash field-icon toggle-password"></span>
+            </div>
+
+            <input type="submit" value="Sign In">
+        </form>
+    </div>
+
+    <!-- Maintained Original Script -->
+    <script>
+        $(".toggle-password").click(function (e) {
+            $(this).toggleClass("fa-eye fa-eye-slash");
+            var input = document.getElementById('password');
+            if (input.type == "password") {
+                input.type = "text";
+            } else {
+                input.type = "password";
+                e.target.classList.remove('fa-eye'); // e.target is what is clicked (icon)
+                e.target.classList.add('fa-eye-slash');
+            }
+        });
+    </script>
+</body>
+</html>
+
