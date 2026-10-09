@@ -1,0 +1,15 @@
+fastapi>=0.110
+uvicorn[standard]
+starlette>=0.29
+jinja2
+python-multipart
+itsdangerous
+pymysql
+sqlalchemy
+pandas
+openpyxl
+xlsxwriter
+apscheduler
+python-pptx
+smbprotocol
+smbclient
