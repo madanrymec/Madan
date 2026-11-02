@@ -1,0 +1,89 @@
+<!-- ===== AOP quarterly report (Order Book / Sales-Billing) : paste where the button should appear ===== -->
+<div class="aop-box">
+  <label for="aop-fy">Financial year</label>
+  <select id="aop-fy"><option value="">Latest available</option></select>
+
+  <button type="button" class="aop-btn" data-report="order">Order AOP Report (Excel)</button>
+  <button type="button" class="aop-btn" data-report="billing">Sales AOP Report (Excel)</button>
+  <button type="button" class="aop-btn aop-btn-alt" data-report="consolidated">Both reports (Excel)</button>
+
+  <span id="aop-msg" role="status"></span>
+</div>
+
+<style>
+  .aop-box { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:10px 0; }
+  .aop-box select { padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; }
+  .aop-btn { padding:7px 14px; border:0; border-radius:6px; background:#1d4ed8; color:#fff; font-weight:600; cursor:pointer; }
+  .aop-btn-alt { background:#047857; }
+  .aop-btn:disabled { opacity:.6; cursor:wait; }
+  #aop-msg { font-size:13px; }
+  #aop-msg.err { color:#b91c1c; }
+  #aop-msg.ok  { color:#047857; }
+</style>
+
+<script>
+(function () {
+  const ROUTES = {
+    order:        '/export_aop_quarterly_order_excel',
+    billing:      '/export_aop_quarterly_billing_excel',
+    consolidated: '/export_aop_quarterly_consolidated_excel'
+  };
+  const fySelect = document.getElementById('aop-fy');
+  const msg = document.getElementById('aop-msg');
+
+  function say(text, cls) { msg.textContent = text || ''; msg.className = cls || ''; }
+
+  // 1) fill the financial-year list from the two existing APIs (union of order and billing years)
+  Promise.all([
+    fetch('/get_order_available_years').then(r => r.json()).catch(() => []),
+    fetch('/get_available_years').then(r => r.json()).catch(() => [])
+  ]).then(([orderYears, billingYears]) => {
+    const years = [...new Set([...(orderYears || []), ...(billingYears || [])])].sort().reverse();
+    years.forEach(y => fySelect.add(new Option(y, y)));
+  });
+
+  // 2) file name from the Content-Disposition header sent by the server
+  function fileNameFrom(res, fallback) {
+    const cd = res.headers.get('Content-Disposition') || '';
+    let m = cd.match(/filename\*=UTF-8''([^;]+)/i);
+    if (m) { try { return decodeURIComponent(m[1]); } catch (e) {} }
+    m = cd.match(/filename="?([^";]+)"?/i);
+    return m ? m[1] : fallback;
+  }
+
+  // 3) download without leaving the page (errors are shown here instead of a blank error page)
+  async function downloadReport(kind, button) {
+    const url = new URL(ROUTES[kind], window.location.origin);
+    if (fySelect.value) url.searchParams.set('fin_year', fySelect.value);
+
+    const buttons = document.querySelectorAll('.aop-btn');
+    buttons.forEach(b => b.disabled = true);
+    say('Preparing report, please wait...');
+    try {
+      const res = await fetch(url, { credentials: 'same-origin' });
+      if (!res.ok) {
+        const text = (await res.text()).slice(0, 200);
+        throw new Error(res.status === 503 ? 'Server is busy with other exports, try again in a minute.'
+                                           : (text || ('HTTP ' + res.status)));
+      }
+      const blob = await res.blob();
+      const name = fileNameFrom(res, kind + '_aop_report.xlsx');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      say('Downloaded: ' + name, 'ok');
+    } catch (err) {
+      say('Could not create the report: ' + err.message, 'err');
+    } finally {
+      buttons.forEach(b => b.disabled = false);
+    }
+  }
+
+  document.querySelectorAll('.aop-btn').forEach(btn =>
+    btn.addEventListener('click', () => downloadReport(btn.dataset.report, btn)));
+})();
+</script>
